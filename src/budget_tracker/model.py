@@ -5,7 +5,7 @@ class Transaction:
 
     def __init__(
         self,
-        id: str,
+        id: str | None,
         account_id: str,
         amount: Decimal
     ):
@@ -21,7 +21,7 @@ class Account:
 
     def __init__(
         self,
-        id: str,
+        id: str | None,
         name: str,
         currency: str,
         initial_balance: Decimal = Decimal(0)
