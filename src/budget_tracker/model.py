@@ -52,12 +52,10 @@ def transfer(
     src: Account, dst: Account, *, debit_amt: Decimal, credit_amt: Decimal
 ) -> tuple[Transaction, Transaction]:
 
-    debit = Decimal(str(debit_amt))
-    credit = Decimal(str(credit_amt))
-    if debit <= 0 or credit <= 0:
+    if debit_amt <= 0 or credit_amt <= 0:
         raise ValueError("Amounts must be positive")
 
-    debit_tx = src.record_transaction(-debit)
-    credit_tx = dst.record_transaction(credit)
+    debit_tx = src.record_transaction(-debit_amt)
+    credit_tx = dst.record_transaction(credit_amt)
 
     return debit_tx, credit_tx
