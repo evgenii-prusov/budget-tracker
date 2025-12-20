@@ -46,3 +46,18 @@ class Account:
         tx: Transaction = Transaction(id=None, account_id=self.id, amount=amount)
         self._transactions.append(tx)
         return tx
+
+
+def transfer(
+    src: Account, dst: Account, *, debit_amt: Decimal, credit_amt: Decimal
+) -> tuple[Transaction, Transaction]:
+
+    debit = Decimal(str(debit_amt))
+    credit = Decimal(str(credit_amt))
+    if debit <= 0 or credit <= 0:
+        raise ValueError("Amounts must be positive")
+
+    debit_tx = src.record_transaction(-debit)
+    credit_tx = dst.record_transaction(credit)
+
+    return debit_tx, credit_tx
