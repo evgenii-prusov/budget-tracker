@@ -43,6 +43,6 @@ class Account:
         return f"Account({self.id!r}, {self.name!r}, {self.currency!r}, {self.balance})"
 
     def record_transaction(self, amount: Decimal) -> Transaction:
-        transaction: Transaction = Transaction(id=None, account_id=self.id, amount=amount)
-        self._transactions.append(transaction)
-        return transaction
+        tx: Transaction = Transaction(id=None, account_id=self.id, amount=amount)
+        self._transactions.append(tx)
+        return tx
