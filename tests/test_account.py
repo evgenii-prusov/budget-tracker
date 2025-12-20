@@ -11,7 +11,7 @@ def test_account_balance_is_sum_of_initial_balance_and_transactions():
 
     assert acc_1.balance == Decimal("30")
 
-def test_tranfer_with_different_currencies():
+def test_transfer_with_different_currencies():
     acc_1 = Account(id="acc_1", name="Account 1", currency="EUR", initial_balance=Decimal(35))
     acc_2 = Account(id="acc_2", name="Account 2", currency="RUB", initial_balance=Decimal(0))
 
