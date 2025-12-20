@@ -17,5 +17,5 @@ def test_transfer_with_different_currencies():
 
     debit, credit = transfer(acc_1, acc_2, debit_amt=Decimal(10), credit_amt=Decimal(1000))
 
-    assert acc_1.balance == 25
-    assert acc_2.balance == 1000
+    assert acc_1.balance == Decimal(25)
+    assert acc_2.balance == Decimal(1000)
