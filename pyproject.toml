@@ -7,11 +7,16 @@ requires-python = ">=3.14"
 dependencies = []
 
 [dependency-groups]
-dev = ["pytest>=7.4.4", "pytest-sugar>=1.0.0"]
+dev = [
+    "pre-commit>=4.5.1",
+    "pytest>=7.4.4",
+    "pytest-sugar>=1.0.0",
+    "ruff>=0.14.10",
+]
 
 
 [tool.ruff]
-line-length = 99
+line-length = 79
 
 [tool.ruff.lint]
 extend-select = ["E501"]

@@ -1,30 +1,28 @@
 from decimal import Decimal
 from uuid import uuid4
 
-class Transaction:
 
-    def __init__(
-        self,
-        id: str | None,
-        account_id: str,
-        amount: Decimal
-    ):
+class Transaction:
+    def __init__(self, id: str | None, account_id: str, amount: Decimal):
         self.id = id or str(uuid4())
-        self.amount = amount if isinstance(amount, Decimal) else Decimal(str(amount))
+        self.amount = (
+            amount if isinstance(amount, Decimal) else Decimal(str(amount))
+        )
         self.account_id = account_id
 
     def __repr__(self) -> str:
-        return f"Transaction({self.id!r}, {self.account_id!r}, {self.amount!r})"
+        return (
+            f"Transaction({self.id!r}, {self.account_id!r}, {self.amount!r})"
+        )
 
 
 class Account:
-
     def __init__(
         self,
         id: str | None,
         name: str,
         currency: str,
-        initial_balance: Decimal = Decimal(0)
+        initial_balance: Decimal = Decimal(0),
     ):
         self.id = id or str(uuid4())
         self.name = name
@@ -37,13 +35,18 @@ class Account:
 
     @property
     def balance(self) -> Decimal:
-        return self._initial_balance + sum(tx.amount for tx in self._transactions)
+        return self._initial_balance + sum(
+            tx.amount for tx in self._transactions
+        )
 
     def __repr__(self) -> str:
-        return f"Account({self.id!r}, {self.name!r}, {self.currency!r}, {self.balance})"
+        return (
+            f"Account({self.id!r}, {self.name!r}, {self.currency!r}, "
+            f"{self.balance})"
+        )
 
     def record_transaction(self, amount: Decimal) -> Transaction:
-        tx: Transaction = Transaction(id=None, account_id=self.id, amount=amount)
+        tx: Transaction = Transaction(None, self.id, amount)
         self._transactions.append(tx)
         return tx
 
@@ -51,7 +54,6 @@ class Account:
 def transfer(
     src: Account, dst: Account, *, debit_amt: Decimal, credit_amt: Decimal
 ) -> tuple[Transaction, Transaction]:
-
     if debit_amt <= 0 or credit_amt <= 0:
         raise ValueError("Amounts must be positive")
 
