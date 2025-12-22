@@ -1,18 +1,29 @@
 from decimal import Decimal
 from uuid import uuid4
+from datetime import date
 
 
 class Transaction:
-    def __init__(self, id: str | None, account_id: str, amount: Decimal):
+    def __init__(
+        self,
+        id: str | None,
+        account_id: str,
+        amount: Decimal,
+        date: date,
+        category: str | None,
+    ):
         self.id = id or str(uuid4())
         self.amount = (
             amount if isinstance(amount, Decimal) else Decimal(str(amount))
         )
         self.account_id = account_id
+        self.date = date
+        self.category = category
 
     def __repr__(self) -> str:
         return (
-            f"Transaction({self.id!r}, {self.account_id!r}, {self.amount!r})"
+            f"Transaction({self.id!r}, {self.account_id!r}, {self.amount!r}, "
+            f"{self.date!r}, {self.category!r})"
         )
 
 
@@ -45,19 +56,29 @@ class Account:
             f"{self.balance})"
         )
 
-    def record_transaction(self, amount: Decimal) -> Transaction:
-        tx: Transaction = Transaction(None, self.id, amount)
+    def record_transaction(
+        self,
+        amount: Decimal,
+        date: date,
+        category: str | None = None,
+    ) -> Transaction:
+        tx: Transaction = Transaction(None, self.id, amount, date, category)
         self._transactions.append(tx)
         return tx
 
 
 def transfer(
-    src: Account, dst: Account, *, debit_amt: Decimal, credit_amt: Decimal
+    src: Account,
+    dst: Account,
+    date: date,
+    *,
+    debit_amt: Decimal,
+    credit_amt: Decimal,
 ) -> tuple[Transaction, Transaction]:
     if debit_amt <= 0 or credit_amt <= 0:
         raise ValueError("Amounts must be positive")
 
-    debit_tx = src.record_transaction(-debit_amt)
-    credit_tx = dst.record_transaction(credit_amt)
+    debit_tx = src.record_transaction(-debit_amt, date)
+    credit_tx = dst.record_transaction(credit_amt, date)
 
     return debit_tx, credit_tx
