@@ -11,19 +11,29 @@ class Transaction:
         amount: Decimal,
         date: date,
         category: str | None,
+        category_type: str | None,
     ):
         self.id = id or str(uuid4())
-        self.amount = (
+        _amount = (
             amount if isinstance(amount, Decimal) else Decimal(str(amount))
         )
+        if category_type == "EXPENSE":
+            _effective_amount: Decimal = -abs(_amount)
+        elif category_type == "INCOME":
+            _effective_amount: Decimal = abs(amount)
+        elif category_type == "TRANSFER":
+            _effective_amount = amount
+
+        self.amount: Decimal = _effective_amount
         self.account_id = account_id
         self.date = date
         self.category = category
+        self.category_type = category_type
 
     def __repr__(self) -> str:
         return (
             f"Transaction({self.id!r}, {self.account_id!r}, {self.amount!r}, "
-            f"{self.date!r}, {self.category!r})"
+            f"{self.date!r}, {self.category!r}, {self.category_type!r})"
         )
 
 
@@ -61,8 +71,16 @@ class Account:
         amount: Decimal,
         date: date,
         category: str | None = None,
+        category_type: str | None = None,
     ) -> Transaction:
-        tx: Transaction = Transaction(None, self.id, amount, date, category)
+        tx: Transaction = Transaction(
+            None,
+            self.id,
+            amount,
+            date,
+            category,
+            category_type,
+        )
         self._transactions.append(tx)
         return tx
 
@@ -78,7 +96,11 @@ def transfer(
     if debit_amt <= 0 or credit_amt <= 0:
         raise ValueError("Amounts must be positive")
 
-    debit_tx = src.record_transaction(-debit_amt, date)
-    credit_tx = dst.record_transaction(credit_amt, date)
+    debit_tx = src.record_transaction(
+        -debit_amt, date, category_type="TRANSFER"
+    )
+    credit_tx = dst.record_transaction(
+        credit_amt, date, category_type="TRANSFER"
+    )
 
     return debit_tx, credit_tx
