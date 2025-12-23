@@ -12,6 +12,14 @@ class Transaction:
     apply sign logic.
     """
 
+    """Represents a financial transaction on an account.
+
+    The amount is stored as-is (positive or negative). The caller is
+    responsible for ensuring the amount has the correct sign based on
+    the category_type. Use Account.record_transaction() to automatically
+    apply sign logic.
+    """
+
     def __init__(
         self,
         id: str | None,
@@ -140,7 +148,7 @@ def transfer(
         ValueError: If either amount is not positive
     """
     if debit_amt <= 0 or credit_amt <= 0:
-        raise ValueError("Amounts must be positive")
+        raise ValueError("Amounts must be greater than zero")
 
     debit_tx = src.record_transaction(
         -debit_amt, date, category_type="TRANSFER"
