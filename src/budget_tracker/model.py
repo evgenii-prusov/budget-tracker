@@ -4,6 +4,14 @@ from datetime import date
 
 
 class Transaction:
+    """Represents a financial transaction on an account.
+
+    The amount is stored as-is (positive or negative). The caller is
+    responsible for ensuring the amount has the correct sign based on
+    the category_type. Use Account.record_transaction() to automatically
+    apply sign logic.
+    """
+
     def __init__(
         self,
         id: str | None,
@@ -14,17 +22,9 @@ class Transaction:
         category_type: str | None,
     ):
         self.id = id or str(uuid4())
-        _amount = (
+        self.amount = (
             amount if isinstance(amount, Decimal) else Decimal(str(amount))
         )
-        if category_type == "EXPENSE":
-            _effective_amount: Decimal = -abs(_amount)
-        elif category_type == "INCOME":
-            _effective_amount: Decimal = abs(_amount)
-        elif category_type == "TRANSFER":
-            _effective_amount = amount
-
-        self.amount: Decimal = _effective_amount
         self.account_id = account_id
         self.date = date
         self.category = category
@@ -73,10 +73,34 @@ class Account:
         category: str | None = None,
         category_type: str | None = None,
     ) -> Transaction:
+        """Record a transaction on this account.
+
+        Args:
+            amount: The transaction amount (always provide as positive value)
+            date: The transaction date
+            category: Optional category label
+            category_type: Transaction type - "EXPENSE", "INCOME", or
+                "TRANSFER"
+
+        Returns:
+            The created Transaction with properly signed amount:
+            - EXPENSE: amount becomes negative
+            - INCOME: amount becomes positive
+            - TRANSFER or None: amount used as-is
+        """
+        # Apply sign based on category_type
+        if category_type == "EXPENSE":
+            effective_amount = -abs(amount)
+        elif category_type == "INCOME":
+            effective_amount = abs(amount)
+        else:
+            # TRANSFER or None - use amount as-is
+            effective_amount = amount
+
         tx: Transaction = Transaction(
             None,
             self.id,
-            amount,
+            effective_amount,
             date,
             category,
             category_type,
@@ -93,6 +117,25 @@ def transfer(
     debit_amt: Decimal,
     credit_amt: Decimal,
 ) -> tuple[Transaction, Transaction]:
+    """Transfer funds between two accounts.
+
+    Creates two TRANSFER transactions: one debiting the source account
+    and one crediting the destination account. Supports different currencies
+    by allowing different debit and credit amounts.
+
+    Args:
+        src: Source account to debit from
+        dst: Destination account to credit to
+        date: Date of the transfer
+        debit_amt: Amount to deduct from source (must be positive)
+        credit_amt: Amount to add to destination (must be positive)
+
+    Returns:
+        Tuple of (debit_transaction, credit_transaction)
+
+    Raises:
+        ValueError: If either amount is not positive
+    """
     if debit_amt <= 0 or credit_amt <= 0:
         raise ValueError("Amounts must be positive")
 
