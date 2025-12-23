@@ -12,14 +12,6 @@ class Transaction:
     apply sign logic.
     """
 
-    """Represents a financial transaction on an account.
-
-    The amount is stored as-is (positive or negative). The caller is
-    responsible for ensuring the amount has the correct sign based on
-    the category_type. Use Account.record_transaction() to automatically
-    apply sign logic.
-    """
-
     def __init__(
         self,
         id: str | None,
