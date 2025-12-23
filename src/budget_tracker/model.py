@@ -20,7 +20,7 @@ class Transaction:
         if category_type == "EXPENSE":
             _effective_amount: Decimal = -abs(_amount)
         elif category_type == "INCOME":
-            _effective_amount: Decimal = abs(amount)
+            _effective_amount: Decimal = abs(_amount)
         elif category_type == "TRANSFER":
             _effective_amount = amount
 
