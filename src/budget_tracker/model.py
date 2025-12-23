@@ -138,7 +138,8 @@ def transfer(
         src: Source account to debit from
         dst: Destination account to credit to
         date: Date of the transfer
-        debit_amt: Amount to deduct from source (must be positive)
+        debit_amt: Amount to deduct from source (must be positive). This
+            value is negated internally when recording the debit transaction.
         credit_amt: Amount to add to destination (must be positive)
 
     Returns:
@@ -146,10 +147,18 @@ def transfer(
 
     Raises:
         ValueError: If either amount is not positive
+
+    Note:
+        Both parameters expect positive values for user convenience.
+        The debit_amt is negated when passed to record_transaction()
+        because TRANSFER transactions use amounts as-is, and debits
+        must be negative to decrease the source account balance.
     """
     if debit_amt <= 0 or credit_amt <= 0:
         raise ValueError("Amounts must be greater than zero")
 
+    # Negate debit_amt because TRANSFER transactions use amounts as-is,
+    # and debits must be negative to decrease the source account balance
     debit_tx = src.record_transaction(
         -debit_amt, date, category_type="TRANSFER"
     )
