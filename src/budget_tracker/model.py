@@ -76,7 +76,10 @@ class Account:
         """Record a transaction on this account.
 
         Args:
-            amount: The transaction amount (always provide as positive value)
+            amount: The transaction amount. For EXPENSE and INCOME, the
+                absolute value is used and the sign is applied automatically.
+                For TRANSFER (or when category_type is None), the amount is
+                used as provided.
             date: The transaction date
             category: Optional category label
             category_type: Transaction type - "EXPENSE", "INCOME", or
