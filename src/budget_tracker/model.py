@@ -86,8 +86,10 @@ class Account:
         Args:
             amount: The transaction amount. For EXPENSE and INCOME, the
                 absolute value is used and the sign is applied automatically.
-                For TRANSFER (or when category_type is None), the amount is
-                used as provided.
+                For TRANSFER (or when category_type is None), the caller is
+                responsible for providing a correctly signed amount (negative
+                for debits, positive for credits); the value is preserved
+                without modification.
             date: The transaction date
             category: Optional category label
             category_type: Transaction type - "EXPENSE", "INCOME", or
@@ -97,7 +99,8 @@ class Account:
             The created Transaction with properly signed amount:
             - EXPENSE: amount becomes negative
             - INCOME: amount becomes positive
-            - TRANSFER or None: amount used as-is
+            - TRANSFER or None: amount preserved as provided (caller must
+              ensure correct sign)
         """
         # Apply sign based on category_type
         if category_type == "EXPENSE":
@@ -105,7 +108,7 @@ class Account:
         elif category_type == "INCOME":
             effective_amount = abs(amount)
         else:
-            # TRANSFER or None - use amount as-is
+            # TRANSFER or None - preserve caller-provided amount
             effective_amount = amount
 
         tx: Transaction = Transaction(
