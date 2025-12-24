@@ -79,3 +79,5 @@ def test_transactions_sorted_by_date():
     transactions = [tx_2, tx_1, tx_3]
     transactions.sort()
     assert transactions[0].date == JAN_01_2025
+    assert transactions[1].date == JAN_02_2025
+    assert transactions[2].date == JAN_03_2025
