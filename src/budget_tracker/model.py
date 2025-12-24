@@ -40,10 +40,10 @@ class Transaction:
         if not isinstance(other, Transaction):
             return False
         else:
-            return self.account_id == other.account_id
+            return self.id == other.id
 
     def __hash__(self):
-        return hash(self.account_id)
+        return hash(self.id)
 
     def __gt__(self, other: Transaction):
         return self.date > other.date
