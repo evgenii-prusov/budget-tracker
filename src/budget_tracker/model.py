@@ -1,8 +1,12 @@
+from __future__ import annotations
+
 from decimal import Decimal
 from uuid import uuid4
 from datetime import date
+import functools
 
 
+@functools.total_ordering
 class Transaction:
     """Represents a financial transaction on an account.
 
@@ -45,10 +49,8 @@ class Transaction:
     def __hash__(self):
         return hash(self.id)
 
-    def __gt__(self, other: object):
-        if not isinstance(other, Transaction):
-            return NotImplemented
-        return self.date > other.date
+    def __lt__(self, other: Transaction):
+        return self.date < other.date
 
 
 class Account:
