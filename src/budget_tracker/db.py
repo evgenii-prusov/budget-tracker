@@ -34,7 +34,9 @@ def start_mappers():
         accounts,
         properties={
             "_transactions": relationship(
-                model.Transaction, backref="account"
+                model.Transaction,
+                backref="account",
+                cascade="all, delete-orphan",
             ),
         },
     )
