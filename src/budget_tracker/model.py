@@ -44,10 +44,10 @@ class Transaction:
         if not isinstance(other, Transaction):
             return False
         else:
-            return self.account_id == other.account_id
+            return self.id == other.id
 
     def __hash__(self):
-        return hash(self.account_id)
+        return hash(self.id)
 
     def __lt__(self, other: Transaction):
         return self.date < other.date
@@ -69,8 +69,6 @@ class Account:
         else:
             self._initial_balance = Decimal(str(initial_balance))
         self._transactions: list[Transaction] = []
-
-    # TODO: implement __eq__ and __hash__ magic methods
 
     @property
     def balance(self) -> Decimal:
