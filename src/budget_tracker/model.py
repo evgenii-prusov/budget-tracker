@@ -28,8 +28,8 @@ class Transaction:
         account_id: str,
         amount: Decimal,
         date: date,
-        category: str | None,
-        category_type: str | None,
+        category: str,
+        category_type: str,
     ):
         self.id = id or str(uuid4())
         self.amount = (
@@ -101,8 +101,8 @@ class Account:
         self,
         amount: Decimal,
         date: date,
-        category: str | None = None,
-        category_type: str | None = None,
+        category: str,
+        category_type: str,
     ) -> Transaction:
         """Record a transaction on this account.
 
@@ -196,10 +196,10 @@ def transfer(
     # Negate debit_amt because TRANSFER transactions use amounts as-is,
     # and debits must be negative to decrease the source account balance
     debit_tx = src.record_transaction(
-        -debit_amt, date, category_type="TRANSFER"
+        -debit_amt, date, category="TRANSFER", category_type="TRANSFER"
     )
     credit_tx = dst.record_transaction(
-        credit_amt, date, category_type="TRANSFER"
+        credit_amt, date, category="TRANSFER", category_type="TRANSFER"
     )
 
     return debit_tx, credit_tx
