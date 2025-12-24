@@ -6,6 +6,12 @@ from datetime import date
 import functools
 
 
+class InsufficientFundsError(Exception):
+    """Raised when an operation would result in a negative account balance."""
+
+    pass
+
+
 @functools.total_ordering
 class Transaction:
     """Represents a financial transaction on an account.
@@ -127,6 +133,16 @@ class Account:
         else:
             # TRANSFER or None - preserve caller-provided amount
             effective_amount = amount
+
+        # Check if transaction would result in negative balance
+        new_balance = self.balance + effective_amount
+        if new_balance < 0:
+            raise InsufficientFundsError(
+                f"Insufficient funds in account '{self.name}' (id={self.id}): "
+                f"current balance {self.balance} {self.currency}, "
+                f"attempted transaction {effective_amount} {self.currency}, "
+                f"would result in balance {new_balance} {self.currency}"
+            )
 
         tx: Transaction = Transaction(
             None,

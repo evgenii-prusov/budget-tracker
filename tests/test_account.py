@@ -2,8 +2,10 @@ import pytest
 from decimal import Decimal
 from datetime import date
 
-from budget_tracker.model import Account, Transaction
+from budget_tracker.model import Account
+from budget_tracker.model import Transaction
 from budget_tracker.model import transfer
+from budget_tracker.model import InsufficientFundsError
 
 JAN_01_2025 = date.fromisoformat("2025-01-01")
 JAN_02_2025 = date.fromisoformat("2025-01-02")
@@ -81,3 +83,10 @@ def test_transactions_sorted_by_date():
     assert transactions[0].date == JAN_01_2025
     assert transactions[1].date == JAN_02_2025
     assert transactions[2].date == JAN_03_2025
+
+
+def test_raise_insufficient_funds_error(acc_eur: Account):
+    with pytest.raises(InsufficientFundsError):
+        acc_eur.record_transaction(
+            Decimal("50"), JAN_01_2025, "some_category", "EXPENSE"
+        )
