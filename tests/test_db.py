@@ -1,5 +1,5 @@
 from decimal import Decimal
-from sqlalchemy import text
+from sqlalchemy import select, text
 
 from budget_tracker.model import Account
 
@@ -18,4 +18,4 @@ def test_account_mapper_loads_accounts(session):
         Account("acc-2", "Revolut 2", "EUR", Decimal("0")),
         Account("acc-3", "Sparkasse", "EUR", Decimal("100")),
     }
-    assert set(session.query(Account).all()) == expected
+    assert set(session.execute(select(Account)).scalars().all()) == expected
