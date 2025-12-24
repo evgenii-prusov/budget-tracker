@@ -36,6 +36,18 @@ class Transaction:
             f"{self.date!r}, {self.category!r}, {self.category_type!r})"
         )
 
+    def __eq__(self, other):
+        if not isinstance(other, Transaction):
+            return False
+        else:
+            return self.account_id == other.account_id
+
+    def __hash__(self):
+        return hash(self.account_id)
+
+    def __gt__(self, other: Transaction):
+        return self.date > other.date
+
 
 class Account:
     def __init__(
@@ -54,6 +66,8 @@ class Account:
             self._initial_balance = Decimal(str(initial_balance))
         self._transactions: list[Transaction] = []
 
+    # TODO: implement __eq__ and __hash__ magic methods
+
     @property
     def balance(self) -> Decimal:
         return self._initial_balance + sum(
@@ -65,6 +79,15 @@ class Account:
             f"Account({self.id!r}, {self.name!r}, {self.currency!r}, "
             f"{self.balance})"
         )
+
+    def __eq__(self, other):
+        if not isinstance(other, Account):
+            return False
+        else:
+            return self.id == other.id
+
+    def __hash__(self):
+        return hash(self.id)
 
     def record_transaction(
         self,
