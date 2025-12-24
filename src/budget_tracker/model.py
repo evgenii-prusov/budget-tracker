@@ -45,7 +45,9 @@ class Transaction:
     def __hash__(self):
         return hash(self.id)
 
-    def __gt__(self, other: Transaction):
+    def __gt__(self, other: object):
+        if not isinstance(other, Transaction):
+            return NotImplemented
         return self.date > other.date
 
 
