@@ -25,7 +25,7 @@ def test_account_mapper_loads_accounts(session):
 
 
 def test_transaction_mapper_persists_and_loads_transactions(session):
-    """Test that transactions can be persisted to and loaded from the database."""
+    """Test transactions can be persisted and loaded from database."""
     # Create an account
     account = Account("acc-1", "Test Account", "EUR", Decimal("100"))
     session.add(account)
@@ -88,7 +88,7 @@ def test_transaction_account_relationship_forward(session):
 
 
 def test_transaction_account_relationship_backward(session):
-    """Test that accounts can access their transactions via the relationship."""
+    """Test accounts can access their transactions via relationship."""
     # Create an account
     account = Account("acc-1", "Test Account", "EUR", Decimal("100"))
     session.add(account)
@@ -127,7 +127,7 @@ def test_transaction_account_relationship_backward(session):
 
 
 def test_transaction_foreign_key_constraint_enforced(session):
-    """Test that foreign key constraint prevents transactions with invalid account_id."""
+    """Test foreign key constraint prevents invalid account_id."""
     # Try to create a transaction with a non-existent account_id
     tx = Transaction(
         id="tx-1",
@@ -145,7 +145,7 @@ def test_transaction_foreign_key_constraint_enforced(session):
 
 
 def test_transactions_associated_with_correct_accounts(session):
-    """Test that transactions are properly associated with their accounts when loaded."""
+    """Test transactions are properly associated with accounts."""
     # Create two accounts
     account1 = Account("acc-1", "Account 1", "EUR", Decimal("100"))
     account2 = Account("acc-2", "Account 2", "USD", Decimal("200"))
