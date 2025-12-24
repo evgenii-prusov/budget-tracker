@@ -66,8 +66,6 @@ class Account:
             self._initial_balance = Decimal(str(initial_balance))
         self._transactions: list[Transaction] = []
 
-    # TODO: implement __eq__ and __hash__ magic methods
-
     @property
     def balance(self) -> Decimal:
         return self._initial_balance + sum(
