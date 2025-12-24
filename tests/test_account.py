@@ -3,9 +3,13 @@ from decimal import Decimal
 from datetime import date
 
 from budget_tracker.model import Account
+from budget_tracker.model import Transaction
 from budget_tracker.model import transfer
+from budget_tracker.model import InsufficientFundsError
 
 JAN_01_2025 = date.fromisoformat("2025-01-01")
+JAN_02_2025 = date.fromisoformat("2025-01-02")
+JAN_03_2025 = date.fromisoformat("2025-01-03")
 
 
 @pytest.fixture
@@ -61,3 +65,28 @@ def test_transaction_keeps_category(acc_eur: Account):
         category_type="EXPENSE",
     )
     assert acc_eur._transactions.pop().category == "Taxi"
+
+
+def test_transactions_sorted_by_date():
+    tx_2 = Transaction(
+        "tx-2", "a-1", Decimal("3"), JAN_02_2025, "food", "expense"
+    )
+    tx_1 = Transaction(
+        "tx-1", "a-1", Decimal("0"), JAN_01_2025, "taxi", "expense"
+    )
+    tx_3 = Transaction(
+        "tx-3", "a-2", Decimal("1"), JAN_03_2025, "taxi", "expense"
+    )
+
+    transactions = [tx_2, tx_1, tx_3]
+    transactions.sort()
+    assert transactions[0].date == JAN_01_2025
+    assert transactions[1].date == JAN_02_2025
+    assert transactions[2].date == JAN_03_2025
+
+
+def test_raise_insufficient_funds_error(acc_eur: Account):
+    with pytest.raises(InsufficientFundsError):
+        acc_eur.record_transaction(
+            Decimal("50"), JAN_01_2025, "some_category", "EXPENSE"
+        )
