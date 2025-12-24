@@ -71,14 +71,14 @@ class Account:
         self.name = name
         self.currency = currency
         if isinstance(initial_balance, Decimal):
-            self._initial_balance = initial_balance
+            self.initial_balance = initial_balance
         else:
-            self._initial_balance = Decimal(str(initial_balance))
+            self.initial_balance = Decimal(str(initial_balance))
         self._transactions: list[Transaction] = []
 
     @property
     def balance(self) -> Decimal:
-        return self._initial_balance + sum(
+        return self.initial_balance + sum(
             tx.amount for tx in self._transactions
         )
 

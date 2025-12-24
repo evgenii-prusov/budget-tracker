@@ -33,7 +33,6 @@ def start_mappers():
         model.Account,
         accounts,
         properties={
-            "_initial_balance": accounts.c.initial_balance,
             "_transactions": relationship(
                 model.Transaction, backref="account"
             ),

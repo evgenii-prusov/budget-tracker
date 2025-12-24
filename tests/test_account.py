@@ -69,13 +69,13 @@ def test_transaction_keeps_category(acc_eur: Account):
 
 def test_transactions_sorted_by_date():
     tx_2 = Transaction(
-        "tx-2", "a-1", Decimal("3"), JAN_02_2025, "food", "expense"
+        "tx-2", "a-1", Decimal("3"), JAN_02_2025, "food", "EXPENSE"
     )
     tx_1 = Transaction(
-        "tx-1", "a-1", Decimal("0"), JAN_01_2025, "taxi", "expense"
+        "tx-1", "a-1", Decimal("0"), JAN_01_2025, "taxi", "EXPENSE"
     )
     tx_3 = Transaction(
-        "tx-3", "a-2", Decimal("1"), JAN_03_2025, "taxi", "expense"
+        "tx-3", "a-2", Decimal("1"), JAN_03_2025, "taxi", "EXPENSE"
     )
 
     transactions = [tx_2, tx_1, tx_3]
