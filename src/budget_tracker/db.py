@@ -22,7 +22,7 @@ transactions = Table(
     Column("id", String, primary_key=True),
     Column("account_id", String, ForeignKey("account.id"), nullable=False),
     Column("amount", Numeric, nullable=False),
-    Column("date", Date),
+    Column("date", Date, nullable=False),
     Column("category", String, nullable=False),
     Column("category_type", String, nullable=False),
 )
