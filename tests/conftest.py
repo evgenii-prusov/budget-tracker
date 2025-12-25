@@ -1,8 +1,10 @@
 import pytest
+from decimal import Decimal
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from budget_tracker.db import metadata, start_mappers, mapper_registry
+from budget_tracker.model import Account
 
 
 @pytest.fixture
@@ -26,3 +28,13 @@ def session():
     # Cleanup
     session.close()
     mapper_registry.dispose()
+
+
+@pytest.fixture
+def acc_eur() -> Account:
+    return Account("a1", "EUR_1", "EUR", Decimal("35"))
+
+
+@pytest.fixture
+def acc_rub() -> Account:
+    return Account("a2", "RUB_1", "RUB", Decimal("0"))
