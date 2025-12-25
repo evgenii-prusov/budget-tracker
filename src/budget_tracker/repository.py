@@ -1,0 +1,31 @@
+import abc
+
+from sqlalchemy.orm import Session
+
+from budget_tracker.model import Account
+
+
+class AbstractRepository(abc.ABC):
+    @abc.abstractmethod
+    def add(self, account: Account):
+        raise NotImplementedError()
+
+    @abc.abstractmethod
+    def get(self, account_id) -> Account:
+        raise NotImplementedError()
+
+
+class SqlAlchemyRepository(AbstractRepository):
+    def __init__(self, session: Session):
+        self.session = session
+
+    def add(self, account: Account):
+        self.session.add(account)
+
+    def get(self, account_id) -> Account:
+        return (
+            self.session.query(Account).filter_by(account_id=account_id).one()
+        )
+
+    def list_all(self) -> list[Account]:
+        return self.session.query(Account).all()

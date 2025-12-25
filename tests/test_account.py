@@ -12,16 +12,6 @@ JAN_02_2025 = date.fromisoformat("2025-01-02")
 JAN_03_2025 = date.fromisoformat("2025-01-03")
 
 
-@pytest.fixture
-def acc_eur() -> Account:
-    return Account("a1", "EUR_1", "EUR", Decimal("35"))
-
-
-@pytest.fixture
-def acc_rub() -> Account:
-    return Account("a2", "RUB_1", "RUB", Decimal("0"))
-
-
 def test_account_balance_is_sum_of_init_balance_and_transactions(
     acc_eur: Account,
 ):
