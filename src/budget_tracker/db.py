@@ -16,8 +16,8 @@ accounts = Table(
     Column("initial_balance", Numeric, nullable=False),
 )
 
-transactions = Table(
-    "transaction",
+entries = Table(
+    "entry",
     metadata,
     Column("id", String, primary_key=True),
     Column("account_id", String, ForeignKey("account.id"), nullable=False),
@@ -33,11 +33,11 @@ def start_mappers():
         model.Account,
         accounts,
         properties={
-            "_transactions": relationship(
-                model.Transaction,
+            "_entries": relationship(
+                model.Entry,
                 backref="account",
                 cascade="all, delete-orphan",
             ),
         },
     )
-    mapper_registry.map_imperatively(model.Transaction, transactions)
+    mapper_registry.map_imperatively(model.Entry, entries)

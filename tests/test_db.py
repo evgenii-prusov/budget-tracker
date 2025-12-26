@@ -19,3 +19,12 @@ def test_account_mapper_loads_accounts(session):
         Account("acc-3", "Sparkasse", "EUR", Decimal("100")),
     }
     assert set(session.execute(select(Account)).scalars().all()) == expected
+
+
+def test_account_mapper_saves_account(session, acc_eur):
+    session.add(acc_eur)
+    session.commit()
+
+    rows = session.execute(select(Account)).scalars().all()
+    assert len(rows) == 1
+    assert rows[0] == acc_eur
