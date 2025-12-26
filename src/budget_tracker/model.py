@@ -13,12 +13,12 @@ class InsufficientFundsError(Exception):
 
 
 @functools.total_ordering
-class Transaction:
-    """Represents a financial transaction on an account.
+class Entry:
+    """Represents a financial entry on an account.
 
     The amount is stored as-is (positive or negative). The caller is
     responsible for ensuring the amount has the correct sign based on
-    the category_type. Use Account.record_transaction() to automatically
+    the category_type. Use Account.record_entry() to automatically
     apply sign logic.
     """
 
@@ -42,12 +42,12 @@ class Transaction:
 
     def __repr__(self) -> str:
         return (
-            f"Transaction({self.id!r}, {self.account_id!r}, {self.amount!r}, "
+            f"Entry({self.id!r}, {self.account_id!r}, {self.amount!r}, "
             f"{self.date!r}, {self.category!r}, {self.category_type!r})"
         )
 
     def __eq__(self, other):
-        if not isinstance(other, Transaction):
+        if not isinstance(other, Entry):
             return False
         else:
             return self.id == other.id
@@ -55,7 +55,7 @@ class Transaction:
     def __hash__(self):
         return hash(self.id)
 
-    def __lt__(self, other: Transaction):
+    def __lt__(self, other: Entry):
         return self.date < other.date
 
 
@@ -74,12 +74,12 @@ class Account:
             self.initial_balance = initial_balance
         else:
             self.initial_balance = Decimal(str(initial_balance))
-        self._transactions: list[Transaction] = []
+        self._entries: list[Entry] = []
 
     @property
     def balance(self) -> Decimal:
         return self.initial_balance + sum(
-            tx.amount for tx in self._transactions
+            entry.amount for entry in self._entries
         )
 
     def __repr__(self) -> str:
@@ -97,29 +97,29 @@ class Account:
     def __hash__(self):
         return hash(self.id)
 
-    def record_transaction(
+    def record_entry(
         self,
         amount: Decimal,
         date: date,
         category: str,
         category_type: str,
-    ) -> Transaction:
-        """Record a transaction on this account.
+    ) -> Entry:
+        """Record an entry on this account.
 
         Args:
-            amount: The transaction amount. For EXPENSE and INCOME, the
+            amount: The entry amount. For EXPENSE and INCOME, the
                 absolute value is used and the sign is applied automatically.
                 For TRANSFER (or when category_type is None), the caller is
                 responsible for providing a correctly signed amount (negative
                 for debits, positive for credits); the value is preserved
                 without modification.
-            date: The transaction date
+            date: The entry date
             category: Optional category label
-            category_type: Transaction type - "EXPENSE", "INCOME", or
+            category_type: Entry type - "EXPENSE", "INCOME", or
                 "TRANSFER"
 
         Returns:
-            The created Transaction with properly signed amount:
+            The created Entry with properly signed amount:
             - EXPENSE: amount becomes negative
             - INCOME: amount becomes positive
             - TRANSFER or None: amount preserved as provided (caller must
@@ -134,17 +134,17 @@ class Account:
             # TRANSFER or None - preserve caller-provided amount
             effective_amount = amount
 
-        # Check if transaction would result in negative balance
+        # Check if entry would result in negative balance
         new_balance = self.balance + effective_amount
         if new_balance < 0:
             raise InsufficientFundsError(
                 f"Insufficient funds in account '{self.name}' (id={self.id}): "
                 f"current balance {self.balance} {self.currency}, "
-                f"attempted transaction {effective_amount} {self.currency}, "
+                f"attempted entry {effective_amount} {self.currency}, "
                 f"would result in balance {new_balance} {self.currency}"
             )
 
-        tx: Transaction = Transaction(
+        entry: Entry = Entry(
             None,
             self.id,
             effective_amount,
@@ -152,8 +152,8 @@ class Account:
             category,
             category_type,
         )
-        self._transactions.append(tx)
-        return tx
+        self._entries.append(entry)
+        return entry
 
 
 def transfer(
@@ -163,10 +163,10 @@ def transfer(
     *,
     debit_amt: Decimal,
     credit_amt: Decimal,
-) -> tuple[Transaction, Transaction]:
+) -> tuple[Entry, Entry]:
     """Transfer funds between two accounts.
 
-    Creates two TRANSFER transactions: one debiting the source account
+    Creates two TRANSFER entries: one debiting the source account
     and one crediting the destination account. Supports different currencies
     by allowing different debit and credit amounts.
 
@@ -175,31 +175,31 @@ def transfer(
         dst: Destination account to credit to
         date: Date of the transfer
         debit_amt: Amount to deduct from source (must be positive). This
-            value is negated internally when recording the debit transaction.
+            value is negated internally when recording the debit entry.
         credit_amt: Amount to add to destination (must be positive)
 
     Returns:
-        Tuple of (debit_transaction, credit_transaction)
+        Tuple of (debit_entry, credit_entry)
 
     Raises:
         ValueError: If either amount is not positive
 
     Note:
         Both parameters expect positive values for user convenience.
-        The debit_amt is negated when passed to record_transaction()
-        because TRANSFER transactions use amounts as-is, and debits
+        The debit_amt is negated when passed to record_entry()
+        because TRANSFER entries use amounts as-is, and debits
         must be negative to decrease the source account balance.
     """
     if debit_amt <= 0 or credit_amt <= 0:
         raise ValueError("Amounts must be greater than zero")
 
-    # Negate debit_amt because TRANSFER transactions use amounts as-is,
+    # Negate debit_amt because TRANSFER entries use amounts as-is,
     # and debits must be negative to decrease the source account balance
-    debit_tx = src.record_transaction(
+    debit_entry = src.record_entry(
         -debit_amt, date, category="TRANSFER", category_type="TRANSFER"
     )
-    credit_tx = dst.record_transaction(
+    credit_entry = dst.record_entry(
         credit_amt, date, category="TRANSFER", category_type="TRANSFER"
     )
 
-    return debit_tx, credit_tx
+    return debit_entry, credit_entry
