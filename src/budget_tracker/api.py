@@ -45,7 +45,7 @@ class AccountCreate(BaseModel):
     initial_balance: float = 0.0
 
 
-@app.post("/accounts")
+@app.post("/accounts", status_code=201)
 def create_account(
     account: AccountCreate, session: Session = Depends(get_db_session)
 ):
