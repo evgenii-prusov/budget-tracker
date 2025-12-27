@@ -74,7 +74,6 @@ def create_account(
         name=account.name,
         currency=account.currency,
         initial_balance=account.initial_balance,
-        initial_balance=account.initial_balance,
     )
 
     repository.add(new_account)
