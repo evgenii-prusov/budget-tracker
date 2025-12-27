@@ -25,6 +25,9 @@ VALID_CURRENCIES = {
 
 
 try:
+    class_mapper(Account)
+except UnmappedClassError:
+    # Mappers not yet configured, so configure them
     start_mappers()
 except ArgumentError:
     # Mappers might be already started by tests or other imports
