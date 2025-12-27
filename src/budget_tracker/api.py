@@ -1,10 +1,15 @@
 from decimal import Decimal
-from fastapi import FastAPI, Depends
-from pydantic import BaseModel, field_validator
+from fastapi import FastAPI
+from fastapi import Depends
+from pydantic import BaseModel
+from pydantic import Field
+from pydantic import ConfigDict
 from sqlalchemy import create_engine
-from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.orm import Session
+from sqlalchemy.orm import sessionmaker
 
-from budget_tracker.db import metadata, start_mappers
+from budget_tracker.db import metadata
+from budget_tracker.db import start_mappers
 from budget_tracker.model import Account
 from budget_tracker.repository import SqlAlchemyRepository
 
@@ -13,52 +18,9 @@ from budget_tracker.repository import SqlAlchemyRepository
 VALID_CURRENCIES = {
     "USD",
     "EUR",
-    "GBP",
     "JPY",
-    "CHF",
-    "CAD",
-    "AUD",
-    "NZD",
-    "SEK",
-    "NOK",
-    "DKK",
-    "ISK",
-    "CZK",
-    "PLN",
-    "HUF",
-    "RON",
-    "BGN",
-    "HRK",
     "RUB",
-    "TRY",
-    "BRL",
-    "MXN",
-    "ARS",
-    "CLP",
-    "COP",
-    "PEN",
-    "CNY",
-    "HKD",
-    "INR",
-    "IDR",
-    "KRW",
-    "MYR",
-    "PHP",
-    "SGD",
-    "THB",
-    "VND",
-    "ZAR",
-    "ILS",
-    "SAR",
     "AED",
-    "KWD",
-    "QAR",
-    "BHD",
-    "OMR",
-    "JOD",
-    "EGP",
-    "MAD",
-    "TND",
 }
 
 
@@ -70,7 +32,8 @@ except Exception:
 
 app = FastAPI()
 
-# Setup database (using in-memory SQLite for demo, or a file-based one)
+# Setup database (using file-based SQLite database 'budget.db';
+# this URL could be made configurable via environment variables)
 engine = create_engine("sqlite:///budget.db")
 # Create tables (normally done via migration, but for quick start:
 metadata.create_all(engine)
@@ -86,16 +49,28 @@ def get_db_session():
         session.close()
 
 
-@app.get("/accounts")
-def list_accounts(session: Session = Depends(get_db_session)):
-    repository = SqlAlchemyRepository(session)
-    return repository.list_all()
-
-
 class AccountCreate(BaseModel):
+    name: str = Field(
+        ...,
+        min_length=3,
+        max_length=100,
+        pattern="^[a-zA-Z0-9][a-zA-Z0-9 _-]*$",
+        description=(
+            "Account name (3-100 characters, must start with alphanumeric, "
+            "can contain spaces, hyphens, underscores)"
+        ),
+    )
+    currency: str
+    initial_balance: Decimal = Decimal("0.0")
+
+
+class AccountResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
     name: str
     currency: str
-    initial_balance: float = 0.0
+    initial_balance: Decimal = Decimal("0.0")
 
     @field_validator("currency")
     @classmethod
@@ -109,7 +84,7 @@ class AccountCreate(BaseModel):
         return value.upper()
 
 
-@app.post("/accounts", status_code=201)
+@app.post("/accounts", status_code=201, response_model=AccountResponse)
 def create_account(
     account: AccountCreate, session: Session = Depends(get_db_session)
 ):
@@ -119,9 +94,16 @@ def create_account(
         id=None,
         name=account.name,
         currency=account.currency,
-        initial_balance=Decimal(account.initial_balance),
+        initial_balance=account.initial_balance,
     )
 
     repository.add(new_account)
-    session.commit()
+    try:
+        session.commit()
+    except IntegrityError:
+        session.rollback()
+        raise HTTPException(
+            status_code=409,
+            detail=f"Account with name '{account.name}' already exists",
+        )
     return {"id": new_account.id}
