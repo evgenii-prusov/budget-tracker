@@ -9,6 +9,59 @@ from budget_tracker.model import Account
 from budget_tracker.repository import SqlAlchemyRepository
 
 
+# Common ISO 4217 currency codes
+VALID_CURRENCIES = {
+    "USD",
+    "EUR",
+    "GBP",
+    "JPY",
+    "CHF",
+    "CAD",
+    "AUD",
+    "NZD",
+    "SEK",
+    "NOK",
+    "DKK",
+    "ISK",
+    "CZK",
+    "PLN",
+    "HUF",
+    "RON",
+    "BGN",
+    "HRK",
+    "RUB",
+    "TRY",
+    "BRL",
+    "MXN",
+    "ARS",
+    "CLP",
+    "COP",
+    "PEN",
+    "CNY",
+    "HKD",
+    "INR",
+    "IDR",
+    "KRW",
+    "MYR",
+    "PHP",
+    "SGD",
+    "THB",
+    "VND",
+    "ZAR",
+    "ILS",
+    "SAR",
+    "AED",
+    "KWD",
+    "QAR",
+    "BHD",
+    "OMR",
+    "JOD",
+    "EGP",
+    "MAD",
+    "TND",
+}
+
+
 try:
     start_mappers()
 except Exception:
@@ -48,58 +101,7 @@ class AccountCreate(BaseModel):
     @classmethod
     def validate_currency(cls, value: str) -> str:
         """Validate that currency is a valid ISO 4217 code."""
-        # Common ISO 4217 currency codes
-        valid_currencies = {
-            "USD",
-            "EUR",
-            "GBP",
-            "JPY",
-            "CHF",
-            "CAD",
-            "AUD",
-            "NZD",
-            "SEK",
-            "NOK",
-            "DKK",
-            "ISK",
-            "CZK",
-            "PLN",
-            "HUF",
-            "RON",
-            "BGN",
-            "HRK",
-            "RUB",
-            "TRY",
-            "BRL",
-            "MXN",
-            "ARS",
-            "CLP",
-            "COP",
-            "PEN",
-            "CNY",
-            "HKD",
-            "INR",
-            "IDR",
-            "KRW",
-            "MYR",
-            "PHP",
-            "SGD",
-            "THB",
-            "VND",
-            "ZAR",
-            "ILS",
-            "SAR",
-            "AED",
-            "KWD",
-            "QAR",
-            "BHD",
-            "OMR",
-            "JOD",
-            "EGP",
-            "MAD",
-            "TND",
-        }
-        if value.upper() not in valid_currencies:
+        if value.upper() not in VALID_CURRENCIES:
             raise ValueError(
                 f"Invalid currency code: {value}. "
                 "Must be a valid ISO 4217 currency code."
