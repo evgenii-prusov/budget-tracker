@@ -14,6 +14,16 @@ from budget_tracker.model import Account
 from budget_tracker.repository import SqlAlchemyRepository
 
 
+# Common ISO 4217 currency codes
+VALID_CURRENCIES = {
+    "USD",
+    "EUR",
+    "JPY",
+    "RUB",
+    "AED",
+}
+
+
 try:
     start_mappers()
 except Exception:
@@ -61,6 +71,17 @@ class AccountResponse(BaseModel):
     name: str
     currency: str
     initial_balance: Decimal = Decimal("0.0")
+
+    @field_validator("currency")
+    @classmethod
+    def validate_currency(cls, value: str) -> str:
+        """Validate that currency is a valid ISO 4217 code."""
+        if value.upper() not in VALID_CURRENCIES:
+            raise ValueError(
+                f"Invalid currency code: {value}. "
+                "Must be a valid ISO 4217 currency code."
+            )
+        return value.upper()
 
 
 @app.post("/accounts", status_code=201, response_model=AccountResponse)

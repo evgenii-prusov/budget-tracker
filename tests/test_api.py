@@ -56,3 +56,81 @@ def test_create_account_duplicate_name(session, acc_eur):
 
     # Clean up override
     app.dependency_overrides.clear()
+
+
+def test_create_account_with_valid_currency(session):
+    # Arrange: Override the dependency to use the test session
+    def override_get_db_session():
+        yield session
+
+    app.dependency_overrides[get_db_session] = override_get_db_session
+
+    # Act: Create an account with a valid currency
+    response = client.post(
+        "/accounts",
+        json={
+            "name": "Test Account",
+            "currency": "USD",
+            "initial_balance": 100.0,
+        },
+    )
+
+    # Assert: Check the response
+    assert response.status_code == 201
+    data = response.json()
+    assert "id" in data
+
+    # Clean up override
+    app.dependency_overrides.clear()
+
+
+def test_create_account_with_invalid_currency(session):
+    # Arrange: Override the dependency to use the test session
+    def override_get_db_session():
+        yield session
+
+    app.dependency_overrides[get_db_session] = override_get_db_session
+
+    # Act: Try to create an account with an invalid currency
+    response = client.post(
+        "/accounts",
+        json={
+            "name": "Test Account",
+            "currency": "INVALID",
+            "initial_balance": 100.0,
+        },
+    )
+
+    # Assert: Check that validation fails
+    assert response.status_code == 422
+    data = response.json()
+    assert "detail" in data
+
+    # Clean up override
+    app.dependency_overrides.clear()
+
+
+def test_create_account_normalizes_currency_case(session):
+    # Arrange: Override the dependency to use the test session
+    def override_get_db_session():
+        yield session
+
+    app.dependency_overrides[get_db_session] = override_get_db_session
+
+    # Act: Create an account with lowercase currency code
+    response = client.post(
+        "/accounts",
+        json={
+            "name": "Test Account",
+            "currency": "eur",
+            "initial_balance": 50.0,
+        },
+    )
+
+    # Assert: Currency should be normalized to uppercase
+    assert response.status_code == 201
+    data = response.json()
+    assert "id" in data
+
+    # Clean up override
+    app.dependency_overrides.clear()
