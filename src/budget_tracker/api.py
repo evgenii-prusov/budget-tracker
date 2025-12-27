@@ -60,4 +60,9 @@ def create_account(
 
     repository.add(new_account)
     session.commit()
-    return {"id": new_account.id}
+    return {
+        "id": new_account.id,
+        "name": new_account.name,
+        "currency": new_account.currency,
+        "initial_balance": float(new_account.initial_balance),
+    }
