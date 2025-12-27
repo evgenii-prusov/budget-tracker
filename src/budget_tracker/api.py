@@ -3,6 +3,7 @@ from fastapi import FastAPI
 from fastapi import Depends
 from pydantic import BaseModel
 from pydantic import Field
+from pydantic import ConfigDict
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 from sqlalchemy.orm import sessionmaker
@@ -38,12 +39,6 @@ def get_db_session():
         session.close()
 
 
-@app.get("/accounts")
-def list_accounts(session: Session = Depends(get_db_session)):
-    repository = SqlAlchemyRepository(session)
-    return repository.list_all()
-
-
 class AccountCreate(BaseModel):
     name: str = Field(
         ...,
@@ -59,7 +54,31 @@ class AccountCreate(BaseModel):
     initial_balance: Decimal = Decimal("0.0")
 
 
-@app.post("/accounts", status_code=201)
+class AccountResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    name: str
+    currency: str
+    initial_balance: Decimal
+
+
+@app.get("/accounts", response_model=list[AccountResponse])
+def list_accounts(session: Session = Depends(get_db_session)):
+    repository = SqlAlchemyRepository(session)
+    accounts = repository.list_all()
+    return [
+        AccountResponse(
+            id=acc.id,
+            name=acc.name,
+            currency=acc.currency,
+            initial_balance=acc.initial_balance,
+        )
+        for acc in accounts
+    ]
+
+
+@app.post("/accounts", status_code=201, response_model=AccountResponse)
 def create_account(
     account: AccountCreate, session: Session = Depends(get_db_session)
 ):
@@ -70,13 +89,14 @@ def create_account(
         name=account.name,
         currency=account.currency,
         initial_balance=account.initial_balance,
+        initial_balance=account.initial_balance,
     )
 
     repository.add(new_account)
     session.commit()
-    return {
-        "id": new_account.id,
-        "name": new_account.name,
-        "currency": new_account.currency,
-        "initial_balance": str(new_account.initial_balance),
-    }
+    return AccountResponse(
+        id=new_account.id,
+        name=new_account.name,
+        currency=new_account.currency,
+        initial_balance=new_account.initial_balance,
+    )
