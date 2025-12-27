@@ -1,6 +1,6 @@
 from decimal import Decimal
 from fastapi import FastAPI, Depends
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
@@ -17,7 +17,8 @@ except Exception:
 
 app = FastAPI()
 
-# Setup database (using file-based SQLite database 'budget.db'; this URL could be made configurable via environment variables)
+# Setup database (using file-based SQLite database 'budget.db';
+# this URL could be made configurable via environment variables)
 engine = create_engine("sqlite:///budget.db")
 # Create tables (normally done via migration, but for quick start:
 metadata.create_all(engine)
@@ -33,19 +34,37 @@ def get_db_session():
         session.close()
 
 
-@app.get("/accounts")
-def list_accounts(session: Session = Depends(get_db_session)):
-    repository = SqlAlchemyRepository(session)
-    return repository.list_all()
-
-
 class AccountCreate(BaseModel):
     name: str
     currency: str
     initial_balance: float = 0.0
 
 
-@app.post("/accounts", status_code=201)
+class AccountResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    name: str
+    currency: str
+    initial_balance: float
+
+
+@app.get("/accounts", response_model=list[AccountResponse])
+def list_accounts(session: Session = Depends(get_db_session)):
+    repository = SqlAlchemyRepository(session)
+    accounts = repository.list_all()
+    return [
+        AccountResponse(
+            id=acc.id,
+            name=acc.name,
+            currency=acc.currency,
+            initial_balance=float(acc.initial_balance),
+        )
+        for acc in accounts
+    ]
+
+
+@app.post("/accounts", status_code=201, response_model=AccountResponse)
 def create_account(
     account: AccountCreate, session: Session = Depends(get_db_session)
 ):
@@ -60,9 +79,9 @@ def create_account(
 
     repository.add(new_account)
     session.commit()
-    return {
-        "id": new_account.id,
-        "name": new_account.name,
-        "currency": new_account.currency,
-        "initial_balance": float(new_account.initial_balance),
-    }
+    return AccountResponse(
+        id=new_account.id,
+        name=new_account.name,
+        currency=new_account.currency,
+        initial_balance=float(new_account.initial_balance),
+    )
