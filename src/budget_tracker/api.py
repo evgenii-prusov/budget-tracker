@@ -3,6 +3,7 @@ from fastapi import FastAPI
 from fastapi import Depends
 from pydantic import BaseModel
 from pydantic import Field
+from pydantic import ConfigDict
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 from sqlalchemy.orm import sessionmaker
@@ -50,7 +51,7 @@ class AccountCreate(BaseModel):
         ),
     )
     currency: str
-    initial_balance: float = 0.0
+    initial_balance: Decimal = Decimal("0.0")
 
 
 class AccountResponse(BaseModel):
@@ -59,7 +60,7 @@ class AccountResponse(BaseModel):
     id: str
     name: str
     currency: str
-    initial_balance: float
+    initial_balance: Decimal
 
 
 @app.get("/accounts", response_model=list[AccountResponse])
@@ -71,7 +72,7 @@ def list_accounts(session: Session = Depends(get_db_session)):
             id=acc.id,
             name=acc.name,
             currency=acc.currency,
-            initial_balance=float(acc.initial_balance),
+            initial_balance=acc.initial_balance,
         )
         for acc in accounts
     ]
@@ -87,7 +88,7 @@ def create_account(
         id=None,
         name=account.name,
         currency=account.currency,
-        initial_balance=Decimal(account.initial_balance),
+        initial_balance=account.initial_balance,
     )
 
     repository.add(new_account)
@@ -96,5 +97,5 @@ def create_account(
         id=new_account.id,
         name=new_account.name,
         currency=new_account.currency,
-        initial_balance=float(new_account.initial_balance),
+        initial_balance=new_account.initial_balance,
     )
