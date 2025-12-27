@@ -23,22 +23,13 @@ def test_get_accounts(session, acc_eur, override_db_session):
     assert data[0]["id"] == acc_eur.id
     assert data[0]["name"] == acc_eur.name
 
-    # Clean up override
-    app.dependency_overrides.clear()
 
-
-def test_create_account_duplicate_name(session, acc_eur):
+def test_create_account_duplicate_name(session, acc_eur, override_db_session):
     # 1. Arrange: Add an account to the database
     session.add(acc_eur)
     session.commit()
 
-    # 2. Arrange: Override the dependency to use the test session
-    def override_get_db_session():
-        yield session
-
-    app.dependency_overrides[get_db_session] = override_get_db_session
-
-    # 3. Act: Try to create an account with the same name
+    # 2. Act: Try to create an account with the same name
     response = client.post(
         "/accounts",
         json={
@@ -48,23 +39,14 @@ def test_create_account_duplicate_name(session, acc_eur):
         },
     )
 
-    # 4. Assert: Check the response
+    # 3. Assert: Check the response
     assert response.status_code == 409
     data = response.json()
     assert "already exists" in data["detail"]
     assert acc_eur.name in data["detail"]
 
-    # Clean up override
-    app.dependency_overrides.clear()
 
-
-def test_create_account_with_valid_currency(session):
-    # Arrange: Override the dependency to use the test session
-    def override_get_db_session():
-        yield session
-
-    app.dependency_overrides[get_db_session] = override_get_db_session
-
+def test_create_account_with_valid_currency(session, override_db_session):
     # Act: Create an account with a valid currency
     response = client.post(
         "/accounts",
@@ -80,17 +62,8 @@ def test_create_account_with_valid_currency(session):
     data = response.json()
     assert "id" in data
 
-    # Clean up override
-    app.dependency_overrides.clear()
 
-
-def test_create_account_with_invalid_currency(session):
-    # Arrange: Override the dependency to use the test session
-    def override_get_db_session():
-        yield session
-
-    app.dependency_overrides[get_db_session] = override_get_db_session
-
+def test_create_account_with_invalid_currency(session, override_db_session):
     # Act: Try to create an account with an invalid currency
     response = client.post(
         "/accounts",
@@ -106,17 +79,8 @@ def test_create_account_with_invalid_currency(session):
     data = response.json()
     assert "detail" in data
 
-    # Clean up override
-    app.dependency_overrides.clear()
 
-
-def test_create_account_normalizes_currency_case(session):
-    # Arrange: Override the dependency to use the test session
-    def override_get_db_session():
-        yield session
-
-    app.dependency_overrides[get_db_session] = override_get_db_session
-
+def test_create_account_normalizes_currency_case(session, override_db_session):
     # Act: Create an account with lowercase currency code
     response = client.post(
         "/accounts",
@@ -131,6 +95,3 @@ def test_create_account_normalizes_currency_case(session):
     assert response.status_code == 201
     data = response.json()
     assert "id" in data
-
-    # Clean up override
-    app.dependency_overrides.clear()
