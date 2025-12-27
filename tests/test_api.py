@@ -1,24 +1,22 @@
 from fastapi.testclient import TestClient
-from budget_tracker.api import app, get_db_session
+from budget_tracker.api import app
 
 client = TestClient(app)
 
+# Constants for validation
+ACCOUNT_NAME_MIN_LENGTH = 3
+ACCOUNT_NAME_MAX_LENGTH = 100
 
-def test_get_accounts(session, acc_eur):
+
+def test_get_accounts(session, acc_eur, override_db_session):
     # 1. Arrange: Prepare data in the test database
     session.add(acc_eur)
     session.commit()
 
-    # 2. Arrange: Override the dependency to use the test session
-    def override_get_db_session():
-        yield session
-
-    app.dependency_overrides[get_db_session] = override_get_db_session
-
-    # 3. Act: Make the request
+    # 2. Act: Make the request
     response = client.get("/accounts")
 
-    # 4. Assert: Check the response
+    # 3. Assert: Check the response
     assert response.status_code == 200
     data = response.json()
     assert len(data) == 1

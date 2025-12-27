@@ -3,8 +3,12 @@ from decimal import Decimal
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from budget_tracker.db import metadata, start_mappers, mapper_registry
+from budget_tracker.db import metadata
+from budget_tracker.db import start_mappers
+from budget_tracker.db import mapper_registry
 from budget_tracker.model import Account
+from budget_tracker.api import app
+from budget_tracker.api import get_db_session
 
 
 @pytest.fixture
@@ -48,3 +52,15 @@ def acc_eur() -> Account:
 @pytest.fixture
 def acc_rub() -> Account:
     return Account("a2", "RUB_1", "RUB", Decimal("0"))
+
+
+@pytest.fixture
+def override_db_session(session):
+    """Fixture to override the FastAPI dependency with test session."""
+
+    def override_get_db_session():
+        yield session
+
+    app.dependency_overrides[get_db_session] = override_get_db_session
+    yield
+    app.dependency_overrides.clear()
