@@ -26,7 +26,7 @@ VALID_CURRENCIES = {
 
 try:
     start_mappers()
-except Exception:
+except ArgumentError:
     # Mappers might be already started by tests or other imports
     pass
 

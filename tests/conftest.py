@@ -27,10 +27,7 @@ def session():
     metadata.create_all(engine)
 
     # Set up ORM mappers
-    try:
-        mapper_registry.dispose()
-    except Exception:
-        pass
+    mapper_registry.dispose()
     start_mappers()
 
     # Create session
