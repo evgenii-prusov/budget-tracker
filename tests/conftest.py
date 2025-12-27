@@ -11,12 +11,22 @@ from budget_tracker.model import Account
 def session():
     """Create an in-memory SQLite database session for testing."""
     # Create in-memory SQLite database
-    engine = create_engine("sqlite:///:memory:")
+    from sqlalchemy.pool import StaticPool
+
+    engine = create_engine(
+        "sqlite:///:memory:",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
 
     # Create all tables from metadata
     metadata.create_all(engine)
 
     # Set up ORM mappers
+    try:
+        mapper_registry.dispose()
+    except Exception:
+        pass
     start_mappers()
 
     # Create session
