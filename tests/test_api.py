@@ -33,7 +33,6 @@ def test_get_accounts_empty_database(session, override_db_session):
     # 3. Assert: Check the response returns empty list
     assert response.status_code == 200
     data = response.json()
-    assert len(data) == 0
     assert data == []
 
 
