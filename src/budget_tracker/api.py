@@ -89,12 +89,6 @@ class AccountResponse(BaseModel):
     currency: str
     initial_balance: Decimal = Decimal("0.0")
 
-    @field_validator("currency")
-    @classmethod
-    def call_validate_currency(cls, value: str) -> str:
-        return validate_currency(value)
-
-
 @app.get("/accounts", response_model=list[AccountResponse])
 def list_accounts(session: Session = Depends(get_db_session)):
     repository = SqlAlchemyRepository(session)
