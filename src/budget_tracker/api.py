@@ -1,10 +1,14 @@
 from decimal import Decimal
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI
+from fastapi import Depends
 from pydantic import BaseModel
+from pydantic import Field
 from sqlalchemy import create_engine
-from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.orm import Session
+from sqlalchemy.orm import sessionmaker
 
-from budget_tracker.db import metadata, start_mappers
+from budget_tracker.db import metadata
+from budget_tracker.db import start_mappers
 from budget_tracker.model import Account
 from budget_tracker.repository import SqlAlchemyRepository
 
@@ -17,7 +21,8 @@ except Exception:
 
 app = FastAPI()
 
-# Setup database (using file-based SQLite database 'budget.db'; this URL could be made configurable via environment variables)
+# Setup database (using file-based SQLite database 'budget.db';
+# this URL could be made configurable via environment variables)
 engine = create_engine("sqlite:///budget.db")
 # Create tables (normally done via migration, but for quick start:
 metadata.create_all(engine)
@@ -40,7 +45,16 @@ def list_accounts(session: Session = Depends(get_db_session)):
 
 
 class AccountCreate(BaseModel):
-    name: str
+    name: str = Field(
+        ...,
+        min_length=3,
+        max_length=100,
+        pattern="^[a-zA-Z0-9][a-zA-Z0-9 _-]*$",
+        description=(
+            "Account name (3-100 characters, must start with alphanumeric, "
+            "can contain spaces, hyphens, underscores)"
+        ),
+    )
     currency: str
     initial_balance: float = 0.0
 
