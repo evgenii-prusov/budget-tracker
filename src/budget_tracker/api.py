@@ -60,22 +60,7 @@ class AccountResponse(BaseModel):
     id: str
     name: str
     currency: str
-    initial_balance: Decimal
-
-
-@app.get("/accounts", response_model=list[AccountResponse])
-def list_accounts(session: Session = Depends(get_db_session)):
-    repository = SqlAlchemyRepository(session)
-    accounts = repository.list_all()
-    return [
-        AccountResponse(
-            id=acc.id,
-            name=acc.name,
-            currency=acc.currency,
-            initial_balance=acc.initial_balance,
-        )
-        for acc in accounts
-    ]
+    initial_balance: Decimal = Decimal("0.0")
 
 
 @app.post("/accounts", status_code=201, response_model=AccountResponse)
