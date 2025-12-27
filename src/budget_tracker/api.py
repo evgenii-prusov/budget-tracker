@@ -1,7 +1,8 @@
 from decimal import Decimal
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy import create_engine
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, sessionmaker
 
 from budget_tracker.db import metadata, start_mappers
@@ -59,5 +60,12 @@ def create_account(
     )
 
     repository.add(new_account)
-    session.commit()
+    try:
+        session.commit()
+    except IntegrityError:
+        session.rollback()
+        raise HTTPException(
+            status_code=409,
+            detail=f"Account with name '{account.name}' already exists",
+        )
     return {"id": new_account.id}
