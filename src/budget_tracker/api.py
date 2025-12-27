@@ -2,18 +2,18 @@ from decimal import Decimal
 from fastapi import FastAPI, Depends
 from pydantic import BaseModel
 from sqlalchemy import create_engine
-from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.orm import Session, sessionmaker, class_mapper
+from sqlalchemy.orm.exc import UnmappedClassError
 
 from budget_tracker.db import metadata, start_mappers
 from budget_tracker.model import Account
 from budget_tracker.repository import SqlAlchemyRepository
 
-
 try:
+    class_mapper(Account)
+except UnmappedClassError:
+    # Mappers not yet configured, so configure them
     start_mappers()
-except Exception:
-    # Mappers might be already started by tests or other imports
-    pass
 
 app = FastAPI()
 
