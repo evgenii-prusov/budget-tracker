@@ -52,16 +52,7 @@ class AccountResponse(BaseModel):
 @app.get("/accounts", response_model=list[AccountResponse])
 def list_accounts(session: Session = Depends(get_db_session)):
     repository = SqlAlchemyRepository(session)
-    accounts = repository.list_all()
-    return [
-        AccountResponse(
-            id=acc.id,
-            name=acc.name,
-            currency=acc.currency,
-            initial_balance=float(acc.initial_balance),
-        )
-        for acc in accounts
-    ]
+    return repository.list_all()
 
 
 @app.post("/accounts", status_code=201, response_model=AccountResponse)
@@ -79,9 +70,4 @@ def create_account(
 
     repository.add(new_account)
     session.commit()
-    return AccountResponse(
-        id=new_account.id,
-        name=new_account.name,
-        currency=new_account.currency,
-        initial_balance=float(new_account.initial_balance),
-    )
+    return new_account
