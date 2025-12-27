@@ -2,6 +2,7 @@ from decimal import Decimal
 from fastapi import FastAPI, Depends
 from pydantic import BaseModel
 from sqlalchemy import create_engine
+from sqlalchemy.exc import ArgumentError
 from sqlalchemy.orm import Session, sessionmaker
 
 from budget_tracker.db import metadata, start_mappers
@@ -11,7 +12,7 @@ from budget_tracker.repository import SqlAlchemyRepository
 
 try:
     start_mappers()
-except Exception:
+except ArgumentError:
     # Mappers might be already started by tests or other imports
     pass
 
