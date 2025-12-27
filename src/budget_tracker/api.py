@@ -17,7 +17,7 @@ except Exception:
 
 app = FastAPI()
 
-# Setup database (using in-memory SQLite for demo, or a file-based one)
+# Setup database (using file-based SQLite database 'budget.db'; this URL could be made configurable via environment variables)
 engine = create_engine("sqlite:///budget.db")
 # Create tables (normally done via migration, but for quick start:
 metadata.create_all(engine)
