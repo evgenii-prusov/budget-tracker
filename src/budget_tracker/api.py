@@ -77,10 +77,12 @@ def create_account(
     )
 
     repository.add(new_account)
-    session.commit()
-    return AccountResponse(
-        id=new_account.id,
-        name=new_account.name,
-        currency=new_account.currency,
-        initial_balance=new_account.initial_balance,
-    )
+    try:
+        session.commit()
+    except IntegrityError:
+        session.rollback()
+        raise HTTPException(
+            status_code=409,
+            detail=f"Account with name '{account.name}' already exists",
+        )
+    return {"id": new_account.id}
