@@ -26,13 +26,13 @@ uv run pytest
 uv run pytest -v
 
 # Run tests with coverage (terminal report)
-uv run pytest --cov=src/budget_tracker --cov-report=term-missing
+uv run pytest --cov=src --cov-report=term-missing
 
 # Generate HTML coverage report (opens in browser at htmlcov/index.html)
-uv run pytest --cov=src/budget_tracker --cov-report=html
+uv run pytest --cov=src --cov-report=html
 
 # Generate both terminal and HTML coverage reports
-uv run pytest --cov=src/budget_tracker --cov-report=term-missing --cov-report=html
+uv run pytest --cov=src --cov-report=term-missing --cov-report=html
 
 # Run specific test file
 uv run pytest tests/test_api.py
@@ -41,7 +41,7 @@ uv run pytest tests/test_api.py
 uv run pytest tests/test_api.py::test_get_accounts
 
 # Run tests with coverage for specific test file
-uv run pytest tests/test_api.py --cov=src/budget_tracker --cov-report=term-missing
+uv run pytest tests/test_api.py --cov=src --cov-report=term-missing
 ```
 
 ### Code Quality
