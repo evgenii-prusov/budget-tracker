@@ -186,7 +186,7 @@ The repository uses pre-commit with three hooks:
 - **Database**: SQLite (file-based: `budget.db`)
 - **Package Manager**: uv
 - **Testing**: pytest with pytest-sugar and pytest-cov
-- **Code Coverage**: pytest-cov (88.31% overall coverage)
+- **Code Coverage**: pytest-cov (run coverage commands to see current overall coverage)
 - **Linting/Formatting**: ruff
 - **Type Checking**: ty
 - **Validation**: Pydantic (via FastAPI)
