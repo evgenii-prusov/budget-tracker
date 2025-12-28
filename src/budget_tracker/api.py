@@ -73,7 +73,7 @@ class AccountCreate(BaseModel):
         ),
     )
     currency: str
-    initial_balance: Decimal = Decimal("0.0")
+    initial_balance: Decimal = Decimal(0)
 
     @field_validator("currency")
     @classmethod
