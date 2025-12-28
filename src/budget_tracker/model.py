@@ -31,10 +31,12 @@ class Entry:
         category: str,
         category_type: str,
     ):
+        if not isinstance(amount, Decimal):
+            raise TypeError(
+                f"amount must be Decimal, got {type(amount).__name__}"
+            )
         self.id = id or str(uuid4())
-        self.amount = (
-            amount if isinstance(amount, Decimal) else Decimal(str(amount))
-        )
+        self.amount = amount
         self.account_id = account_id
         self.date = date
         self.category = category
@@ -65,15 +67,17 @@ class Account:
         id: str | None,
         name: str,
         currency: str,
-        initial_balance: Decimal = Decimal(0),
+        initial_balance: Decimal = Decimal("0"),
     ):
+        if not isinstance(initial_balance, Decimal):
+            raise TypeError(
+                f"initial_balance must be Decimal, "
+                f"got {type(initial_balance).__name__}"
+            )
         self.id = id or str(uuid4())
         self.name = name
         self.currency = currency
-        if isinstance(initial_balance, Decimal):
-            self.initial_balance = initial_balance
-        else:
-            self.initial_balance = Decimal(str(initial_balance))
+        self.initial_balance = initial_balance
         self._entries: list[Entry] = []
 
     @property
