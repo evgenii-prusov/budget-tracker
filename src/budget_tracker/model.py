@@ -81,7 +81,7 @@ class Account:
         id: str | None,
         name: str,
         currency: str,
-        initial_balance: Decimal = Decimal("0"),
+        initial_balance: Decimal = Decimal(0),
     ):
         if not isinstance(initial_balance, Decimal):
             raise TypeError(
