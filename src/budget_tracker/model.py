@@ -188,6 +188,7 @@ def transfer(
         Tuple of (debit_entry, credit_entry)
 
     Raises:
+        TypeError: If debit_amt or credit_amt is not a Decimal
         ValueError: If either amount is not positive
 
     Note:
@@ -196,6 +197,16 @@ def transfer(
         because TRANSFER entries use amounts as-is, and debits
         must be negative to decrease the source account balance.
     """
+    if not isinstance(debit_amt, Decimal):
+        raise TypeError(
+            f"debit_amt must be Decimal, got {type(debit_amt).__name__}. "
+            f"Use Decimal(str(value)) to convert."
+        )
+    if not isinstance(credit_amt, Decimal):
+        raise TypeError(
+            f"credit_amt must be Decimal, got {type(credit_amt).__name__}. "
+            f"Use Decimal(str(value)) to convert."
+        )
     if debit_amt <= 0 or credit_amt <= 0:
         raise ValueError("Amounts must be greater than zero")
 

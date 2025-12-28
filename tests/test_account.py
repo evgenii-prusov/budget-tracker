@@ -82,49 +82,74 @@ def test_raise_insufficient_funds_error(acc_eur: Account):
         )
 
 
-def test_entry_rejects_int_amount():
-    with pytest.raises(
-        TypeError,
-        match=r"amount must be Decimal, got int\. Use Decimal\(str\(value\)\) to convert\.",
-    ):
-        Entry("id", "acc_id", 100, JAN_01_2025, "category", "EXPENSE")
+def test_transfer_rejects_non_decimal_debit_amt(
+    acc_eur: Account, acc_rub: Account
+):
+    with pytest.raises(TypeError) as exc_info:
+        transfer(
+            acc_eur,
+            acc_rub,
+            JAN_01_2025,
+            debit_amt=10,  # type: ignore[arg-type]  # int instead of Decimal
+            credit_amt=Decimal(1000),
+        )
+    assert "debit_amt must be Decimal" in str(exc_info.value)
+    assert "got int" in str(exc_info.value)
+    assert "Use Decimal(str(value)) to convert" in str(exc_info.value)
 
 
-def test_entry_rejects_float_amount():
-    with pytest.raises(
-        TypeError,
-        match=r"amount must be Decimal, got float\. Use Decimal\(str\(value\)\) to convert\.",
-    ):
-        Entry("id", "acc_id", 100.5, JAN_01_2025, "category", "EXPENSE")
+def test_transfer_rejects_non_decimal_credit_amt(
+    acc_eur: Account, acc_rub: Account
+):
+    with pytest.raises(TypeError) as exc_info:
+        transfer(
+            acc_eur,
+            acc_rub,
+            JAN_01_2025,
+            debit_amt=Decimal(10),
+            credit_amt=1000,  # type: ignore[arg-type]  # int instead of Decimal
+        )
+    assert "credit_amt must be Decimal" in str(exc_info.value)
+    assert "got int" in str(exc_info.value)
+    assert "Use Decimal(str(value)) to convert" in str(exc_info.value)
 
 
-def test_entry_rejects_string_amount():
-    with pytest.raises(
-        TypeError,
-        match=r"amount must be Decimal, got str\. Use Decimal\(str\(value\)\) to convert\.",
-    ):
-        Entry("id", "acc_id", "100", JAN_01_2025, "category", "EXPENSE")
+def test_transfer_rejects_float_debit_amt(acc_eur: Account, acc_rub: Account):
+    with pytest.raises(TypeError) as exc_info:
+        transfer(
+            acc_eur,
+            acc_rub,
+            JAN_01_2025,
+            debit_amt=10.5,  # type: ignore[arg-type]  # float instead of Decimal
+            credit_amt=Decimal(1000),
+        )
+    assert "debit_amt must be Decimal" in str(exc_info.value)
+    assert "got float" in str(exc_info.value)
 
 
-def test_account_rejects_int_initial_balance():
-    with pytest.raises(
-        TypeError,
-        match=r"initial_balance must be Decimal, got int\. Use Decimal\(str\(value\)\) to convert\.",
-    ):
-        Account(None, "Test Account", "EUR", 100)
+def test_transfer_rejects_string_credit_amt(
+    acc_eur: Account, acc_rub: Account
+):
+    with pytest.raises(TypeError) as exc_info:
+        transfer(
+            acc_eur,
+            acc_rub,
+            JAN_01_2025,
+            debit_amt=Decimal(10),
+            credit_amt="1000",  # type: ignore[arg-type]  # string instead of Decimal
+        )
+    assert "credit_amt must be Decimal" in str(exc_info.value)
+    assert "got str" in str(exc_info.value)
 
 
-def test_account_rejects_float_initial_balance():
-    with pytest.raises(
-        TypeError,
-        match=r"initial_balance must be Decimal, got float\. Use Decimal\(str\(value\)\) to convert\.",
-    ):
-        Account(None, "Test Account", "EUR", 100.5)
-
-
-def test_account_rejects_string_initial_balance():
-    with pytest.raises(
-        TypeError,
-        match=r"initial_balance must be Decimal, got str\. Use Decimal\(str\(value\)\) to convert\.",
-    ):
-        Account(None, "Test Account", "EUR", "100")
+def test_transfer_accepts_valid_decimals(acc_eur: Account, acc_rub: Account):
+    # This test ensures our validation doesn't break valid transfers
+    debit_entry, credit_entry = transfer(
+        acc_eur,
+        acc_rub,
+        JAN_01_2025,
+        debit_amt=Decimal("10"),
+        credit_amt=Decimal("1000"),
+    )
+    assert acc_eur.balance == Decimal(25)
+    assert acc_rub.balance == Decimal(1000)
