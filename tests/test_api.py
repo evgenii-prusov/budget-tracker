@@ -191,3 +191,23 @@ def test_decimal_precision_through_create_and_get_flow(
     account = next((a for a in accounts if a["id"] == account_id), None)
     assert account is not None
     assert Decimal(account["initial_balance"]) == Decimal("999.99")
+
+
+def test_api_accepts_numeric_initial_balance(session, override_db_session):
+    # Test with integer value
+    response_int = client.post(
+        "/accounts",
+        json={"name": "Test Int", "currency": "EUR", "initial_balance": 100},
+    )
+    assert response_int.status_code == 201
+
+    # Test with float value
+    response_float = client.post(
+        "/accounts",
+        json={
+            "name": "Test Float",
+            "currency": "USD",
+            "initial_balance": 100.50,
+        },
+    )
+    assert response_float.status_code == 201
