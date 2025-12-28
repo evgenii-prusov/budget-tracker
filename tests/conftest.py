@@ -38,6 +38,7 @@ def session():
 
     # Cleanup
     session.close()
+    engine.dispose()
     mapper_registry.dispose()
 
 
