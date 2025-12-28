@@ -167,6 +167,46 @@ The repository uses pre-commit with three hooks:
 3. **pytest**: Runs full test suite (must pass before commit)
 4. **ty check**: Type checking on modified Python files
 
+### Decimal Usage Guidelines
+
+**Always use `Decimal(0)` instead of `Decimal("0")` for consistency.**
+
+This codebase enforces strict Decimal types for all monetary values to prevent floating-point precision issues. When creating Decimal instances:
+
+- **For integer literals**: Use `Decimal(0)`, `Decimal(100)`, etc.
+  - More idiomatic Python
+  - Clearer intent (you're converting an integer)
+  - Consistent with the rest of the codebase
+
+- **For variables that might be float**: Use `Decimal(str(value))`
+  - Required when the source value is a float (to avoid precision loss)
+  - The domain layer enforces this with TypeError validation
+
+**Examples:**
+```python
+# ✅ Correct - Default parameters and literal integers
+initial_balance: Decimal = Decimal(0)
+amount = Decimal(100)
+
+# ✅ Correct - Converting potentially unsafe types
+user_input = "123.45"
+amount = Decimal(user_input)
+
+float_value = 123.45
+amount = Decimal(str(float_value))  # Convert to string first
+
+# ❌ Incorrect - Inconsistent style
+initial_balance: Decimal = Decimal("0")  # Use Decimal(0) instead
+
+# ❌ Incorrect - Float precision loss
+amount = Decimal(123.45)  # Use Decimal(str(123.45)) or Decimal("123.45")
+```
+
+**Rationale:**
+- `Decimal(0)` and `Decimal("0")` are functionally equivalent, but using integer literals is more Pythonic for known integer values
+- This convention prevents inconsistencies between production code, test code, and API layer
+- The domain layer validates all monetary values are Decimal instances at runtime (see `model.py`)
+
 ## Important File Locations
 
 - Domain models: `src/budget_tracker/model.py`
