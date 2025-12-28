@@ -1,9 +1,7 @@
 from decimal import Decimal
-from datetime import date
 
 from budget_tracker.model import Account
-
-JAN_01_2025 = date.fromisoformat("2025-01-01")
+from conftest import JAN_01
 
 
 def test_account_balance_is_sum_of_init_balance_and_entries(
@@ -11,14 +9,14 @@ def test_account_balance_is_sum_of_init_balance_and_entries(
 ):
     # Arrange: Record multiple entries of different types
     acc_eur.record_entry(
-        Decimal(2), JAN_01_2025, category="TAXI", category_type="EXPENSE"
+        Decimal(2), JAN_01, category="TAXI", category_type="EXPENSE"
     )
     acc_eur.record_entry(
-        Decimal(3), JAN_01_2025, category="TRAVEL", category_type="EXPENSE"
+        Decimal(3), JAN_01, category="TRAVEL", category_type="EXPENSE"
     )
     acc_eur.record_entry(
         Decimal(500),
-        JAN_01_2025,
+        JAN_01,
         category="KINDERGELD",
         category_type="INCOME",
     )

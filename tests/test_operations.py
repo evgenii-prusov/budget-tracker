@@ -1,12 +1,10 @@
 import pytest
 from decimal import Decimal
-from datetime import date
 
 from budget_tracker.model import Account
 from budget_tracker.model import transfer
 from budget_tracker.model import InsufficientFundsError
-
-JAN_01_2025 = date.fromisoformat("2025-01-01")
+from conftest import JAN_01
 
 
 class TestTransfer:
@@ -19,7 +17,7 @@ class TestTransfer:
         debit_entry, credit_entry = transfer(
             acc_eur,
             acc_rub,
-            JAN_01_2025,
+            JAN_01,
             debit_amt=Decimal(10),
             credit_amt=Decimal(1000),
         )
@@ -53,7 +51,7 @@ class TestTransfer:
             transfer(
                 acc_eur,
                 acc_rub,
-                JAN_01_2025,
+                JAN_01,
                 debit_amt=debit_amt,  # type: ignore[arg-type]
                 credit_amt=credit_amt,  # type: ignore[arg-type]
             )
@@ -71,7 +69,7 @@ class TestTransfer:
         debit_entry, credit_entry = transfer(
             acc_eur,
             acc_rub,
-            JAN_01_2025,
+            JAN_01,
             debit_amt=Decimal("10"),
             credit_amt=Decimal("1000"),
         )
@@ -88,7 +86,7 @@ class TestRecordEntry:
         # Arrange & Act: Record entry with custom category
         acc_eur.record_entry(
             Decimal(3),
-            JAN_01_2025,
+            JAN_01,
             "Taxi",
             category_type="EXPENSE",
         )
@@ -102,7 +100,7 @@ class TestRecordEntry:
         # Arrange & Act: Attempt to record expense exceeding balance
         with pytest.raises(InsufficientFundsError):
             acc_eur.record_entry(
-                Decimal(50), JAN_01_2025, "some_category", "EXPENSE"
+                Decimal(50), JAN_01, "some_category", "EXPENSE"
             )
 
     @pytest.mark.parametrize(
@@ -121,7 +119,7 @@ class TestRecordEntry:
         with pytest.raises(TypeError) as exc_info:
             acc_eur.record_entry(
                 amount,  # type: ignore[arg-type]
-                JAN_01_2025,
+                JAN_01,
                 "TAXI",
                 "EXPENSE",
             )
@@ -136,9 +134,7 @@ class TestRecordEntry:
         self, acc_eur: Account
     ):
         # Arrange & Act: Record entry with valid Decimal amount
-        entry = acc_eur.record_entry(
-            Decimal(10), JAN_01_2025, "TAXI", "EXPENSE"
-        )
+        entry = acc_eur.record_entry(Decimal(10), JAN_01, "TAXI", "EXPENSE")
 
         # Assert: Entry recorded with correct values
         assert acc_eur.balance == Decimal(25)
