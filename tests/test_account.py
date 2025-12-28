@@ -97,3 +97,24 @@ def test_entry_rejects_float_amount():
 def test_entry_rejects_string_amount():
     with pytest.raises(TypeError, match="amount must be Decimal, got str"):
         Entry("id", "acc_id", "100", JAN_01_2025, "category", "EXPENSE")
+
+
+def test_account_rejects_int_initial_balance():
+    with pytest.raises(
+        TypeError, match="initial_balance must be Decimal, got int"
+    ):
+        Account(None, "Test Account", "EUR", 100)
+
+
+def test_account_rejects_float_initial_balance():
+    with pytest.raises(
+        TypeError, match="initial_balance must be Decimal, got float"
+    ):
+        Account(None, "Test Account", "EUR", 100.5)
+
+
+def test_account_rejects_string_initial_balance():
+    with pytest.raises(
+        TypeError, match="initial_balance must be Decimal, got str"
+    ):
+        Account(None, "Test Account", "EUR", "100")
