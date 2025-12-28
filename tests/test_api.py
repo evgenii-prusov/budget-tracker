@@ -1,3 +1,4 @@
+from decimal import Decimal
 from fastapi.testclient import TestClient
 from budget_tracker.api import app, get_db_session
 
@@ -107,3 +108,90 @@ def test_create_account_normalizes_currency_case(session, override_db_session):
     assert response.status_code == 201
     data = response.json()
     assert "id" in data
+
+
+def test_create_account_with_decimal_precision_two_places(
+    session, override_db_session
+):
+    # Act: Create an account with two decimal places
+    response = client.post(
+        "/accounts",
+        json={
+            "name": "Decimal Test 2",
+            "currency": "USD",
+            "initial_balance": "100.50",
+        },
+    )
+
+    # Assert: Decimal precision should be preserved
+    assert response.status_code == 201
+    data = response.json()
+    assert Decimal(data["initial_balance"]) == Decimal("100.50")
+
+
+def test_create_account_with_small_decimal_value(
+    session, override_db_session
+):
+    # Act: Create an account with a very small decimal value
+    response = client.post(
+        "/accounts",
+        json={
+            "name": "Small Decimal Test",
+            "currency": "USD",
+            "initial_balance": "0.01",
+        },
+    )
+
+    # Assert: Small decimal value should be preserved
+    assert response.status_code == 201
+    data = response.json()
+    assert Decimal(data["initial_balance"]) == Decimal("0.01")
+
+
+def test_create_account_with_many_decimal_places(
+    session, override_db_session
+):
+    # Act: Create an account with many decimal places
+    response = client.post(
+        "/accounts",
+        json={
+            "name": "Many Decimals Test",
+            "currency": "USD",
+            "initial_balance": "123.456789",
+        },
+    )
+
+    # Assert: Decimal precision should be preserved
+    assert response.status_code == 201
+    data = response.json()
+    assert Decimal(data["initial_balance"]) == Decimal("123.456789")
+
+
+def test_decimal_precision_through_create_and_get_flow(
+    session, override_db_session
+):
+    # Arrange & Act: Create an account with precise decimal value
+    create_response = client.post(
+        "/accounts",
+        json={
+            "name": "Precision Flow Test",
+            "currency": "EUR",
+            "initial_balance": "999.99",
+        },
+    )
+
+    # Assert: Account created successfully
+    assert create_response.status_code == 201
+    created_data = create_response.json()
+    assert Decimal(created_data["initial_balance"]) == Decimal("999.99")
+    account_id = created_data["id"]
+
+    # Act: Retrieve all accounts to verify decimal is preserved
+    get_response = client.get("/accounts")
+
+    # Assert: Decimal precision preserved through full flow
+    assert get_response.status_code == 200
+    accounts = get_response.json()
+    account = next((a for a in accounts if a["id"] == account_id), None)
+    assert account is not None
+    assert Decimal(account["initial_balance"]) == Decimal("999.99")
