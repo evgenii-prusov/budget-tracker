@@ -8,31 +8,75 @@ Budget Tracker is a personal finance application for tracking income, expenses, 
 
 ## Development Commands
 
+The project provides two ways to run commands:
+1. **Makefile shortcuts** - Convenient `make` commands (recommended)
+2. **Direct `uv run` commands** - Full control over specific operations
+
+Choose based on your preference. Makefile commands are shorter and easier to remember.
+
+### Makefile Commands (Recommended)
+
+```bash
+# Install dependencies
+make install         # Equivalent to: uv sync
+
+# Run the application
+make run            # Start FastAPI development server
+
+# Testing
+make test           # Run all tests
+make test-verbose   # Run tests with verbose output
+make coverage       # Run tests with terminal coverage report
+make coverage-html  # Generate HTML coverage report (opens at htmlcov/index.html)
+
+# Code Quality
+make quality        # Run pre-commit checks on all files
+make format         # Format code with ruff
+make lint           # Lint and auto-fix with ruff
+
+# Git Operations
+make sync           # Pull and rebase with master branch
+
+# Cleanup
+make clean          # Remove generated files (__pycache__, .coverage, etc.)
+
+# Help
+make help           # Show all available commands
+```
+
 ### Environment Setup
 ```bash
 # Install dependencies (uses uv package manager)
 uv sync
+# Or use Makefile: make install
 
 # Activate virtual environment
 source .venv/bin/activate
 ```
 
-### Running Tests
+### Running Tests (Direct Commands)
+
+For most testing needs, use the Makefile commands above. For more control:
+
 ```bash
 # Run all tests
 uv run pytest
+# Or use: make test
 
 # Run tests with verbose output
 uv run pytest -v
+# Or use: make test-verbose
 
 # Run tests with coverage (terminal report)
 uv run pytest --cov=src --cov-report=term-missing
+# Or use: make coverage
 
 # Generate HTML coverage report (opens in browser at htmlcov/index.html)
 uv run pytest --cov=src --cov-report=html
 
 # Generate both terminal and HTML coverage reports
 uv run pytest --cov=src --cov-report=term-missing --cov-report=html
+# Or use: make coverage-html
 
 # Run specific test file
 uv run pytest tests/test_api.py
@@ -44,16 +88,22 @@ uv run pytest tests/test_api.py::test_get_accounts
 uv run pytest tests/test_api.py --cov=src --cov-report=term-missing
 ```
 
-### Code Quality
+### Code Quality (Direct Commands)
+
+For most code quality needs, use `make quality`, `make format`, or `make lint`. For more control:
+
 ```bash
 # Run pre-commit checks on all files
 uv run pre-commit run --all-files
+# Or use: make quality
 
 # Format code with ruff
 uv run ruff format
+# Or use: make format
 
 # Lint and auto-fix with ruff
 uv run ruff check --fix
+# Or use: make lint
 
 # Type check with ty
 uv run ty check <file.py>
@@ -63,6 +113,7 @@ uv run ty check <file.py>
 ```bash
 # Start the FastAPI development server
 uv run fastapi dev src/budget_tracker/api.py
+# Or use: make run
 
 # Access API documentation
 # Navigate to http://localhost:8000/docs after starting the server
@@ -242,6 +293,7 @@ The repository includes GitHub workflows for Claude Code integration:
 Located in `.agent/workflows/`:
 - `pre-commit.md`: Runs pre-commit checks
 - `start-feature.md`: Creates feature branches from master
+- `feature-development.md`: Complete feature development workflow from branch creation to PR merge
 
 ## Future Features (See docs/SPECIFICATION.md)
 
