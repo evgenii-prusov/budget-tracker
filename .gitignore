@@ -11,3 +11,13 @@ wheels/
 
 # Test database
 budget.db
+
+# Coverage reports
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+*.cover
+
+# IDE
+.idea/
