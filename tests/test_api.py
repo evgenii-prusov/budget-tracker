@@ -24,6 +24,18 @@ def test_get_accounts(session, acc_eur, override_db_session):
     assert data[0]["name"] == acc_eur.name
 
 
+def test_get_accounts_empty_database(session, override_db_session):
+    # 1. Arrange: Empty database (no accounts added)
+
+    # 2. Act: Make the request
+    response = client.get("/accounts")
+
+    # 3. Assert: Check the response returns empty list
+    assert response.status_code == 200
+    data = response.json()
+    assert data == []
+
+
 def test_create_account_duplicate_name(session, acc_eur, override_db_session):
     # 1. Arrange: Add an account to the database
     session.add(acc_eur)
