@@ -153,3 +153,49 @@ def test_transfer_accepts_valid_decimals(acc_eur: Account, acc_rub: Account):
     )
     assert acc_eur.balance == Decimal(25)
     assert acc_rub.balance == Decimal(1000)
+
+
+def test_record_entry_rejects_int_amount(acc_eur: Account):
+    with pytest.raises(TypeError) as exc_info:
+        acc_eur.record_entry(
+            10,  # type: ignore[arg-type]  # int instead of Decimal
+            JAN_01_2025,
+            "TAXI",
+            "EXPENSE",
+        )
+    assert "amount must be Decimal" in str(exc_info.value)
+    assert "got int" in str(exc_info.value)
+    assert "Use Decimal(str(value)) to convert" in str(exc_info.value)
+
+
+def test_record_entry_rejects_float_amount(acc_eur: Account):
+    with pytest.raises(TypeError) as exc_info:
+        acc_eur.record_entry(
+            10.5,  # type: ignore[arg-type]  # float instead of Decimal
+            JAN_01_2025,
+            "TAXI",
+            "EXPENSE",
+        )
+    assert "amount must be Decimal" in str(exc_info.value)
+    assert "got float" in str(exc_info.value)
+
+
+def test_record_entry_rejects_string_amount(acc_eur: Account):
+    with pytest.raises(TypeError) as exc_info:
+        acc_eur.record_entry(
+            "10",  # type: ignore[arg-type]  # string instead of Decimal
+            JAN_01_2025,
+            "TAXI",
+            "EXPENSE",
+        )
+    assert "amount must be Decimal" in str(exc_info.value)
+    assert "got str" in str(exc_info.value)
+
+
+def test_record_entry_accepts_valid_decimal(acc_eur: Account):
+    # This test ensures our validation doesn't break valid entries
+    entry = acc_eur.record_entry(
+        Decimal("10"), JAN_01_2025, "TAXI", "EXPENSE"
+    )
+    assert acc_eur.balance == Decimal(25)
+    assert entry.amount == Decimal("-10")
