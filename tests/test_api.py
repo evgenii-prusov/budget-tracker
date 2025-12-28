@@ -129,9 +129,7 @@ def test_create_account_with_decimal_precision_two_places(
     assert Decimal(data["initial_balance"]) == Decimal("100.50")
 
 
-def test_create_account_with_small_decimal_value(
-    session, override_db_session
-):
+def test_create_account_with_small_decimal_value(session, override_db_session):
     # Act: Create an account with a very small decimal value
     response = client.post(
         "/accounts",
@@ -148,9 +146,7 @@ def test_create_account_with_small_decimal_value(
     assert Decimal(data["initial_balance"]) == Decimal("0.01")
 
 
-def test_create_account_with_many_decimal_places(
-    session, override_db_session
-):
+def test_create_account_with_many_decimal_places(session, override_db_session):
     # Act: Create an account with many decimal places
     response = client.post(
         "/accounts",
