@@ -62,7 +62,7 @@ def test_entries_sorted_by_date():
         "tx-2", "a-1", Decimal("3"), JAN_02_2025, "food", "EXPENSE"
     )
     entry_1 = Entry(
-        "tx-1", "a-1", Decimal("0"), JAN_01_2025, "taxi", "EXPENSE"
+        "tx-1", "a-1", Decimal(0), JAN_01_2025, "taxi", "EXPENSE"
     )
     entry_3 = Entry(
         "tx-3", "a-2", Decimal("1"), JAN_03_2025, "taxi", "EXPENSE"
@@ -153,3 +153,49 @@ def test_transfer_accepts_valid_decimals(acc_eur: Account, acc_rub: Account):
     )
     assert acc_eur.balance == Decimal(25)
     assert acc_rub.balance == Decimal(1000)
+
+
+def test_record_entry_rejects_int_amount(acc_eur: Account):
+    with pytest.raises(TypeError) as exc_info:
+        acc_eur.record_entry(
+            10,  # type: ignore[arg-type]  # int instead of Decimal
+            JAN_01_2025,
+            "TAXI",
+            "EXPENSE",
+        )
+    assert "amount must be Decimal" in str(exc_info.value)
+    assert "got int" in str(exc_info.value)
+    assert "Use Decimal(str(value)) to convert" in str(exc_info.value)
+
+
+def test_record_entry_rejects_float_amount(acc_eur: Account):
+    with pytest.raises(TypeError) as exc_info:
+        acc_eur.record_entry(
+            10.5,  # type: ignore[arg-type]  # float instead of Decimal
+            JAN_01_2025,
+            "TAXI",
+            "EXPENSE",
+        )
+    assert "amount must be Decimal" in str(exc_info.value)
+    assert "got float" in str(exc_info.value)
+
+
+def test_record_entry_rejects_string_amount(acc_eur: Account):
+    with pytest.raises(TypeError) as exc_info:
+        acc_eur.record_entry(
+            "10",  # type: ignore[arg-type]  # string instead of Decimal
+            JAN_01_2025,
+            "TAXI",
+            "EXPENSE",
+        )
+    assert "amount must be Decimal" in str(exc_info.value)
+    assert "got str" in str(exc_info.value)
+
+
+def test_record_entry_accepts_valid_decimal(acc_eur: Account):
+    # This test ensures our validation doesn't break valid entries
+    entry = acc_eur.record_entry(
+        Decimal("10"), JAN_01_2025, "TAXI", "EXPENSE"
+    )
+    assert acc_eur.balance == Decimal(25)
+    assert entry.amount == Decimal("-10")

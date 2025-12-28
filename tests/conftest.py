@@ -49,7 +49,7 @@ def acc_eur() -> Account:
 
 @pytest.fixture
 def acc_rub() -> Account:
-    return Account("a2", "RUB_1", "RUB", Decimal("0"))
+    return Account("a2", "RUB_1", "RUB", Decimal(0))
 
 
 @pytest.fixture

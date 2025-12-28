@@ -1,3 +1,16 @@
+"""
+Domain models for budget tracking.
+
+Type Validation Strategy:
+    All monetary values (amounts, balances) must be Decimal instances.
+    This is enforced at runtime in constructors and public methods to:
+    - Prevent floating-point precision issues in financial calculations
+    - Catch type errors early (fail-fast principle)
+    - Ensure domain model integrity regardless of caller
+
+    The API layer uses Pydantic which handles JSON-to-Decimal conversion
+    before values reach the domain layer.
+"""
 from __future__ import annotations
 
 from decimal import Decimal
@@ -31,10 +44,13 @@ class Entry:
         category: str,
         category_type: str,
     ):
+        if not isinstance(amount, Decimal):
+            raise TypeError(
+                f"amount must be Decimal, got {type(amount).__name__}. "
+                f"Use Decimal(str(value)) to convert."
+            )
         self.id = id or str(uuid4())
-        self.amount = (
-            amount if isinstance(amount, Decimal) else Decimal(str(amount))
-        )
+        self.amount = amount
         self.account_id = account_id
         self.date = date
         self.category = category
@@ -67,13 +83,16 @@ class Account:
         currency: str,
         initial_balance: Decimal = Decimal(0),
     ):
+        if not isinstance(initial_balance, Decimal):
+            raise TypeError(
+                f"initial_balance must be Decimal, "
+                f"got {type(initial_balance).__name__}. "
+                f"Use Decimal(str(value)) to convert."
+            )
         self.id = id or str(uuid4())
         self.name = name
         self.currency = currency
-        if isinstance(initial_balance, Decimal):
-            self.initial_balance = initial_balance
-        else:
-            self.initial_balance = Decimal(str(initial_balance))
+        self.initial_balance = initial_balance
         self._entries: list[Entry] = []
 
     @property
@@ -125,6 +144,11 @@ class Account:
             - TRANSFER or None: amount preserved as provided (caller must
               ensure correct sign)
         """
+        if not isinstance(amount, Decimal):
+            raise TypeError(
+                f"amount must be Decimal, got {type(amount).__name__}. "
+                f"Use Decimal(str(value)) to convert."
+            )
         # Apply sign based on category_type
         if category_type == "EXPENSE":
             effective_amount = -abs(amount)
