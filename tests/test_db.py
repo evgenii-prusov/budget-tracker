@@ -15,7 +15,7 @@ def test_account_mapper_loads_accounts(session):
     )
     expected: set[Account] = {
         Account("acc-1", "Revolut 1", "EUR", Decimal("25")),
-        Account("acc-2", "Revolut 2", "EUR", Decimal("0")),
+        Account("acc-2", "Revolut 2", "EUR", Decimal(0)),
         Account("acc-3", "Sparkasse", "EUR", Decimal("100")),
     }
     assert set(session.execute(select(Account)).scalars().all()) == expected
