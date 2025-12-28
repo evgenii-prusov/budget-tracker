@@ -62,7 +62,7 @@ def test_entries_sorted_by_date():
         "tx-2", "a-1", Decimal("3"), JAN_02_2025, "food", "EXPENSE"
     )
     entry_1 = Entry(
-        "tx-1", "a-1", Decimal("0"), JAN_01_2025, "taxi", "EXPENSE"
+        "tx-1", "a-1", Decimal(0), JAN_01_2025, "taxi", "EXPENSE"
     )
     entry_3 = Entry(
         "tx-3", "a-2", Decimal("1"), JAN_03_2025, "taxi", "EXPENSE"
