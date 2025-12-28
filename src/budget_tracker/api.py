@@ -89,6 +89,7 @@ class AccountResponse(BaseModel):
     currency: str
     initial_balance: Decimal = Decimal("0.0")
 
+
 @app.get("/accounts", response_model=list[AccountResponse])
 def list_accounts(session: Session = Depends(get_db_session)):
     repository = SqlAlchemyRepository(session)
