@@ -80,3 +80,20 @@ def test_raise_insufficient_funds_error(acc_eur: Account):
         acc_eur.record_entry(
             Decimal("50"), JAN_01_2025, "some_category", "EXPENSE"
         )
+
+
+def test_entry_rejects_int_amount():
+    with pytest.raises(TypeError, match="amount must be Decimal, got int"):
+        Entry("id", "acc_id", 100, JAN_01_2025, "category", "EXPENSE")
+
+
+def test_entry_rejects_float_amount():
+    with pytest.raises(
+        TypeError, match="amount must be Decimal, got float"
+    ):
+        Entry("id", "acc_id", 100.5, JAN_01_2025, "category", "EXPENSE")
+
+
+def test_entry_rejects_string_amount():
+    with pytest.raises(TypeError, match="amount must be Decimal, got str"):
+        Entry("id", "acc_id", "100", JAN_01_2025, "category", "EXPENSE")
