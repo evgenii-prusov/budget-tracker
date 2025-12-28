@@ -1,3 +1,17 @@
+"""
+Domain models for budget tracking.
+
+Type Validation Strategy:
+    All monetary values (amounts, balances) must be Decimal instances.
+    This is enforced at runtime in constructors and public methods to:
+    - Prevent floating-point precision issues in financial calculations
+    - Catch type errors early (fail-fast principle)
+    - Ensure domain model integrity regardless of caller
+
+    The API layer uses Pydantic which handles JSON-to-Decimal conversion
+    before values reach the domain layer.
+"""
+
 from __future__ import annotations
 
 from decimal import Decimal
