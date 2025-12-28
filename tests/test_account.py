@@ -83,38 +83,48 @@ def test_raise_insufficient_funds_error(acc_eur: Account):
 
 
 def test_entry_rejects_int_amount():
-    with pytest.raises(TypeError, match="amount must be Decimal, got int"):
+    with pytest.raises(
+        TypeError,
+        match=r"amount must be Decimal, got int\. Use Decimal\(str\(value\)\) to convert\.",
+    ):
         Entry("id", "acc_id", 100, JAN_01_2025, "category", "EXPENSE")
 
 
 def test_entry_rejects_float_amount():
     with pytest.raises(
-        TypeError, match="amount must be Decimal, got float"
+        TypeError,
+        match=r"amount must be Decimal, got float\. Use Decimal\(str\(value\)\) to convert\.",
     ):
         Entry("id", "acc_id", 100.5, JAN_01_2025, "category", "EXPENSE")
 
 
 def test_entry_rejects_string_amount():
-    with pytest.raises(TypeError, match="amount must be Decimal, got str"):
+    with pytest.raises(
+        TypeError,
+        match=r"amount must be Decimal, got str\. Use Decimal\(str\(value\)\) to convert\.",
+    ):
         Entry("id", "acc_id", "100", JAN_01_2025, "category", "EXPENSE")
 
 
 def test_account_rejects_int_initial_balance():
     with pytest.raises(
-        TypeError, match="initial_balance must be Decimal, got int"
+        TypeError,
+        match=r"initial_balance must be Decimal, got int\. Use Decimal\(str\(value\)\) to convert\.",
     ):
         Account(None, "Test Account", "EUR", 100)
 
 
 def test_account_rejects_float_initial_balance():
     with pytest.raises(
-        TypeError, match="initial_balance must be Decimal, got float"
+        TypeError,
+        match=r"initial_balance must be Decimal, got float\. Use Decimal\(str\(value\)\) to convert\.",
     ):
         Account(None, "Test Account", "EUR", 100.5)
 
 
 def test_account_rejects_string_initial_balance():
     with pytest.raises(
-        TypeError, match="initial_balance must be Decimal, got str"
+        TypeError,
+        match=r"initial_balance must be Decimal, got str\. Use Decimal\(str\(value\)\) to convert\.",
     ):
         Account(None, "Test Account", "EUR", "100")

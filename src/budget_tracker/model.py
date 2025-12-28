@@ -33,7 +33,8 @@ class Entry:
     ):
         if not isinstance(amount, Decimal):
             raise TypeError(
-                f"amount must be Decimal, got {type(amount).__name__}"
+                f"amount must be Decimal, got {type(amount).__name__}. "
+                f"Use Decimal(str(value)) to convert."
             )
         self.id = id or str(uuid4())
         self.amount = amount
@@ -72,7 +73,8 @@ class Account:
         if not isinstance(initial_balance, Decimal):
             raise TypeError(
                 f"initial_balance must be Decimal, "
-                f"got {type(initial_balance).__name__}"
+                f"got {type(initial_balance).__name__}. "
+                f"Use Decimal(str(value)) to convert."
             )
         self.id = id or str(uuid4())
         self.name = name
