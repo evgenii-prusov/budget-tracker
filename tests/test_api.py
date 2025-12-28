@@ -1,6 +1,6 @@
 from decimal import Decimal
 from fastapi.testclient import TestClient
-from budget_tracker.api import app, get_db_session
+from budget_tracker.api import app
 
 client = TestClient(app)
 
