@@ -14,9 +14,9 @@ def test_account_mapper_loads_accounts(session):
         )
     )
     expected: set[Account] = {
-        Account("acc-1", "Revolut 1", "EUR", Decimal("25")),
+        Account("acc-1", "Revolut 1", "EUR", Decimal(25)),
         Account("acc-2", "Revolut 2", "EUR", Decimal(0)),
-        Account("acc-3", "Sparkasse", "EUR", Decimal("100")),
+        Account("acc-3", "Sparkasse", "EUR", Decimal(100)),
     }
     assert set(session.execute(select(Account)).scalars().all()) == expected
 
@@ -31,7 +31,8 @@ def test_account_mapper_saves_account(session, acc_eur):
 
 
 def test_decimal_survives_database_roundtrip(session):
-    """Verify SQLAlchemy returns proper Decimal objects after database persistence roundtrip."""
+    """Verify SQLAlchemy returns proper Decimal objects after
+    database persistence roundtrip."""
     # 1. Arrange: Create an Account with a Decimal initial_balance
     acc = Account(None, "Test", "EUR", Decimal("100.50"))
     session.add(acc)
@@ -41,6 +42,7 @@ def test_decimal_survives_database_roundtrip(session):
     session.expunge_all()
     loaded = session.execute(select(Account)).scalars().first()
 
-    # 3. Assert: Verify the reloaded initial_balance is a Decimal instance with correct value
+    # 3. Assert: Verify the reloaded initial_balance is a Decimal
+    # instance with correct value
     assert isinstance(loaded.initial_balance, Decimal)
     assert loaded.initial_balance == Decimal("100.50")

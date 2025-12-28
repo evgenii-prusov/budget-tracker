@@ -42,7 +42,7 @@ def test_repository_retrieve_account_with_transactions(session):
     from decimal import Decimal
 
     assert account == Account(
-        id="1", name="rub", currency="RUB", initial_balance=Decimal("100")
+        id="1", name="rub", currency="RUB", initial_balance=Decimal(100)
     )
     assert account.balance == 200
 
@@ -62,9 +62,9 @@ def test_repository_retrieve_all_accounts(session):
     accounts = repo.list_all()
     assert accounts == [
         Account(
-            id="1", name="rub", currency="RUB", initial_balance=Decimal("100")
+            id="1", name="rub", currency="RUB", initial_balance=Decimal(100)
         ),
         Account(
-            id="2", name="eur", currency="EUR", initial_balance=Decimal("200")
+            id="2", name="eur", currency="EUR", initial_balance=Decimal(200)
         ),
     ]

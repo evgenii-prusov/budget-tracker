@@ -44,7 +44,7 @@ def session():
 
 @pytest.fixture
 def acc_eur() -> Account:
-    return Account("a1", "EUR_1", "EUR", Decimal("35"))
+    return Account("a1", "EUR_1", "EUR", Decimal(35))
 
 
 @pytest.fixture
