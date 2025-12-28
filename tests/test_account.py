@@ -16,19 +16,19 @@ def test_account_balance_is_sum_of_init_balance_and_entries(
     acc_eur: Account,
 ):
     acc_eur.record_entry(
-        Decimal("2"), JAN_01_2025, category="TAXI", category_type="EXPENSE"
+        Decimal(2), JAN_01_2025, category="TAXI", category_type="EXPENSE"
     )
     acc_eur.record_entry(
-        Decimal("3"), JAN_01_2025, category="TRAVEL", category_type="EXPENSE"
+        Decimal(3), JAN_01_2025, category="TRAVEL", category_type="EXPENSE"
     )
     acc_eur.record_entry(
-        Decimal("500"),
+        Decimal(500),
         JAN_01_2025,
         category="KINDERGELD",
         category_type="INCOME",
     )
 
-    assert acc_eur.balance == Decimal("530")
+    assert acc_eur.balance == Decimal(530)
 
 
 def test_transfer_with_different_currencies(
@@ -49,7 +49,7 @@ def test_transfer_with_different_currencies(
 
 def test_entry_keeps_category(acc_eur: Account):
     acc_eur.record_entry(
-        Decimal("3"),
+        Decimal(3),
         JAN_01_2025,
         "Taxi",
         category_type="EXPENSE",
@@ -58,15 +58,9 @@ def test_entry_keeps_category(acc_eur: Account):
 
 
 def test_entries_sorted_by_date():
-    entry_2 = Entry(
-        "tx-2", "a-1", Decimal("3"), JAN_02_2025, "food", "EXPENSE"
-    )
-    entry_1 = Entry(
-        "tx-1", "a-1", Decimal(0), JAN_01_2025, "taxi", "EXPENSE"
-    )
-    entry_3 = Entry(
-        "tx-3", "a-2", Decimal("1"), JAN_03_2025, "taxi", "EXPENSE"
-    )
+    entry_2 = Entry("tx-2", "a-1", Decimal(3), JAN_02_2025, "food", "EXPENSE")
+    entry_1 = Entry("tx-1", "a-1", Decimal(0), JAN_01_2025, "taxi", "EXPENSE")
+    entry_3 = Entry("tx-3", "a-2", Decimal(1), JAN_03_2025, "taxi", "EXPENSE")
 
     entries = [entry_2, entry_1, entry_3]
     entries.sort()
@@ -78,7 +72,7 @@ def test_entries_sorted_by_date():
 def test_raise_insufficient_funds_error(acc_eur: Account):
     with pytest.raises(InsufficientFundsError):
         acc_eur.record_entry(
-            Decimal("50"), JAN_01_2025, "some_category", "EXPENSE"
+            Decimal(50), JAN_01_2025, "some_category", "EXPENSE"
         )
 
 
@@ -194,8 +188,6 @@ def test_record_entry_rejects_string_amount(acc_eur: Account):
 
 def test_record_entry_accepts_valid_decimal(acc_eur: Account):
     # This test ensures our validation doesn't break valid entries
-    entry = acc_eur.record_entry(
-        Decimal("10"), JAN_01_2025, "TAXI", "EXPENSE"
-    )
+    entry = acc_eur.record_entry(Decimal(10), JAN_01_2025, "TAXI", "EXPENSE")
     assert acc_eur.balance == Decimal(25)
     assert entry.amount == Decimal("-10")
