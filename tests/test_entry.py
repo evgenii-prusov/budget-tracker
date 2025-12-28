@@ -1,24 +1,29 @@
 from decimal import Decimal
-from datetime import date
 
-from budget_tracker.model import Entry
-
-JAN_01_2025 = date.fromisoformat("2025-01-01")
-JAN_02_2025 = date.fromisoformat("2025-01-02")
-JAN_03_2025 = date.fromisoformat("2025-01-03")
+from conftest import JAN_01
+from conftest import JAN_02
+from conftest import JAN_03
 
 
-def test_entry_objects_sort_chronologically_by_date():
-    # Arrange: Create entries with different dates
-    entry_2 = Entry("tx-2", "a-1", Decimal(3), JAN_02_2025, "food", "EXPENSE")
-    entry_1 = Entry("tx-1", "a-1", Decimal(0), JAN_01_2025, "taxi", "EXPENSE")
-    entry_3 = Entry("tx-3", "a-2", Decimal(1), JAN_03_2025, "taxi", "EXPENSE")
+def test_entry_objects_sort_chronologically_by_date(make_entry):
+    # Arrange: Create entries with different dates using factory
+    entry_1 = make_entry(id="tx-1", date=JAN_01, category="taxi")
+    entry_2 = make_entry(
+        id="tx-2", amount=Decimal(3), date=JAN_02, category="food"
+    )
+    entry_3 = make_entry(
+        id="tx-3",
+        account_id="a-2",
+        amount=Decimal(1),
+        date=JAN_03,
+        category="taxi",
+    )
 
     # Act: Sort entries list
     entries = [entry_2, entry_1, entry_3]
     entries.sort()
 
     # Assert: Entries are sorted chronologically by date
-    assert entries[0].date == JAN_01_2025
-    assert entries[1].date == JAN_02_2025
-    assert entries[2].date == JAN_03_2025
+    assert entries[0].date == JAN_01
+    assert entries[1].date == JAN_02
+    assert entries[2].date == JAN_03
