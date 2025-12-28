@@ -125,6 +125,11 @@ class Account:
             - TRANSFER or None: amount preserved as provided (caller must
               ensure correct sign)
         """
+        if not isinstance(amount, Decimal):
+            raise TypeError(
+                f"amount must be Decimal, got {type(amount).__name__}. "
+                f"Use Decimal(str(value)) to convert."
+            )
         # Apply sign based on category_type
         if category_type == "EXPENSE":
             effective_amount = -abs(amount)
