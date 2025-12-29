@@ -42,7 +42,7 @@ class Entry:
         account_id: str,
         amount: Decimal,
         entry_date: date,
-        category: str,
+        category: str | None,
         category_type: str,
     ):
         if not isinstance(amount, Decimal):
@@ -122,7 +122,7 @@ class Account:
         amount: Decimal,
         entry_date: date,
         *,
-        category: str,
+        category: str | None,
         category_type: str,
     ) -> Entry:
         """Record an entry on this account.
@@ -233,10 +233,10 @@ def transfer(
     # Negate debit_amt because TRANSFER entries use amounts as-is,
     # and debits must be negative to decrease the source account balance
     debit_entry = src.record_entry(
-        -debit_amt, entry_date, category="TRANSFER", category_type="TRANSFER"
+        -debit_amt, entry_date, category=None, category_type="TRANSFER"
     )
     credit_entry = dst.record_entry(
-        credit_amt, entry_date, category="TRANSFER", category_type="TRANSFER"
+        credit_amt, entry_date, category=None, category_type="TRANSFER"
     )
 
     return debit_entry, credit_entry

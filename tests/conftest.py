@@ -85,7 +85,7 @@ def make_entry():
         account_id: str = "a-1",
         amount: Decimal = Decimal(0),
         entry_date: date = JAN_01,
-        category: str = "test",
+        category: str | None = "test",
         category_type: str = "EXPENSE",
     ) -> Entry:
         return Entry(

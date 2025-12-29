@@ -27,6 +27,24 @@ class TestTransfer:
         assert acc_rub.balance == Decimal(1000)
         assert debit_entry.entry_date == credit_entry.entry_date
 
+    def test_transfer_entries_have_no_category(
+        self, acc_eur: Account, acc_rub: Account
+    ):
+        # Arrange & Act: Create transfer between accounts
+        debit_entry, credit_entry = transfer(
+            acc_eur,
+            acc_rub,
+            JAN_01,
+            debit_amt=Decimal(10),
+            credit_amt=Decimal(1000),
+        )
+
+        # Assert: Transfer entries have category=None, category_type=TRANSFER
+        assert debit_entry.category is None
+        assert debit_entry.category_type == "TRANSFER"
+        assert credit_entry.category is None
+        assert credit_entry.category_type == "TRANSFER"
+
     @pytest.mark.parametrize(
         "debit_amt,credit_amt,expected_param,expected_type",
         [
