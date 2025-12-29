@@ -84,11 +84,24 @@ class TestRecordEntry:
 
     def test_record_entry_preserves_category_name(self, acc_eur: Account):
         # Arrange & Act: Record entry with custom category
-        acc_eur.record_entry(Decimal(3), JAN_01, "Taxi", "EXPENSE")
+        acc_eur.record_entry(
+            Decimal(3), JAN_01, category="Taxi", category_type="EXPENSE"
+        )
 
         # Assert: Category name is preserved
         entry = acc_eur._entries[-1]
         assert entry.category == "Taxi"
+
+    def test_record_entry_requires_keyword_args_for_category_params(
+        self, acc_eur: Account
+    ):
+        # Arrange & Act: Attempt to use positional args for category params
+        with pytest.raises(TypeError) as exc_info:
+            acc_eur.record_entry(Decimal(10), JAN_01, "TAXI", "EXPENSE")  # type: ignore[misc]
+
+        # Assert: Verify TypeError for positional arguments
+        error_msg = str(exc_info.value)
+        assert "takes 3 positional arguments but 5 were given" in error_msg
 
     def test_record_entry_raises_insufficient_funds_when_balance_negative(
         self, acc_eur: Account
@@ -96,7 +109,10 @@ class TestRecordEntry:
         # Arrange & Act: Attempt to record expense exceeding balance
         with pytest.raises(InsufficientFundsError):
             acc_eur.record_entry(
-                Decimal(50), JAN_01, "some_category", "EXPENSE"
+                Decimal(50),
+                JAN_01,
+                category="some_category",
+                category_type="EXPENSE",
             )
 
     @pytest.mark.parametrize(
@@ -113,7 +129,9 @@ class TestRecordEntry:
     ):
         # Arrange & Act: Attempt to record entry with invalid amount type
         with pytest.raises(TypeError) as exc_info:
-            acc_eur.record_entry(amount, JAN_01, "TAXI", "EXPENSE")
+            acc_eur.record_entry(
+                amount, JAN_01, category="TAXI", category_type="EXPENSE"
+            )
 
         # Assert: Verify error message content
         error_msg = str(exc_info.value)
@@ -125,7 +143,9 @@ class TestRecordEntry:
         self, acc_eur: Account
     ):
         # Arrange & Act: Record entry with valid Decimal amount
-        entry = acc_eur.record_entry(Decimal(10), JAN_01, "TAXI", "EXPENSE")
+        entry = acc_eur.record_entry(
+            Decimal(10), JAN_01, category="TAXI", category_type="EXPENSE"
+        )
 
         # Assert: Entry recorded with correct values
         assert acc_eur.balance == Decimal(25)

@@ -11,6 +11,7 @@ Type Validation Strategy:
     The API layer uses Pydantic which handles JSON-to-Decimal conversion
     before values reach the domain layer.
 """
+
 from __future__ import annotations
 
 from decimal import Decimal
@@ -120,6 +121,7 @@ class Account:
         self,
         amount: Decimal,
         entry_date: date,
+        *,
         category: str,
         category_type: str,
     ) -> Entry:
