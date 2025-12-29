@@ -23,7 +23,7 @@ entries = Table(
     Column("account_id", String, ForeignKey("account.id"), nullable=False),
     Column("amount", Numeric, nullable=False),
     Column("entry_date", Date, nullable=False),
-    Column("category", String, nullable=False),
+    Column("category", String, nullable=True),
     Column("category_type", String, nullable=False),
 )
 
