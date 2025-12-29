@@ -40,7 +40,7 @@ class Entry:
         id: str | None,
         account_id: str,
         amount: Decimal,
-        date: date,
+        entry_date: date,
         category: str,
         category_type: str,
     ):
@@ -52,14 +52,14 @@ class Entry:
         self.id = id or str(uuid4())
         self.amount = amount
         self.account_id = account_id
-        self.date = date
+        self.entry_date = entry_date
         self.category = category
         self.category_type = category_type
 
     def __repr__(self) -> str:
         return (
             f"Entry({self.id!r}, {self.account_id!r}, {self.amount!r}, "
-            f"{self.date!r}, {self.category!r}, {self.category_type!r})"
+            f"{self.entry_date!r}, {self.category!r}, {self.category_type!r})"
         )
 
     def __eq__(self, other):
@@ -72,7 +72,7 @@ class Entry:
         return hash(self.id)
 
     def __lt__(self, other: Entry):
-        return self.date < other.date
+        return self.entry_date < other.entry_date
 
 
 class Account:
@@ -119,7 +119,7 @@ class Account:
     def record_entry(
         self,
         amount: Decimal,
-        date: date,
+        entry_date: date,
         category: str,
         category_type: str,
     ) -> Entry:
@@ -132,7 +132,7 @@ class Account:
                 responsible for providing a correctly signed amount (negative
                 for debits, positive for credits); the value is preserved
                 without modification.
-            date: The entry date
+            entry_date: The entry date
             category: Optional category label
             category_type: Entry type - "EXPENSE", "INCOME", or
                 "TRANSFER"
@@ -172,7 +172,7 @@ class Account:
             None,
             self.id,
             effective_amount,
-            date,
+            entry_date,
             category,
             category_type,
         )
@@ -183,7 +183,7 @@ class Account:
 def transfer(
     src: Account,
     dst: Account,
-    date: date,
+    entry_date: date,
     *,
     debit_amt: Decimal,
     credit_amt: Decimal,
@@ -197,7 +197,7 @@ def transfer(
     Args:
         src: Source account to debit from
         dst: Destination account to credit to
-        date: Date of the transfer
+        entry_date: Date of the transfer
         debit_amt: Amount to deduct from source (must be positive). This
             value is negated internally when recording the debit entry.
         credit_amt: Amount to add to destination (must be positive)
@@ -231,10 +231,10 @@ def transfer(
     # Negate debit_amt because TRANSFER entries use amounts as-is,
     # and debits must be negative to decrease the source account balance
     debit_entry = src.record_entry(
-        -debit_amt, date, category="TRANSFER", category_type="TRANSFER"
+        -debit_amt, entry_date, category="TRANSFER", category_type="TRANSFER"
     )
     credit_entry = dst.record_entry(
-        credit_amt, date, category="TRANSFER", category_type="TRANSFER"
+        credit_amt, entry_date, category="TRANSFER", category_type="TRANSFER"
     )
 
     return debit_entry, credit_entry

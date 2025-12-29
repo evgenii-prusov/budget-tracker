@@ -25,7 +25,7 @@ class TestTransfer:
         # Assert: Both balances updated correctly, dates match
         assert acc_eur.balance == Decimal(25)
         assert acc_rub.balance == Decimal(1000)
-        assert debit_entry.date == credit_entry.date
+        assert debit_entry.entry_date == credit_entry.entry_date
 
     @pytest.mark.parametrize(
         "debit_amt,credit_amt,expected_param,expected_type",
