@@ -9,6 +9,7 @@ from budget_tracker.db import start_mappers
 from budget_tracker.db import mapper_registry
 from budget_tracker.model import Account
 from budget_tracker.model import Entry
+from budget_tracker.model import CategoryType
 from budget_tracker.api import app
 from budget_tracker.api import get_db_session
 
@@ -86,7 +87,7 @@ def make_entry():
         amount: Decimal = Decimal(0),
         entry_date: date = JAN_01,
         category: str | None = "test",
-        category_type: str = "EXPENSE",
+        category_type: CategoryType = CategoryType.EXPENSE,
     ) -> Entry:
         return Entry(
             id, account_id, amount, entry_date, category, category_type
@@ -98,16 +99,22 @@ def make_entry():
 @pytest.fixture
 def entry_1() -> Entry:
     """Entry on Jan 01 for testing (taxi expense)."""
-    return Entry("tx-1", "a-1", Decimal(0), JAN_01, "taxi", "EXPENSE")
+    return Entry(
+        "tx-1", "a-1", Decimal(0), JAN_01, "taxi", CategoryType.EXPENSE
+    )
 
 
 @pytest.fixture
 def entry_2() -> Entry:
     """Entry on Jan 02 for testing (food expense)."""
-    return Entry("tx-2", "a-1", Decimal(3), JAN_02, "food", "EXPENSE")
+    return Entry(
+        "tx-2", "a-1", Decimal(3), JAN_02, "food", CategoryType.EXPENSE
+    )
 
 
 @pytest.fixture
 def entry_3() -> Entry:
     """Entry on Jan 03 for testing (taxi expense)."""
-    return Entry("tx-3", "a-2", Decimal(1), JAN_03, "taxi", "EXPENSE")
+    return Entry(
+        "tx-3", "a-2", Decimal(1), JAN_03, "taxi", CategoryType.EXPENSE
+    )

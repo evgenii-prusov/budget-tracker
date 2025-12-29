@@ -17,7 +17,16 @@ from __future__ import annotations
 from decimal import Decimal
 from uuid import uuid4
 from datetime import date
+from enum import StrEnum
 import functools
+
+
+class CategoryType(StrEnum):
+    """Transaction category types for financial entries."""
+
+    EXPENSE = "EXPENSE"
+    INCOME = "INCOME"
+    TRANSFER = "TRANSFER"
 
 
 class InsufficientFundsError(Exception):
@@ -43,7 +52,7 @@ class Entry:
         amount: Decimal,
         entry_date: date,
         category: str | None,
-        category_type: str,
+        category_type: CategoryType,
     ):
         if not isinstance(amount, Decimal):
             raise TypeError(
@@ -123,7 +132,7 @@ class Account:
         entry_date: date,
         *,
         category: str | None,
-        category_type: str,
+        category_type: CategoryType,
     ) -> Entry:
         """Record an entry on this account.
 
@@ -152,12 +161,12 @@ class Account:
                 f"Use Decimal(str(value)) to convert."
             )
         # Apply sign based on category_type
-        if category_type == "EXPENSE":
+        if category_type == CategoryType.EXPENSE:
             effective_amount = -abs(amount)
-        elif category_type == "INCOME":
+        elif category_type == CategoryType.INCOME:
             effective_amount = abs(amount)
         else:
-            # TRANSFER or None - preserve caller-provided amount
+            # TRANSFER - preserve caller-provided amount
             effective_amount = amount
 
         # Check if entry would result in negative balance
@@ -233,10 +242,16 @@ def transfer(
     # Negate debit_amt because TRANSFER entries use amounts as-is,
     # and debits must be negative to decrease the source account balance
     debit_entry = src.record_entry(
-        -debit_amt, entry_date, category=None, category_type="TRANSFER"
+        -debit_amt,
+        entry_date,
+        category=None,
+        category_type=CategoryType.TRANSFER,
     )
     credit_entry = dst.record_entry(
-        credit_amt, entry_date, category=None, category_type="TRANSFER"
+        credit_amt,
+        entry_date,
+        category=None,
+        category_type=CategoryType.TRANSFER,
     )
 
     return debit_entry, credit_entry

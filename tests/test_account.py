@@ -1,6 +1,7 @@
 from decimal import Decimal
 
 from budget_tracker.model import Account
+from budget_tracker.model import CategoryType
 from conftest import JAN_01
 
 
@@ -9,13 +10,19 @@ def test_account_balance_is_sum_of_init_balance_and_entries(
 ):
     # Arrange: Record multiple entries of different types
     acc_eur.record_entry(
-        Decimal(2), JAN_01, category="TAXI", category_type="EXPENSE"
+        Decimal(2), JAN_01, category="TAXI", category_type=CategoryType.EXPENSE
     )
     acc_eur.record_entry(
-        Decimal(3), JAN_01, category="TRAVEL", category_type="EXPENSE"
+        Decimal(3),
+        JAN_01,
+        category="TRAVEL",
+        category_type=CategoryType.EXPENSE,
     )
     acc_eur.record_entry(
-        Decimal(500), JAN_01, category="KINDERGELD", category_type="INCOME"
+        Decimal(500),
+        JAN_01,
+        category="KINDERGELD",
+        category_type=CategoryType.INCOME,
     )
 
     # Act: Get account balance
