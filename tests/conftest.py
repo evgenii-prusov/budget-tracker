@@ -84,10 +84,10 @@ def make_entry():
         id: str = "tx-1",
         account_id: str = "a-1",
         amount: Decimal = Decimal(0),
-        date: date = JAN_01,
+        entry_date: date = JAN_01,
         category: str = "test",
         category_type: str = "EXPENSE",
     ) -> Entry:
-        return Entry(id, account_id, amount, date, category, category_type)
+        return Entry(id, account_id, amount, entry_date, category, category_type)
 
     return _make_entry
