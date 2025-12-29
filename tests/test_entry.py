@@ -1,23 +1,14 @@
-from decimal import Decimal
-
+from budget_tracker.model import Entry
 from conftest import JAN_01
 from conftest import JAN_02
 from conftest import JAN_03
 
 
-def test_entry_objects_sort_chronologically_by_date(make_entry):
-    # Arrange: Create entries with different dates using factory
-    entry_1 = make_entry(id="tx-1", entry_date=JAN_01, category="taxi")
-    entry_2 = make_entry(
-        id="tx-2", amount=Decimal(3), entry_date=JAN_02, category="food"
-    )
-    entry_3 = make_entry(
-        id="tx-3",
-        account_id="a-2",
-        amount=Decimal(1),
-        entry_date=JAN_03,
-        category="taxi",
-    )
+def test_entry_objects_sort_chronologically_by_date(
+    entry_1: Entry, entry_2: Entry, entry_3: Entry
+):
+    # Arrange: Use entry fixtures with different dates
+    # (entry_2 is Jan 02, entry_1 is Jan 01, entry_3 is Jan 03)
 
     # Act: Sort entries list
     entries = [entry_2, entry_1, entry_3]
