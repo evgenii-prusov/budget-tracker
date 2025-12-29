@@ -31,7 +31,7 @@ def test_repository_retrieve_account_with_transactions(session):
     session.execute(
         text(
             "INSERT INTO entry "
-            "(id, account_id, amount, date, category, category_type)"
+            "(id, account_id, amount, entry_date, category, category_type)"
             "VALUES ('1', '1', 100, '2025-12-26', 'rub', 'INCOME')"
         )
     )
