@@ -66,12 +66,12 @@ class TestTransfer:
         self, acc_eur: Account, acc_rub: Account
     ):
         # Arrange & Act: Transfer with valid Decimal amounts
-        debit_entry, credit_entry = transfer(
+        transfer(
             acc_eur,
             acc_rub,
             JAN_01,
-            debit_amt=Decimal("10"),
-            credit_amt=Decimal("1000"),
+            debit_amt=Decimal(10),
+            credit_amt=Decimal(1000),
         )
 
         # Assert: Transfer succeeds with correct balances
@@ -84,15 +84,11 @@ class TestRecordEntry:
 
     def test_record_entry_preserves_category_name(self, acc_eur: Account):
         # Arrange & Act: Record entry with custom category
-        acc_eur.record_entry(
-            Decimal(3),
-            JAN_01,
-            "Taxi",
-            category_type="EXPENSE",
-        )
+        acc_eur.record_entry(Decimal(3), JAN_01, "Taxi", "EXPENSE")
 
         # Assert: Category name is preserved
-        assert acc_eur._entries.pop().category == "Taxi"
+        entry = acc_eur._entries[-1]
+        assert entry.category == "Taxi"
 
     def test_record_entry_raises_insufficient_funds_when_balance_negative(
         self, acc_eur: Account
@@ -117,12 +113,7 @@ class TestRecordEntry:
     ):
         # Arrange & Act: Attempt to record entry with invalid amount type
         with pytest.raises(TypeError) as exc_info:
-            acc_eur.record_entry(
-                amount,  # type: ignore[arg-type]
-                JAN_01,
-                "TAXI",
-                "EXPENSE",
-            )
+            acc_eur.record_entry(amount, JAN_01, "TAXI", "EXPENSE")
 
         # Assert: Verify error message content
         error_msg = str(exc_info.value)
