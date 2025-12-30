@@ -63,7 +63,7 @@ def test_create_account_duplicate_name(
     ],
 )
 def test_create_account_currency_validation(
-    client, currency, expected_status, override_db_session
+    client, session, currency, expected_status, override_db_session
 ):
     # Act
     payload = {
@@ -79,11 +79,13 @@ def test_create_account_currency_validation(
 
     if expected_status == 422:
         assert "valid ISO 4217" in data["detail"][0]["msg"]
+    else:
+        assert "id" in data
 
 
 @pytest.mark.parametrize("currency", ["eur", "usd", "rub"])
 def test_create_account_currency_normalization(
-    client, currency, override_db_session
+    client, session, currency, override_db_session
 ):
     # Act
     payload = {
@@ -110,7 +112,7 @@ def test_create_account_currency_normalization(
     ],
 )
 def test_create_account_precision_and_types(
-    client, initial_balance, expected_balance, override_db_session
+    client, session, initial_balance, expected_balance, override_db_session
 ):
     # Act
     safe_name = f"Test {initial_balance}".replace(".", "_")
@@ -127,7 +129,9 @@ def test_create_account_precision_and_types(
     assert Decimal(data["initial_balance"]) == Decimal(expected_balance)
 
 
-def test_decimal_precision_persistence_flow(client, override_db_session):
+def test_decimal_precision_persistence_flow(
+    client, session, override_db_session
+):
     """
     Verify that high precision is preserved through a full save-load cycle.
     """
@@ -149,5 +153,6 @@ def test_decimal_precision_persistence_flow(client, override_db_session):
     # Assert
     assert get_response.status_code == 200
     accounts = get_response.json()
-    saved_account = next(a for a in accounts if a["id"] == created_id)
+    saved_account = next((a for a in accounts if a["id"] == created_id), None)
+    assert saved_account is not None, f"Account {created_id} not found"
     assert Decimal(saved_account["initial_balance"]) == Decimal("999.99999")
