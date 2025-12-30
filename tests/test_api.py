@@ -1,15 +1,8 @@
+import pytest
 from decimal import Decimal
-from fastapi.testclient import TestClient
-from budget_tracker.api import app
-
-client = TestClient(app)
-
-# Constants for validation
-ACCOUNT_NAME_MIN_LENGTH = 3
-ACCOUNT_NAME_MAX_LENGTH = 100
 
 
-def test_get_accounts(session, acc_eur, override_db_session):
+def test_get_accounts(client, session, acc_eur, override_db_session):
     # 1. Arrange: Prepare data in the test database
     session.add(acc_eur)
     session.commit()
@@ -25,7 +18,7 @@ def test_get_accounts(session, acc_eur, override_db_session):
     assert data[0]["name"] == acc_eur.name
 
 
-def test_get_accounts_empty_database(session, override_db_session):
+def test_get_accounts_empty_database(client, session, override_db_session):
     # 1. Arrange: Empty database (no accounts added)
 
     # 2. Act: Make the request
@@ -37,7 +30,9 @@ def test_get_accounts_empty_database(session, override_db_session):
     assert data == []
 
 
-def test_create_account_duplicate_name(session, acc_eur, override_db_session):
+def test_create_account_duplicate_name(
+    client, session, acc_eur, override_db_session
+):
     # 1. Arrange: Add an account to the database
     session.add(acc_eur)
     session.commit()
@@ -59,155 +54,105 @@ def test_create_account_duplicate_name(session, acc_eur, override_db_session):
     assert acc_eur.name in data["detail"]
 
 
-def test_create_account_with_valid_currency(session, override_db_session):
-    # Act: Create an account with a valid currency
-    response = client.post(
-        "/accounts",
-        json={
-            "name": "Test Account",
-            "currency": "USD",
-            "initial_balance": 100.0,
-        },
-    )
-
-    # Assert: Check the response
-    assert response.status_code == 201
-    data = response.json()
-    assert "id" in data
-
-
-def test_create_account_with_invalid_currency(session, override_db_session):
-    # Act: Try to create an account with an invalid currency
-    response = client.post(
-        "/accounts",
-        json={
-            "name": "Test Account",
-            "currency": "INVALID",
-            "initial_balance": 100.0,
-        },
-    )
-
-    # Assert: Check that validation fails
-    assert response.status_code == 422
-    data = response.json()
-    assert "detail" in data
-
-
-def test_create_account_normalizes_currency_case(session, override_db_session):
-    # Act: Create an account with lowercase currency code
-    response = client.post(
-        "/accounts",
-        json={
-            "name": "Test Account",
-            "currency": "eur",
-            "initial_balance": 50.0,
-        },
-    )
-
-    # Assert: Currency should be normalized to uppercase
-    assert response.status_code == 201
-    data = response.json()
-    assert "id" in data
-
-
-def test_create_account_with_decimal_precision_two_places(
-    session, override_db_session
+@pytest.mark.parametrize(
+    "currency, expected_status",
+    [
+        ("USD", 201),
+        ("EUR", 201),
+        ("INVALID", 422),
+    ],
+)
+def test_create_account_currency_validation(
+    client, session, currency, expected_status, override_db_session
 ):
-    # Act: Create an account with two decimal places
-    response = client.post(
-        "/accounts",
-        json={
-            "name": "Decimal Test 2",
-            "currency": "USD",
-            "initial_balance": "100.50",
-        },
-    )
+    # Act
+    payload = {
+        "name": f"Test Cur {currency}",
+        "currency": currency,
+        "initial_balance": 100.0,
+    }
+    response = client.post("/accounts", json=payload)
 
-    # Assert: Decimal precision should be preserved
-    assert response.status_code == 201
+    # Assert
+    assert response.status_code == expected_status
     data = response.json()
-    assert Decimal(data["initial_balance"]) == Decimal("100.50")
+
+    if expected_status == 422:
+        assert "valid ISO 4217" in data["detail"][0]["msg"]
+    else:
+        assert "id" in data
 
 
-def test_create_account_with_small_decimal_value(session, override_db_session):
-    # Act: Create an account with a very small decimal value
-    response = client.post(
-        "/accounts",
-        json={
-            "name": "Small Decimal Test",
-            "currency": "USD",
-            "initial_balance": "0.01",
-        },
-    )
-
-    # Assert: Small decimal value should be preserved
-    assert response.status_code == 201
-    data = response.json()
-    assert Decimal(data["initial_balance"]) == Decimal("0.01")
-
-
-def test_create_account_with_many_decimal_places(session, override_db_session):
-    # Act: Create an account with many decimal places
-    response = client.post(
-        "/accounts",
-        json={
-            "name": "Many Decimals Test",
-            "currency": "USD",
-            "initial_balance": "123.456789",
-        },
-    )
-
-    # Assert: Decimal precision should be preserved
-    assert response.status_code == 201
-    data = response.json()
-    assert Decimal(data["initial_balance"]) == Decimal("123.456789")
-
-
-def test_decimal_precision_through_create_and_get_flow(
-    session, override_db_session
+@pytest.mark.parametrize("currency", ["eur", "usd", "rub"])
+def test_create_account_currency_normalization(
+    client, session, currency, override_db_session
 ):
+    # Act
+    payload = {
+        "name": f"Test Norm {currency}",
+        "currency": currency,
+        "initial_balance": 100.0,
+    }
+    response = client.post("/accounts", json=payload)
+
+    # Assert
+    assert response.status_code == 201
+    data = response.json()
+    assert data["currency"] == currency.upper()
+
+
+@pytest.mark.parametrize(
+    "initial_balance, expected_balance",
+    [
+        ("100.50", "100.50"),  # Two decimal places
+        ("0.01", "0.01"),  # Small decimal
+        ("123.456789", "123.456789"),  # High precision
+        (100, "100"),  # Integer input
+        (100.50, "100.50"),  # Float input
+    ],
+)
+def test_create_account_precision_and_types(
+    client, session, initial_balance, expected_balance, override_db_session
+):
+    # Act
+    safe_name = f"Test {initial_balance}".replace(".", "_")
+    payload = {
+        "name": safe_name,
+        "currency": "USD",
+        "initial_balance": initial_balance,
+    }
+    response = client.post("/accounts", json=payload)
+
+    # Assert
+    assert response.status_code == 201
+    data = response.json()
+    assert Decimal(data["initial_balance"]) == Decimal(expected_balance)
+
+
+def test_decimal_precision_persistence_flow(
+    client, session, override_db_session
+):
+    """
+    Verify that high precision is preserved through a full save-load cycle.
+    """
     # Arrange & Act: Create an account with precise decimal value
     create_response = client.post(
         "/accounts",
         json={
             "name": "Precision Flow Test",
             "currency": "EUR",
-            "initial_balance": "999.99",
+            "initial_balance": "999.99999",
         },
     )
-
-    # Assert: Account created successfully
     assert create_response.status_code == 201
-    created_data = create_response.json()
-    assert Decimal(created_data["initial_balance"]) == Decimal("999.99")
-    account_id = created_data["id"]
+    created_id = create_response.json()["id"]
 
-    # Act: Retrieve all accounts to verify decimal is preserved
+    # Act: Retrieve all accounts
     get_response = client.get("/accounts")
 
-    # Assert: Decimal precision preserved through full flow
+    # Assert
     assert get_response.status_code == 200
     accounts = get_response.json()
-    account = next((a for a in accounts if a["id"] == account_id), None)
-    assert account is not None
-    assert Decimal(account["initial_balance"]) == Decimal("999.99")
-
-
-def test_api_accepts_numeric_initial_balance(session, override_db_session):
-    # Test with integer value
-    response_int = client.post(
-        "/accounts",
-        json={"name": "Test Int", "currency": "EUR", "initial_balance": 100},
-    )
-    assert response_int.status_code == 201
-
-    # Test with float value
-    response_float = client.post(
-        "/accounts",
-        json={
-            "name": "Test Float",
-            "currency": "USD",
-            "initial_balance": 100.50,
-        },
-    )
-    assert response_float.status_code == 201
+    saved_account = next((a for a in accounts if a["id"] == created_id), None)
+    assert saved_account is not None, f"Account {created_id} not found"
+    assert Decimal(saved_account["initial_balance"]) == Decimal("999.99999")

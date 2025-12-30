@@ -12,11 +12,17 @@ from budget_tracker.model import Entry
 from budget_tracker.model import CategoryType
 from budget_tracker.api import app
 from budget_tracker.api import get_db_session
+from fastapi.testclient import TestClient
 
 # Shared date constants
 JAN_01 = date.fromisoformat("2025-01-01")
 JAN_02 = date.fromisoformat("2025-01-02")
 JAN_03 = date.fromisoformat("2025-01-03")
+
+
+@pytest.fixture
+def client():
+    return TestClient(app)
 
 
 @pytest.fixture
