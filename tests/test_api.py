@@ -55,20 +55,19 @@ def test_create_account_duplicate_name(
 
 
 @pytest.mark.parametrize(
-    "currency, expected_status, check_normalization",
+    "currency, expected_status",
     [
-        ("USD", 201, False),
-        ("EUR", 201, False),
-        ("eur", 201, True),  # Case normalization
-        ("INVALID", 422, False),
+        ("USD", 201),
+        ("EUR", 201),
+        ("INVALID", 422),
     ],
 )
 def test_create_account_currency_validation(
-    client, currency, expected_status, check_normalization, override_db_session
+    client, currency, expected_status, override_db_session
 ):
     # Act
     payload = {
-        "name": "Test Account",
+        "name": f"Test Cur {currency}",
         "currency": currency,
         "initial_balance": 100.0,
     }
@@ -81,8 +80,23 @@ def test_create_account_currency_validation(
     if expected_status == 422:
         assert "valid ISO 4217" in data["detail"][0]["msg"]
 
-    if check_normalization:
-        assert data["currency"] == currency.upper()
+
+@pytest.mark.parametrize("currency", ["eur", "usd", "rub"])
+def test_create_account_currency_normalization(
+    client, currency, override_db_session
+):
+    # Act
+    payload = {
+        "name": f"Test Norm {currency}",
+        "currency": currency,
+        "initial_balance": 100.0,
+    }
+    response = client.post("/accounts", json=payload)
+
+    # Assert
+    assert response.status_code == 201
+    data = response.json()
+    assert data["currency"] == currency.upper()
 
 
 @pytest.mark.parametrize(
