@@ -2,7 +2,7 @@ import pytest
 from decimal import Decimal
 
 
-def test_get_accounts(client, session, acc_eur, override_db_session):
+def test_get_accounts(client, session, acc_eur):
     # 1. Arrange: Prepare data in the test database
     session.add(acc_eur)
     session.commit()
@@ -18,7 +18,7 @@ def test_get_accounts(client, session, acc_eur, override_db_session):
     assert data[0]["name"] == acc_eur.name
 
 
-def test_get_accounts_empty_database(client, session, override_db_session):
+def test_get_accounts_empty_database(client):
     # 1. Arrange: Empty database (no accounts added)
 
     # 2. Act: Make the request
@@ -30,9 +30,7 @@ def test_get_accounts_empty_database(client, session, override_db_session):
     assert data == []
 
 
-def test_create_account_duplicate_name(
-    client, session, acc_eur, override_db_session
-):
+def test_create_account_duplicate_name(client, session, acc_eur):
     # 1. Arrange: Add an account to the database
     session.add(acc_eur)
     session.commit()
@@ -62,9 +60,7 @@ def test_create_account_duplicate_name(
         ("INVALID", 422),
     ],
 )
-def test_create_account_currency_validation(
-    client, session, currency, expected_status, override_db_session
-):
+def test_create_account_currency_validation(client, currency, expected_status):
     # Act
     payload = {
         "name": f"Test Cur {currency}",
@@ -84,9 +80,7 @@ def test_create_account_currency_validation(
 
 
 @pytest.mark.parametrize("currency", ["eur", "usd", "rub"])
-def test_create_account_currency_normalization(
-    client, session, currency, override_db_session
-):
+def test_create_account_currency_normalization(client, currency):
     # Act
     payload = {
         "name": f"Test Norm {currency}",
@@ -112,7 +106,7 @@ def test_create_account_currency_normalization(
     ],
 )
 def test_create_account_precision_and_types(
-    client, session, initial_balance, expected_balance, override_db_session
+    client, initial_balance, expected_balance
 ):
     # Act
     safe_name = f"Test {initial_balance}".replace(".", "_")
@@ -129,9 +123,7 @@ def test_create_account_precision_and_types(
     assert Decimal(data["initial_balance"]) == Decimal(expected_balance)
 
 
-def test_decimal_precision_persistence_flow(
-    client, session, override_db_session
-):
+def test_decimal_precision_persistence_flow(client):
     """
     Verify that high precision is preserved through a full save-load cycle.
     """

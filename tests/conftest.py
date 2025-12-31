@@ -21,8 +21,15 @@ JAN_03 = date.fromisoformat("2025-01-03")
 
 
 @pytest.fixture
-def client():
-    return TestClient(app)
+def client(session):
+    """Test client with database session already configured."""
+
+    def override_get_db_session():
+        yield session
+
+    app.dependency_overrides[get_db_session] = override_get_db_session
+    yield TestClient(app)
+    app.dependency_overrides.clear()
 
 
 @pytest.fixture
@@ -64,18 +71,6 @@ def acc_eur() -> Account:
 @pytest.fixture
 def acc_rub() -> Account:
     return Account("a2", "RUB_1", "RUB", Decimal(0))
-
-
-@pytest.fixture
-def override_db_session(session):
-    """Fixture to override the FastAPI dependency with test session."""
-
-    def override_get_db_session():
-        yield session
-
-    app.dependency_overrides[get_db_session] = override_get_db_session
-    yield
-    app.dependency_overrides.clear()
 
 
 @pytest.fixture
