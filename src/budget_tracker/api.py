@@ -1,6 +1,6 @@
 from decimal import Decimal
 from fastapi import FastAPI, Depends, HTTPException
-from pydantic import BaseModel, Field, ConfigDict, field_validator
+from pydantic import BaseModel, Field, ConfigDict
 from sqlalchemy import create_engine
 from sqlalchemy.exc import ArgumentError, IntegrityError
 from sqlalchemy.orm import Session, sessionmaker
@@ -11,16 +11,6 @@ from budget_tracker.db import metadata
 from budget_tracker.db import start_mappers
 from budget_tracker.model import Account
 from budget_tracker.repository import SqlAlchemyRepository
-
-
-# Common ISO 4217 currency codes
-VALID_CURRENCIES = {
-    "USD",
-    "EUR",
-    "JPY",
-    "RUB",
-    "AED",
-}
 
 
 try:
@@ -51,16 +41,6 @@ def get_db_session():
         session.close()
 
 
-def validate_currency(value: str) -> str:
-    """Validate that currency is a valid ISO 4217 code."""
-    if value.upper() not in VALID_CURRENCIES:
-        raise ValueError(
-            f"Invalid currency code: {value}. "
-            "Must be a valid ISO 4217 currency code."
-        )
-    return value.upper()
-
-
 class AccountCreate(BaseModel):
     name: str = Field(
         ...,
@@ -74,11 +54,6 @@ class AccountCreate(BaseModel):
     )
     currency: str
     initial_balance: Decimal = Decimal(0)
-
-    @field_validator("currency")
-    @classmethod
-    def call_validate_currency(cls, value: str) -> str:
-        return validate_currency(value)
 
 
 class AccountResponse(BaseModel):
