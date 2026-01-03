@@ -12,7 +12,7 @@ from budget_tracker.model import (
     DuplicateAccountNameError,
     InvalidInitialBalanceError,
 )
-from budget_tracker.repository import SqlAlchemyRepository
+from budget_tracker.repository import AbstractRepository, SqlAlchemyRepository
 from budget_tracker.schemas import AccountCreate, AccountResponse
 from budget_tracker.services import create_account
 
@@ -44,22 +44,26 @@ def get_db_session():
         session.close()
 
 
+def get_repository(
+    session: Session = Depends(get_db_session),
+) -> AbstractRepository:
+    """Dependency that provides a repository instance."""
+    return SqlAlchemyRepository(session)
+
+
 @app.get("/accounts", response_model=list[AccountResponse])
-def list_accounts(session: Session = Depends(get_db_session)):
-    repository = SqlAlchemyRepository(session)
-    return repository.list_all()
+def list_accounts(repo: AbstractRepository = Depends(get_repository)):
+    return repo.list_all()
 
 
 @app.post("/accounts", status_code=201, response_model=AccountResponse)
 def create_account_endpoint(
-    account: AccountCreate, session: Session = Depends(get_db_session)
+    account: AccountCreate,
+    repo: AbstractRepository = Depends(get_repository),
 ):
-    repository = SqlAlchemyRepository(session)
-
     try:
         new_account = create_account(
-            repo=repository,
-            session=session,
+            repo=repo,
             **account.model_dump(),
         )
     except DuplicateAccountNameError as exc:
@@ -67,7 +71,7 @@ def create_account_endpoint(
     except InvalidInitialBalanceError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
     except Exception as exc:
-        session.rollback()
+        repo.rollback()
         raise HTTPException(status_code=400, detail=str(exc))
 
     return new_account

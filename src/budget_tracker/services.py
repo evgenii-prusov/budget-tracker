@@ -10,7 +10,6 @@ from budget_tracker.repository import AbstractRepository
 
 def create_account(
     repo: AbstractRepository,
-    session,
     *,
     name: str,
     currency: str,
@@ -34,6 +33,6 @@ def create_account(
         initial_balance=initial_balance,
     )
     repo.add(new_account)
-    session.commit()
+    repo.commit()
 
     return new_account

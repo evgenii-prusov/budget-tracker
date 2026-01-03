@@ -22,6 +22,16 @@ class AbstractRepository(abc.ABC):
     def list_all(self) -> list[Account]:
         raise NotImplementedError()
 
+    @abc.abstractmethod
+    def commit(self):
+        """Persist all pending changes."""
+        raise NotImplementedError()
+
+    @abc.abstractmethod
+    def rollback(self):
+        """Discard all pending changes."""
+        raise NotImplementedError()
+
 
 class SqlAlchemyRepository(AbstractRepository):
     def __init__(self, session: Session):
@@ -38,3 +48,9 @@ class SqlAlchemyRepository(AbstractRepository):
 
     def list_all(self) -> list[Account]:
         return self.session.query(Account).all()
+
+    def commit(self):
+        self.session.commit()
+
+    def rollback(self):
+        self.session.rollback()
