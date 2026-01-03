@@ -11,9 +11,7 @@ def test_repository_save_an_account(session, acc_eur, acc_rub):
     session.commit()
 
     rows = set(
-        session.execute(
-            text("SELECT id, name, currency, initial_balance FROM account")
-        )
+        session.execute(text("SELECT id, name, currency, initial_balance FROM account"))
     )
     assert rows == {
         (acc_eur.id, acc_eur.name, acc_eur.currency, acc_eur.initial_balance),
@@ -61,10 +59,6 @@ def test_repository_retrieve_all_accounts(session):
     repo = repository.SqlAlchemyRepository(session)
     accounts = repo.list_all()
     assert accounts == [
-        Account(
-            id="1", name="rub", currency="RUB", initial_balance=Decimal(100)
-        ),
-        Account(
-            id="2", name="eur", currency="EUR", initial_balance=Decimal(200)
-        ),
+        Account(id="1", name="rub", currency="RUB", initial_balance=Decimal(100)),
+        Account(id="2", name="eur", currency="EUR", initial_balance=Decimal(200)),
     ]
