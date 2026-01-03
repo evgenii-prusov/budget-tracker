@@ -35,6 +35,12 @@ class InsufficientFundsError(Exception):
     pass
 
 
+class DuplicateAccountNameError(Exception):
+    """Raised when attempting to create an account with a duplicate name."""
+
+    pass
+
+
 @functools.total_ordering
 class Entry:
     """Represents a financial entry on an account.
