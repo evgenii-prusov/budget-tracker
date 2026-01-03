@@ -1,15 +1,16 @@
 from fastapi import FastAPI, Depends, HTTPException
 from sqlalchemy import create_engine
-from sqlalchemy.exc import ArgumentError, IntegrityError
+from sqlalchemy.exc import ArgumentError
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.orm.util import class_mapper
 from sqlalchemy.orm.exc import UnmappedClassError
 
 from budget_tracker.db import metadata
 from budget_tracker.db import start_mappers
-from budget_tracker.model import Account
+from budget_tracker.model import Account, DuplicateAccountNameError
 from budget_tracker.repository import SqlAlchemyRepository
 from budget_tracker.schemas import AccountCreate, AccountResponse
+from budget_tracker.services import create_account
 
 try:
     class_mapper(Account)
@@ -46,25 +47,21 @@ def list_accounts(session: Session = Depends(get_db_session)):
 
 
 @app.post("/accounts", status_code=201, response_model=AccountResponse)
-def create_account(
+def create_account_endpoint(
     account: AccountCreate, session: Session = Depends(get_db_session)
 ):
     repository = SqlAlchemyRepository(session)
 
-    new_account = Account(
-        id=None,
-        name=account.name,
-        currency=account.currency,
-        initial_balance=account.initial_balance,
-    )
-
-    repository.add(new_account)
     try:
-        session.commit()
-    except IntegrityError:
-        session.rollback()
-        raise HTTPException(
-            status_code=409,
-            detail=f"Account with name '{account.name}' already exists",
+        new_account = create_account(
+            repo=repository,
+            session=session,
+            **account.model_dump(),
         )
+    except DuplicateAccountNameError as exc:
+        raise HTTPException(status_code=409, detail=str(exc))
+    except Exception as exc:
+        session.rollback()
+        raise HTTPException(status_code=400, detail=str(exc))
+
     return new_account

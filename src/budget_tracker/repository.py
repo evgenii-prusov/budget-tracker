@@ -15,6 +15,10 @@ class AbstractRepository(abc.ABC):
         raise NotImplementedError()
 
     @abc.abstractmethod
+    def get_by_name(self, name: str) -> Account | None:
+        raise NotImplementedError()
+
+    @abc.abstractmethod
     def list_all(self) -> list[Account]:
         raise NotImplementedError()
 
@@ -28,6 +32,9 @@ class SqlAlchemyRepository(AbstractRepository):
 
     def get(self, account_id) -> Account:
         return self.session.query(Account).filter_by(id=account_id).one()
+
+    def get_by_name(self, name: str) -> Account | None:
+        return self.session.query(Account).filter_by(name=name).first()
 
     def list_all(self) -> list[Account]:
         return self.session.query(Account).all()
