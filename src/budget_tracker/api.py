@@ -7,7 +7,11 @@ from sqlalchemy.orm.exc import UnmappedClassError
 
 from budget_tracker.db import metadata
 from budget_tracker.db import start_mappers
-from budget_tracker.model import Account, DuplicateAccountNameError
+from budget_tracker.model import (
+    Account,
+    DuplicateAccountNameError,
+    InvalidInitialBalanceError,
+)
 from budget_tracker.repository import SqlAlchemyRepository
 from budget_tracker.schemas import AccountCreate, AccountResponse
 from budget_tracker.services import create_account
@@ -60,6 +64,8 @@ def create_account_endpoint(
         )
     except DuplicateAccountNameError as exc:
         raise HTTPException(status_code=409, detail=str(exc))
+    except InvalidInitialBalanceError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
     except Exception as exc:
         session.rollback()
         raise HTTPException(status_code=400, detail=str(exc))

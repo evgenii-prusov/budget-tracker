@@ -41,6 +41,12 @@ class DuplicateAccountNameError(Exception):
     pass
 
 
+class InvalidInitialBalanceError(Exception):
+    """Raised when attempting to create an account with a negative initial balance."""
+
+    pass
+
+
 @functools.total_ordering
 class Entry:
     """Represents a financial entry on an account.
@@ -113,15 +119,10 @@ class Account:
 
     @property
     def balance(self) -> Decimal:
-        return self.initial_balance + sum(
-            entry.amount for entry in self._entries
-        )
+        return self.initial_balance + sum(entry.amount for entry in self._entries)
 
     def __repr__(self) -> str:
-        return (
-            f"Account({self.id!r}, {self.name!r}, {self.currency!r}, "
-            f"{self.balance})"
-        )
+        return f"Account({self.id!r}, {self.name!r}, {self.currency!r}, {self.balance})"
 
     def __eq__(self, other):
         if not isinstance(other, Account):

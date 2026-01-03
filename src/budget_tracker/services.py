@@ -1,6 +1,10 @@
 from decimal import Decimal
 
-from budget_tracker.model import Account, DuplicateAccountNameError
+from budget_tracker.model import (
+    Account,
+    DuplicateAccountNameError,
+    InvalidInitialBalanceError,
+)
 from budget_tracker.repository import AbstractRepository
 
 
@@ -12,13 +16,16 @@ def create_account(
     currency: str,
     initial_balance: Decimal,
 ) -> Account:
-    # TODO: add validation that initial_balance >= 0
+    # Validate initial balance is non-negative
+    if initial_balance < 0:
+        raise InvalidInitialBalanceError(
+            f"Initial balance cannot be negative, got {initial_balance}"
+        )
+
     # Check for duplicate account name
     existing_account = repo.get_by_name(name)
     if existing_account:
-        raise DuplicateAccountNameError(
-            f"Account with name '{name}' already exists"
-        )
+        raise DuplicateAccountNameError(f"Account with name '{name}' already exists")
 
     new_account = Account(
         id=None,

@@ -52,6 +52,24 @@ def test_create_account_duplicate_name(client, session, acc_eur):
     assert acc_eur.name in data["detail"]
 
 
+def test_create_account_negative_initial_balance(client):
+    # 1. Arrange & Act: Try to create account with negative initial balance
+    response = client.post(
+        "/accounts",
+        json={
+            "name": "NegativeAccount",
+            "currency": "USD",
+            "initial_balance": -100.0,
+        },
+    )
+
+    # 2. Assert: Check the response
+    assert response.status_code == 400
+    data = response.json()
+    assert "cannot be negative" in data["detail"]
+    assert "-100" in data["detail"]
+
+
 @pytest.mark.parametrize(
     "initial_balance, expected_balance",
     [
