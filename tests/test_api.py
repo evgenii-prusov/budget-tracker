@@ -62,9 +62,7 @@ def test_create_account_duplicate_name(client, session, acc_eur):
         (100.50, "100.50"),  # Float input
     ],
 )
-def test_create_account_precision_and_types(
-    client, initial_balance, expected_balance
-):
+def test_create_account_precision_and_types(client, initial_balance, expected_balance):
     # Act
     safe_name = f"Test {initial_balance}".replace(".", "_")
     payload = {

@@ -28,9 +28,7 @@ class TestTransfer:
         assert acc_rub.balance == Decimal(1000)
         assert debit_entry.entry_date == credit_entry.entry_date
 
-    def test_transfer_entries_have_no_category(
-        self, acc_eur: Account, acc_rub: Account
-    ):
+    def test_transfer_entries_have_no_category(self, acc_eur: Account, acc_rub: Account):
         # Arrange & Act: Create transfer between accounts
         debit_entry, credit_entry = transfer(
             acc_eur,
@@ -153,9 +151,7 @@ class TestRecordEntry:
         assert f"got {expected_type}" in error_msg
         assert "Use Decimal(str(value)) to convert" in error_msg
 
-    def test_record_entry_succeeds_with_valid_decimal_amount(
-        self, acc_eur: Account
-    ):
+    def test_record_entry_succeeds_with_valid_decimal_amount(self, acc_eur: Account):
         # Arrange & Act: Record entry with valid Decimal amount
         entry = acc_eur.record_entry(
             Decimal(10),

@@ -90,9 +90,7 @@ def make_entry():
         category: str | None = "test",
         category_type: CategoryType = CategoryType.EXPENSE,
     ) -> Entry:
-        return Entry(
-            id, account_id, amount, entry_date, category, category_type
-        )
+        return Entry(id, account_id, amount, entry_date, category, category_type)
 
     return _make_entry
 
@@ -100,22 +98,16 @@ def make_entry():
 @pytest.fixture
 def entry_1() -> Entry:
     """Entry on Jan 01 for testing (taxi expense)."""
-    return Entry(
-        "tx-1", "a-1", Decimal(0), JAN_01, "taxi", CategoryType.EXPENSE
-    )
+    return Entry("tx-1", "a-1", Decimal(0), JAN_01, "taxi", CategoryType.EXPENSE)
 
 
 @pytest.fixture
 def entry_2() -> Entry:
     """Entry on Jan 02 for testing (food expense)."""
-    return Entry(
-        "tx-2", "a-1", Decimal(3), JAN_02, "food", CategoryType.EXPENSE
-    )
+    return Entry("tx-2", "a-1", Decimal(3), JAN_02, "food", CategoryType.EXPENSE)
 
 
 @pytest.fixture
 def entry_3() -> Entry:
     """Entry on Jan 03 for testing (taxi expense)."""
-    return Entry(
-        "tx-3", "a-2", Decimal(1), JAN_03, "taxi", CategoryType.EXPENSE
-    )
+    return Entry("tx-3", "a-2", Decimal(1), JAN_03, "taxi", CategoryType.EXPENSE)

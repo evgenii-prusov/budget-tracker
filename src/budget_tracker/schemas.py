@@ -9,10 +9,7 @@ class AccountCreate(BaseModel):
         min_length=3,
         max_length=100,
         pattern=r"^[A-Za-z0-9]+(?:[ _-][A-Za-z0-9]+)*$",
-        description=(
-            "Account name (3-100 characters, must start with alphanumeric, "
-            "can contain spaces, hyphens, underscores)"
-        ),
+        description="Account name (3-100 characters, must start with alphanumeric)",
     )
     currency: str
     initial_balance: Decimal = Decimal(0)
