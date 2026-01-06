@@ -6,16 +6,16 @@ from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.orm.util import class_mapper
 from sqlalchemy.orm.exc import UnmappedClassError
 
-from budget_tracker.db import metadata
-from budget_tracker.db import start_mappers
-from budget_tracker.model import (
+from app.db import metadata
+from app.db import start_mappers
+from app.model import (
     Account,
     DuplicateAccountNameError,
     InvalidInitialBalanceError,
 )
-from budget_tracker.repository import AbstractRepository, SqlAlchemyRepository
-from budget_tracker.schemas import AccountCreate, AccountResponse
-from budget_tracker.services import create_account
+from app.repository import AbstractRepository, SqlAlchemyRepository
+from app.schemas import AccountCreate, AccountResponse
+from app.services import create_account
 
 try:
     class_mapper(Account)

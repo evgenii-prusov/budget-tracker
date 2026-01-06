@@ -1,10 +1,10 @@
 import pytest
 from decimal import Decimal
 
-from budget_tracker.model import Account
-from budget_tracker.model import transfer
-from budget_tracker.model import InsufficientFundsError
-from budget_tracker.model import CategoryType
+from app.model import Account
+from app.model import transfer
+from app.model import InsufficientFundsError
+from app.model import CategoryType
 from conftest import JAN_01
 
 

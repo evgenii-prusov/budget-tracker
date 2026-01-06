@@ -1,7 +1,7 @@
 from decimal import Decimal
 
-from budget_tracker.model import Account
-from budget_tracker.model import CategoryType
+from app.model import Account
+from app.model import CategoryType
 from conftest import JAN_01
 
 

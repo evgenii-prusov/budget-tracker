@@ -1,4 +1,4 @@
-from budget_tracker.model import Entry
+from app.model import Entry
 from conftest import JAN_01
 from conftest import JAN_02
 from conftest import JAN_03

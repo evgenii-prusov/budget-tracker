@@ -1,13 +1,13 @@
 import pytest
 from decimal import Decimal
 
-from budget_tracker.model import (
+from app.model import (
     Account,
     DuplicateAccountNameError,
     InvalidInitialBalanceError,
 )
-from budget_tracker.repository import AbstractRepository
-from budget_tracker.services import create_account
+from app.repository import AbstractRepository
+from app.services import create_account
 
 
 class FakeRepository(AbstractRepository):

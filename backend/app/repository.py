@@ -2,7 +2,7 @@ import abc
 
 from sqlalchemy.orm import Session
 
-from budget_tracker.model import Account
+from app.model import Account
 
 
 class AbstractRepository(abc.ABC):

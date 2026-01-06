@@ -4,21 +4,47 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Budget Tracker is a personal finance application for tracking income, expenses, and transfers across multiple accounts and currencies. The project uses Python 3.14+, FastAPI, and SQLAlchemy with a focus on clean architecture and comprehensive testing.
+Budget Tracker is a personal finance application for tracking income, expenses, and transfers across multiple accounts and currencies. The project is organized as a **monorepo** with separate backend and frontend directories.
+
+- **Backend**: Python 3.14+, FastAPI, SQLAlchemy with clean architecture
+- **Frontend**: Placeholder for future React/Vue implementation
+
+## Project Structure
+
+```
+budget-tracker/
+├── backend/                    # Python FastAPI backend
+│   ├── app/                    # Main application package
+│   │   ├── main.py             # FastAPI endpoints
+│   │   ├── model.py            # Domain models
+│   │   ├── db.py               # Database schema
+│   │   ├── repository.py       # Repository pattern
+│   │   ├── schemas.py          # Pydantic schemas
+│   │   └── services.py         # Business logic
+│   ├── tests/                  # Test suite
+│   ├── pyproject.toml          # Backend dependencies
+│   ├── Makefile                # Backend-specific commands
+│   └── budget.db               # SQLite database
+├── frontend/                   # Frontend (placeholder)
+├── docs/                       # Documentation
+├── .agent/workflows/           # Agent workflows
+├── .github/workflows/          # CI/CD
+├── .pre-commit-config.yaml     # Pre-commit hooks
+├── Makefile                    # Root commands (delegates to backend)
+└── CLAUDE.md                   # This file
+```
 
 ## Development Commands
 
 The project provides two ways to run commands:
-1. **Makefile shortcuts** - Convenient `make` commands (recommended)
-2. **Direct `uv run` commands** - Full control over specific operations
+1. **Root Makefile** - Run from project root (recommended)
+2. **Backend Makefile** - Run from `backend/` directory
 
-Choose based on your preference. Makefile commands are shorter and easier to remember.
-
-### Makefile Commands (Recommended)
+### Makefile Commands (from project root)
 
 ```bash
 # Install dependencies
-make install         # Equivalent to: uv sync
+make install         # Equivalent to: cd backend && uv sync
 
 # Run the application
 make run            # Start FastAPI development server
@@ -27,7 +53,7 @@ make run            # Start FastAPI development server
 make test           # Run all tests
 make test-verbose   # Run tests with verbose output
 make coverage       # Run tests with terminal coverage report
-make coverage-html  # Generate HTML coverage report (opens at htmlcov/index.html)
+make coverage-html  # Generate HTML coverage report (opens at backend/htmlcov/index.html)
 
 # Code Quality
 make quality        # Run pre-commit checks on all files
@@ -46,12 +72,13 @@ make help           # Show all available commands
 
 ### Environment Setup
 ```bash
-# Install dependencies (uses uv package manager)
-uv sync
-# Or use Makefile: make install
+# Install dependencies (from project root)
+make install
+# Or from backend directory:
+cd backend && uv sync
 
 # Activate virtual environment
-source .venv/bin/activate
+source backend/.venv/bin/activate
 ```
 
 ### Running Tests (Direct Commands)
@@ -59,33 +86,26 @@ source .venv/bin/activate
 For most testing needs, use the Makefile commands above. For more control:
 
 ```bash
+# From backend directory:
+cd backend
+
 # Run all tests
 uv run pytest
-# Or use: make test
 
 # Run tests with verbose output
 uv run pytest -v
-# Or use: make test-verbose
 
 # Run tests with coverage (terminal report)
-uv run pytest --cov=src --cov-report=term-missing
-# Or use: make coverage
+uv run pytest --cov=app --cov-report=term-missing
 
-# Generate HTML coverage report (opens in browser at htmlcov/index.html)
-uv run pytest --cov=src --cov-report=html
-
-# Generate both terminal and HTML coverage reports
-uv run pytest --cov=src --cov-report=term-missing --cov-report=html
-# Or use: make coverage-html
+# Generate HTML coverage report
+uv run pytest --cov=app --cov-report=html
 
 # Run specific test file
 uv run pytest tests/test_api.py
 
 # Run specific test function
 uv run pytest tests/test_api.py::test_get_accounts
-
-# Run tests with coverage for specific test file
-uv run pytest tests/test_api.py --cov=src --cov-report=term-missing
 ```
 
 ### Code Quality (Direct Commands)
@@ -93,17 +113,17 @@ uv run pytest tests/test_api.py --cov=src --cov-report=term-missing
 For most code quality needs, use `make quality`, `make format`, or `make lint`. For more control:
 
 ```bash
+# From backend directory:
+cd backend
+
 # Run pre-commit checks on all files
 uv run pre-commit run --all-files
-# Or use: make quality
 
 # Format code with ruff
 uv run ruff format
-# Or use: make format
 
 # Lint and auto-fix with ruff
 uv run ruff check --fix
-# Or use: make lint
 
 # Type check with ty
 uv run ty check <file.py>
@@ -111,9 +131,11 @@ uv run ty check <file.py>
 
 ### Running the Application
 ```bash
-# Start the FastAPI development server
-uv run fastapi dev src/budget_tracker/api.py
-# Or use: make run
+# From project root
+make run
+
+# Or from backend directory
+cd backend && uv run fastapi dev app/main.py
 
 # Access API documentation
 # Navigate to http://localhost:8000/docs after starting the server
@@ -127,7 +149,7 @@ The codebase follows a clean architecture pattern with clear separation between 
 
 - **Domain Layer** (`model.py`): Pure Python domain entities (`Account`, `Entry`) with business logic. No framework dependencies.
 - **Persistence Layer** (`db.py`, `repository.py`): SQLAlchemy imperative mapping pattern. The `start_mappers()` function maps domain entities to database tables without polluting domain models with ORM concerns.
-- **API Layer** (`api.py`): FastAPI endpoints with Pydantic validation. Uses dependency injection for database sessions.
+- **API Layer** (`main.py`): FastAPI endpoints with Pydantic validation. Uses dependency injection for database sessions.
 
 ### Key Architectural Patterns
 
@@ -167,11 +189,11 @@ def test_example(session, fixture):
     # 3. Assert: Verify the outcome
 ```
 
-### Key Fixtures (see `tests/conftest.py`)
+### Key Fixtures (see `backend/tests/conftest.py`)
 - `session`: In-memory SQLite database session, cleaned up after each test
 - `acc_eur`: EUR account with 35.00 initial balance
 - `acc_rub`: RUB account with 0.00 initial balance
-- `override_db_session`: Overrides FastAPI dependency to use test session
+- `client`: FastAPI test client with session override
 
 ### Testing Database Code
 The test suite properly handles ORM mapper lifecycle:
@@ -207,12 +229,12 @@ Each transaction can optionally link to one project for grouped reporting.
 ## Code Style
 
 ### Ruff Configuration
-- Line length: 79 characters
+- Line length: 89 characters
 - E501 (line length) checking is enabled
 - Auto-fixing is enabled for pre-commit hooks
 
 ### Pre-commit Hooks
-The repository uses pre-commit with three hooks:
+The repository uses pre-commit with hooks that run on `backend/` files:
 1. **ruff-check**: Linting with auto-fix
 2. **ruff-format**: Code formatting
 3. **pytest**: Runs full test suite (must pass before commit)
@@ -235,21 +257,21 @@ This codebase enforces strict Decimal types for all monetary values to prevent f
 
 **Examples:**
 ```python
-# ✅ Correct - Default parameters and literal integers
+# Correct - Default parameters and literal integers
 initial_balance: Decimal = Decimal(0)
 amount = Decimal(100)
 
-# ✅ Correct - Converting potentially unsafe types
+# Correct - Converting potentially unsafe types
 user_input = "123.45"
 amount = Decimal(user_input)
 
 float_value = 123.45
 amount = Decimal(str(float_value))  # Convert to string first
 
-# ❌ Incorrect - Inconsistent style
+# Incorrect - Inconsistent style
 initial_balance: Decimal = Decimal("0")  # Use Decimal(0) instead
 
-# ❌ Incorrect - Float precision loss
+# Incorrect - Float precision loss
 amount = Decimal(123.45)  # Use Decimal(str(123.45)) or Decimal("123.45")
 ```
 
@@ -260,21 +282,23 @@ amount = Decimal(123.45)  # Use Decimal(str(123.45)) or Decimal("123.45")
 
 ## Important File Locations
 
-- Domain models: `src/budget_tracker/model.py`
-- Database schema: `src/budget_tracker/db.py`
-- Repository pattern: `src/budget_tracker/repository.py`
-- API endpoints: `src/budget_tracker/api.py`
-- Test configuration: `tests/conftest.py`
+- Domain models: `backend/app/model.py`
+- Database schema: `backend/app/db.py`
+- Repository pattern: `backend/app/repository.py`
+- API endpoints: `backend/app/main.py`
+- Pydantic schemas: `backend/app/schemas.py`
+- Service layer: `backend/app/services.py`
+- Test configuration: `backend/tests/conftest.py`
 - Product specification: `docs/SPECIFICATION.md` (comprehensive domain details)
 - Pre-commit config: `.pre-commit-config.yaml`
-- Dependencies: `pyproject.toml` (managed by uv)
+- Backend dependencies: `backend/pyproject.toml` (managed by uv)
 
 ## Technology Stack
 
 - **Language**: Python 3.14+
 - **Web Framework**: FastAPI with standard extras
 - **ORM**: SQLAlchemy 2.0+ (imperative mapping)
-- **Database**: SQLite (file-based: `budget.db`)
+- **Database**: SQLite (file-based: `backend/budget.db`)
 - **Package Manager**: uv
 - **Testing**: pytest with pytest-sugar and pytest-cov
 - **Code Coverage**: pytest-cov (run coverage commands to see current overall coverage)

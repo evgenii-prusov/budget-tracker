@@ -1,11 +1,11 @@
 from decimal import Decimal
 
-from budget_tracker.model import (
+from app.model import (
     Account,
     DuplicateAccountNameError,
     InvalidInitialBalanceError,
 )
-from budget_tracker.repository import AbstractRepository
+from app.repository import AbstractRepository
 
 
 def create_account(

@@ -1,7 +1,7 @@
 [project]
-name = "budget-tracker"
+name = "app"
 version = "0.1.0"
-description = "Add your description here"
+description = "Budget Tracker Backend API"
 readme = "README.md"
 requires-python = ">=3.14"
 dependencies = [
@@ -19,7 +19,6 @@ dev = [
     "ty>=0.0.5",
 ]
 
-
 [tool.ruff]
 line-length = 89
 
@@ -27,11 +26,11 @@ line-length = 89
 extend-select = ["E501"]
 
 [tool.pytest.ini_options]
-pythonpath = ["src"]
+pythonpath = ["."]
 testpaths = ["tests"]
 
 [tool.coverage.run]
-source = ["src"]
+source = ["app"]
 omit = [
     "*/tests/*",
     "*/__pycache__/*",
