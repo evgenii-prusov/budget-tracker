@@ -1,4 +1,5 @@
 from fastapi import FastAPI, Depends, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import create_engine
 from sqlalchemy.exc import ArgumentError
 from sqlalchemy.orm import Session, sessionmaker
@@ -26,6 +27,14 @@ except ArgumentError:
     pass
 
 app = FastAPI()
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173"],  # React dev server port
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Setup database (using file-based SQLite database 'budget.db';
 # this URL could be made configurable via environment variables)
