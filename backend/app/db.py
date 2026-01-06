@@ -2,7 +2,7 @@ from sqlalchemy import Table, Column, ForeignKey
 from sqlalchemy import String, Numeric, Date
 from sqlalchemy.orm import registry, relationship
 
-from budget_tracker import model
+from app import model
 
 mapper_registry = registry()
 metadata = mapper_registry.metadata

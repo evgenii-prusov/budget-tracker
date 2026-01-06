@@ -4,14 +4,14 @@ from datetime import date
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from budget_tracker.db import metadata
-from budget_tracker.db import start_mappers
-from budget_tracker.db import mapper_registry
-from budget_tracker.model import Account
-from budget_tracker.model import Entry
-from budget_tracker.model import CategoryType
-from budget_tracker.api import app
-from budget_tracker.api import get_db_session
+from app.db import metadata
+from app.db import start_mappers
+from app.db import mapper_registry
+from app.model import Account
+from app.model import Entry
+from app.model import CategoryType
+from app.main import app
+from app.main import get_db_session
 from fastapi.testclient import TestClient
 
 # Shared date constants

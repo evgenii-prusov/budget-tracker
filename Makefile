@@ -3,8 +3,8 @@
 help:
 	@echo "Budget Tracker - Available Commands"
 	@echo "===================================="
-	@echo "make install       - Install dependencies with uv"
-	@echo "make run           - Start FastAPI development server"
+	@echo "make install       - Install all dependencies"
+	@echo "make run           - Start backend server"
 	@echo "make test          - Run all tests"
 	@echo "make test-verbose  - Run tests with verbose output"
 	@echo "make coverage      - Run tests with coverage report"
@@ -16,40 +16,37 @@ help:
 	@echo "make clean         - Remove generated files"
 
 install:
-	uv sync
+	cd backend && uv sync
 
 run:
-	uv run fastapi dev src/budget_tracker/api.py
+	cd backend && uv run fastapi dev app/main.py
 
 test:
-	uv run pytest
+	cd backend && uv run pytest
 
 test-verbose:
-	uv run pytest -v
+	cd backend && uv run pytest -v
 
 coverage:
-	uv run pytest --cov=src --cov-report=term-missing
+	cd backend && uv run pytest --cov=app --cov-report=term-missing
 
 coverage-html:
-	uv run pytest --cov=src --cov-report=term-missing --cov-report=html
-	@echo "Coverage report generated at htmlcov/index.html"
+	cd backend && uv run pytest --cov=app --cov-report=term-missing --cov-report=html
+	@echo "Coverage report generated at backend/htmlcov/index.html"
 
 quality:
-	uv run pre-commit run --all-files
+	cd backend && uv run pre-commit run --all-files
 
 format:
-	uv run ruff format
+	cd backend && uv run ruff format
 
 lint:
-	uv run ruff check --fix
+	cd backend && uv run ruff check --fix
 
 sync:
 	git pull --rebase origin master
 
 clean:
-	rm -rf .pytest_cache
-	rm -rf htmlcov
-	rm -rf .coverage
-	rm -rf .ruff_cache
+	cd backend && rm -rf .pytest_cache htmlcov .coverage .ruff_cache
 	find . -type d -name __pycache__ -exec rm -rf {} +
 	find . -type f -name "*.pyc" -delete
