@@ -45,3 +45,6 @@ skip_covered = false
 
 [tool.coverage.html]
 directory = "htmlcov"
+
+[tool.ty]
+rules = { invalid-argument-type = "ignore" }
