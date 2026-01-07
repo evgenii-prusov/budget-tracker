@@ -1,30 +1,13 @@
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy import create_engine
-from sqlalchemy.exc import ArgumentError
-from sqlalchemy.orm import Session, sessionmaker
-from sqlalchemy.orm.util import class_mapper
-from sqlalchemy.orm.exc import UnmappedClassError
 
-from app.db import metadata
-from app.db import start_mappers
-from app.model import (
-    Account,
-    DuplicateAccountNameError,
-    InvalidInitialBalanceError,
-)
-from app.repository import AbstractRepository, SqlAlchemyRepository
+from app.dependencies import get_db_session, get_repository
+from app.model import DuplicateAccountNameError, InvalidInitialBalanceError
+from app.repository import AbstractRepository
 from app.schemas import AccountCreate, AccountResponse
 from app.services import create_account
 
-try:
-    class_mapper(Account)
-except UnmappedClassError:
-    # Mappers not yet configured, so configure them
-    start_mappers()
-except ArgumentError:
-    # Mappers might be already started by tests or other imports
-    pass
+__all__ = ["app", "get_db_session", "get_repository"]
 
 app = FastAPI()
 # Add CORS middleware
@@ -35,29 +18,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-# Setup database (using file-based SQLite database 'budget.db';
-# this URL could be made configurable via environment variables)
-engine = create_engine("sqlite:///budget.db")
-# Create tables (normally done via migration, but for quick start:
-metadata.create_all(engine)
-
-session_factory = sessionmaker(bind=engine)
-
-
-def get_db_session():
-    session = session_factory()
-    try:
-        yield session
-    finally:
-        session.close()
-
-
-def get_repository(
-    session: Session = Depends(get_db_session),
-) -> AbstractRepository:
-    """Dependency that provides a repository instance."""
-    return SqlAlchemyRepository(session)
 
 
 @app.get("/accounts", response_model=list[AccountResponse])
