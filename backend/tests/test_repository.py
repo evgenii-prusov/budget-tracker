@@ -11,25 +11,27 @@ def test_repository_save_an_account(session, acc_eur, acc_rub):
     session.commit()
 
     rows = set(
-        session.execute(text("SELECT id, name, currency, initial_balance FROM account"))
+        session.execute(
+            text("SELECT account_id, name, currency, initial_balance FROM account")
+        )
     )
     assert rows == {
-        (acc_eur.id, acc_eur.name, acc_eur.currency, acc_eur.initial_balance),
-        (acc_rub.id, acc_rub.name, acc_rub.currency, acc_rub.initial_balance),
+        (acc_eur.account_id, acc_eur.name, acc_eur.currency, acc_eur.initial_balance),
+        (acc_rub.account_id, acc_rub.name, acc_rub.currency, acc_rub.initial_balance),
     }
 
 
 def test_repository_retrieve_account_with_transactions(session):
     session.execute(
         text(
-            "INSERT INTO account (id, name, currency, initial_balance)"
+            "INSERT INTO account (account_id, name, currency, initial_balance)"
             "VALUES ('1', 'rub', 'RUB', 100)"
         )
     )
     session.execute(
         text(
             "INSERT INTO entry "
-            "(id, account_id, amount, entry_date, category, category_type)"
+            "(entry_id, account_id, amount, entry_date, category, category_type)"
             "VALUES ('1', '1', 100, '2025-12-26', 'rub', 'INCOME')"
         )
     )
@@ -40,7 +42,7 @@ def test_repository_retrieve_account_with_transactions(session):
     from decimal import Decimal
 
     assert account == Account(
-        id="1", name="rub", currency="RUB", initial_balance=Decimal(100)
+        account_id="1", name="rub", currency="RUB", initial_balance=Decimal(100)
     )
     assert account.balance == 200
 
@@ -48,7 +50,7 @@ def test_repository_retrieve_account_with_transactions(session):
 def test_repository_retrieve_all_accounts(session):
     session.execute(
         text(
-            "INSERT INTO account (id, name, currency, initial_balance) VALUES"
+            "INSERT INTO account (account_id, name, currency, initial_balance) VALUES"
             " ('1', 'rub', 'RUB', 100),"
             " ('2', 'eur', 'EUR', 200)"
         )
@@ -59,6 +61,10 @@ def test_repository_retrieve_all_accounts(session):
     repo = repository.SqlAlchemyRepository(session)
     accounts = repo.list_all()
     assert accounts == [
-        Account(id="1", name="rub", currency="RUB", initial_balance=Decimal(100)),
-        Account(id="2", name="eur", currency="EUR", initial_balance=Decimal(200)),
+        Account(
+            account_id="1", name="rub", currency="RUB", initial_balance=Decimal(100)
+        ),
+        Account(
+            account_id="2", name="eur", currency="EUR", initial_balance=Decimal(200)
+        ),
     ]

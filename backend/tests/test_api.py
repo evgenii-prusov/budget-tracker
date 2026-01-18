@@ -14,7 +14,7 @@ def test_get_accounts(client, session, acc_eur):
     assert response.status_code == 200
     data = response.json()
     assert len(data) == 1
-    assert data[0]["id"] == acc_eur.id
+    assert data[0]["account_id"] == acc_eur.account_id
     assert data[0]["name"] == acc_eur.name
 
 
@@ -110,7 +110,7 @@ def test_decimal_precision_persistence_flow(client):
         },
     )
     assert create_response.status_code == 201
-    created_id = create_response.json()["id"]
+    created_id = create_response.json()["account_id"]
 
     # Act: Retrieve all accounts
     get_response = client.get("/accounts")
@@ -118,6 +118,6 @@ def test_decimal_precision_persistence_flow(client):
     # Assert
     assert get_response.status_code == 200
     accounts = get_response.json()
-    saved_account = next((a for a in accounts if a["id"] == created_id), None)
+    saved_account = next((a for a in accounts if a["account_id"] == created_id), None)
     assert saved_account is not None, f"Account {created_id} not found"
     assert Decimal(saved_account["initial_balance"]) == Decimal("999.99999")

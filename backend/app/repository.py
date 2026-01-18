@@ -41,7 +41,7 @@ class SqlAlchemyRepository(AbstractRepository):
         self.session.add(account)
 
     def get(self, account_id) -> Account:
-        return self.session.query(Account).filter_by(id=account_id).one()
+        return self.session.query(Account).filter_by(account_id=account_id).one()
 
     def get_by_name(self, name: str) -> Account | None:
         return self.session.query(Account).filter_by(name=name).first()

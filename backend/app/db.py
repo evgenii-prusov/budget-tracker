@@ -10,7 +10,7 @@ metadata = mapper_registry.metadata
 accounts = Table(
     "account",
     metadata,
-    Column("id", String, primary_key=True),
+    Column("account_id", String, primary_key=True),
     Column("name", String, nullable=False, unique=True),
     Column("currency", String, nullable=False),
     Column("initial_balance", Numeric, nullable=False),
@@ -19,8 +19,8 @@ accounts = Table(
 entries = Table(
     "entry",
     metadata,
-    Column("id", String, primary_key=True),
-    Column("account_id", String, ForeignKey("account.id"), nullable=False),
+    Column("entry_id", String, primary_key=True),
+    Column("account_id", String, ForeignKey("account.account_id"), nullable=False),
     Column("amount", Numeric, nullable=False),
     Column("entry_date", Date, nullable=False),
     Column("category", String, nullable=True),

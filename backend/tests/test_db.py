@@ -7,7 +7,7 @@ from app.model import Account
 def test_account_mapper_loads_accounts(session):
     session.execute(
         text(
-            "INSERT INTO account (id, name, currency, initial_balance) VALUES "
+            "INSERT INTO account (account_id, name, currency, initial_balance) VALUES "
             '("acc-1", "Revolut 1", "EUR", "25"),'
             '("acc-2", "Revolut 2",  "EUR", "0"),'
             '("acc-3", "Sparkasse",    "EUR", "100")'

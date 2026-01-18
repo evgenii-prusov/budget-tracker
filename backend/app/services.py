@@ -27,7 +27,7 @@ def create_account(
         raise DuplicateAccountNameError(f"Account with name '{name}' already exists")
 
     new_account = Account(
-        id=None,
+        account_id=None,
         name=name,
         currency=currency,
         initial_balance=initial_balance,

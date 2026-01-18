@@ -18,7 +18,7 @@ class AccountCreate(BaseModel):
 class AccountResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
-    id: str
+    account_id: str
     name: str
     currency: str
     initial_balance: Decimal = Decimal("0.0")

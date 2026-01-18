@@ -19,7 +19,7 @@ class FakeRepository(AbstractRepository):
         self.accounts.append(account)
 
     def get(self, account_id: str) -> Account:
-        return next(acc for acc in self.accounts if acc.id == account_id)
+        return next(acc for acc in self.accounts if acc.account_id == account_id)
 
     def get_by_name(self, name: str) -> Account | None:
         return next((acc for acc in self.accounts if acc.name == name), None)
@@ -73,7 +73,7 @@ class TestCreateAccount:
     def test_create_account_duplicate_name_raises_error(self):
         # Arrange
         existing = Account(
-            id="existing-id",
+            account_id="existing-id",
             name="Existing Account",
             currency="USD",
             initial_balance=Decimal(100),

@@ -59,7 +59,7 @@ class Entry:
 
     def __init__(
         self,
-        id: str | None,
+        entry_id: str | None,
         account_id: str,
         amount: Decimal,
         entry_date: date,
@@ -71,7 +71,7 @@ class Entry:
                 f"amount must be Decimal, got {type(amount).__name__}. "
                 f"Use Decimal(str(value)) to convert."
             )
-        self.id = id or str(uuid4())
+        self.entry_id = entry_id or str(uuid4())
         self.amount = amount
         self.account_id = account_id
         self.entry_date = entry_date
@@ -80,7 +80,7 @@ class Entry:
 
     def __repr__(self) -> str:
         return (
-            f"Entry({self.id!r}, {self.account_id!r}, {self.amount!r}, "
+            f"Entry({self.entry_id!r}, {self.account_id!r}, {self.amount!r}, "
             f"{self.entry_date!r}, {self.category!r}, {self.category_type!r})"
         )
 
@@ -88,10 +88,10 @@ class Entry:
         if not isinstance(other, Entry):
             return False
         else:
-            return self.id == other.id
+            return self.entry_id == other.entry_id
 
     def __hash__(self):
-        return hash(self.id)
+        return hash(self.entry_id)
 
     def __lt__(self, other: Entry):
         return self.entry_date < other.entry_date
@@ -100,7 +100,7 @@ class Entry:
 class Account:
     def __init__(
         self,
-        id: str | None,
+        account_id: str | None,
         name: str,
         currency: str,
         initial_balance: Decimal = Decimal(0),
@@ -111,7 +111,7 @@ class Account:
                 f"got {type(initial_balance).__name__}. "
                 f"Use Decimal(str(value)) to convert."
             )
-        self.id = id or str(uuid4())
+        self.account_id = account_id or str(uuid4())
         self.name = name
         self.currency = currency
         self.initial_balance = initial_balance
@@ -122,16 +122,19 @@ class Account:
         return self.initial_balance + sum(entry.amount for entry in self._entries)
 
     def __repr__(self) -> str:
-        return f"Account({self.id!r}, {self.name!r}, {self.currency!r}, {self.balance})"
+        return (
+            f"Account({self.account_id!r}, {self.name!r}, "
+            f"{self.currency!r}, {self.balance})"
+        )
 
     def __eq__(self, other):
         if not isinstance(other, Account):
             return False
         else:
-            return self.id == other.id
+            return self.account_id == other.account_id
 
     def __hash__(self):
-        return hash(self.id)
+        return hash(self.account_id)
 
     def record_entry(
         self,
@@ -180,7 +183,7 @@ class Account:
         new_balance = self.balance + effective_amount
         if new_balance < 0:
             raise InsufficientFundsError(
-                f"Insufficient funds in account '{self.name}' (id={self.id}): "
+                f"Insufficient funds in account '{self.name}' (id={self.account_id}): "
                 f"current balance {self.balance} {self.currency}, "
                 f"attempted entry {effective_amount} {self.currency}, "
                 f"would result in balance {new_balance} {self.currency}"
@@ -188,7 +191,7 @@ class Account:
 
         entry: Entry = Entry(
             None,
-            self.id,
+            self.account_id,
             effective_amount,
             entry_date,
             category,
