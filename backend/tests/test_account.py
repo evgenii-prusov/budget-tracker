@@ -1,7 +1,7 @@
 from decimal import Decimal
 
 from app.model import Account
-from app.model import CategoryType
+from app.model import PostingType
 from conftest import JAN_01
 
 
@@ -10,19 +10,19 @@ def test_account_balance_is_sum_of_init_balance_and_postings(
 ):
     # Arrange: Record multiple postings of different types
     acc_eur.record_posting(
-        Decimal(2), JAN_01, category="TAXI", category_type=CategoryType.EXPENSE
+        Decimal(2), JAN_01, category="TAXI", posting_type=PostingType.EXPENSE
     )
     acc_eur.record_posting(
         Decimal(3),
         JAN_01,
         category="TRAVEL",
-        category_type=CategoryType.EXPENSE,
+        posting_type=PostingType.EXPENSE,
     )
     acc_eur.record_posting(
         Decimal(500),
         JAN_01,
         category="KINDERGELD",
-        category_type=CategoryType.INCOME,
+        posting_type=PostingType.INCOME,
     )
 
     # Act: Get account balance

@@ -31,7 +31,7 @@ def test_repository_retrieve_account_with_postings(session):
     session.execute(
         text(
             "INSERT INTO posting "
-            "(posting_id, account_id, amount, posting_date, category, category_type)"
+            "(posting_id, account_id, amount, posting_date, category, posting_type)"
             "VALUES ('1', '1', 100, '2025-12-26', 'rub', 'INCOME')"
         )
     )

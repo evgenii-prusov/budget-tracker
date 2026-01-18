@@ -21,8 +21,8 @@ from enum import StrEnum
 import functools
 
 
-class CategoryType(StrEnum):
-    """Category types for financial postings."""
+class PostingType(StrEnum):
+    """Types for financial postings."""
 
     EXPENSE = "EXPENSE"
     INCOME = "INCOME"
@@ -85,11 +85,6 @@ class Transfer:
         self.transfer_date = transfer_date
         self.description = description
 
-    @property
-    def exchange_rate(self) -> Decimal:
-        """Calculate exchange rate as credit_amount / debit_amount."""
-        return self.credit_amount / self.debit_amount
-
     def __repr__(self) -> str:
         return (
             f"Transfer({self.transfer_id!r}, {self.source_account_id!r}, "
@@ -115,7 +110,7 @@ class Posting:
 
     The amount is stored as-is (positive or negative). The caller is
     responsible for ensuring the amount has the correct sign based on
-    the category_type. Use Account.record_posting() to automatically
+    the posting_type. Use Account.record_posting() to automatically
     apply sign logic.
     """
 
@@ -126,7 +121,7 @@ class Posting:
         amount: Decimal,
         posting_date: date,
         category: str | None,
-        category_type: CategoryType,
+        posting_type: PostingType,
     ):
         if not isinstance(amount, Decimal):
             raise TypeError(
@@ -138,12 +133,12 @@ class Posting:
         self.account_id = account_id
         self.posting_date = posting_date
         self.category = category
-        self.category_type = category_type
+        self.posting_type = posting_type
 
     def __repr__(self) -> str:
         return (
             f"Posting({self.posting_id!r}, {self.account_id!r}, {self.amount!r}, "
-            f"{self.posting_date!r}, {self.category!r}, {self.category_type!r})"
+            f"{self.posting_date!r}, {self.category!r}, {self.posting_type!r})"
         )
 
     def __eq__(self, other):
@@ -209,16 +204,16 @@ class Account:
         posting_date: date,
         *,
         category: str | None,
-        category_type: CategoryType,
+        posting_type: PostingType,
     ) -> Posting:
         """Record an income or expense posting on this account.
 
         Args:
             amount: The posting amount. The absolute value is used and
-                the sign is applied automatically based on category_type.
+                the sign is applied automatically based on posting_type.
             posting_date: The posting date
             category: Optional category label
-            category_type: Posting type - "EXPENSE" or "INCOME"
+            posting_type: "EXPENSE" or "INCOME"
 
         Returns:
             The created Posting with properly signed amount:
@@ -231,7 +226,7 @@ class Account:
                 f"Use Decimal(str(value)) to convert."
             )
         # Apply sign based on category_type
-        if category_type == CategoryType.EXPENSE:
+        if posting_type == PostingType.EXPENSE:
             effective_amount = -abs(amount)
         else:
             # INCOME
@@ -253,7 +248,7 @@ class Account:
             effective_amount,
             posting_date,
             category,
-            category_type,
+            posting_type,
         )
         self._postings.append(posting)
         return posting

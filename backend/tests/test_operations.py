@@ -4,7 +4,7 @@ from decimal import Decimal
 from app.model import Account
 from app.model import create_transfer
 from app.model import InsufficientFundsError
-from app.model import CategoryType
+from app.model import PostingType
 from conftest import JAN_01
 
 
@@ -27,19 +27,6 @@ class TestCreateTransfer:
         assert acc_eur.balance == Decimal(25)
         assert acc_rub.balance == Decimal(1000)
         assert transfer.transfer_date == JAN_01
-
-    def test_transfer_calculates_exchange_rate(self, acc_eur: Account, acc_rub: Account):
-        # Arrange & Act: Create transfer between accounts
-        transfer = create_transfer(
-            acc_eur,
-            acc_rub,
-            JAN_01,
-            debit_amount=Decimal(10),
-            credit_amount=Decimal(1000),
-        )
-
-        # Assert: Exchange rate is correctly calculated
-        assert transfer.exchange_rate == Decimal(100)
 
     def test_transfer_stores_description(self, acc_eur: Account, acc_rub: Account):
         # Arrange & Act: Create transfer with description
@@ -133,7 +120,7 @@ class TestRecordPosting:
             Decimal(3),
             JAN_01,
             category="Taxi",
-            category_type=CategoryType.EXPENSE,
+            posting_type=PostingType.EXPENSE,
         )
 
         # Assert: Category name is preserved
@@ -149,7 +136,7 @@ class TestRecordPosting:
                 Decimal(50),
                 JAN_01,
                 category="some_category",
-                category_type=CategoryType.EXPENSE,
+                posting_type=PostingType.EXPENSE,
             )
 
     @pytest.mark.parametrize(
@@ -170,7 +157,7 @@ class TestRecordPosting:
                 amount,
                 JAN_01,
                 category="TAXI",
-                category_type=CategoryType.EXPENSE,
+                posting_type=PostingType.EXPENSE,
             )
 
         # Assert: Verify error message content
@@ -185,7 +172,7 @@ class TestRecordPosting:
             Decimal(10),
             JAN_01,
             category="TAXI",
-            category_type=CategoryType.EXPENSE,
+            posting_type=PostingType.EXPENSE,
         )
 
         # Assert: Posting recorded with correct values

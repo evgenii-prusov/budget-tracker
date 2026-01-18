@@ -24,7 +24,7 @@ postings = Table(
     Column("amount", Numeric, nullable=False),
     Column("posting_date", Date, nullable=False),
     Column("category", String, nullable=True),
-    Column("category_type", String, nullable=False),
+    Column("posting_type", String, nullable=False),
 )
 
 transfers = Table(

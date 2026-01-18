@@ -9,7 +9,7 @@ from app.db import start_mappers
 from app.db import mapper_registry
 from app.model import Account
 from app.model import Posting
-from app.model import CategoryType
+from app.model import PostingType
 from app.main import app
 from app.main import get_db_session
 from fastapi.testclient import TestClient
@@ -88,7 +88,7 @@ def make_posting():
         amount: Decimal = Decimal(0),
         posting_date: date = JAN_01,
         category: str | None = "test",
-        category_type: CategoryType = CategoryType.EXPENSE,
+        category_type: PostingType = PostingType.EXPENSE,
     ) -> Posting:
         return Posting(id, account_id, amount, posting_date, category, category_type)
 
@@ -98,16 +98,16 @@ def make_posting():
 @pytest.fixture
 def posting_1() -> Posting:
     """Posting on Jan 01 for testing (taxi expense)."""
-    return Posting("p-1", "a-1", Decimal(0), JAN_01, "taxi", CategoryType.EXPENSE)
+    return Posting("p-1", "a-1", Decimal(0), JAN_01, "taxi", PostingType.EXPENSE)
 
 
 @pytest.fixture
 def posting_2() -> Posting:
     """Posting on Jan 02 for testing (food expense)."""
-    return Posting("p-2", "a-1", Decimal(3), JAN_02, "food", CategoryType.EXPENSE)
+    return Posting("p-2", "a-1", Decimal(3), JAN_02, "food", PostingType.EXPENSE)
 
 
 @pytest.fixture
 def posting_3() -> Posting:
     """Posting on Jan 03 for testing (taxi expense)."""
-    return Posting("p-3", "a-2", Decimal(1), JAN_03, "taxi", CategoryType.EXPENSE)
+    return Posting("p-3", "a-2", Decimal(1), JAN_03, "taxi", PostingType.EXPENSE)
