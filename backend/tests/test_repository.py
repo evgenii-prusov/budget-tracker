@@ -21,7 +21,7 @@ def test_repository_save_an_account(session, acc_eur, acc_rub):
     }
 
 
-def test_repository_retrieve_account_with_transactions(session):
+def test_repository_retrieve_account_with_postings(session):
     session.execute(
         text(
             "INSERT INTO account (account_id, name, currency, initial_balance)"
@@ -30,8 +30,8 @@ def test_repository_retrieve_account_with_transactions(session):
     )
     session.execute(
         text(
-            "INSERT INTO entry "
-            "(entry_id, account_id, amount, entry_date, category, category_type)"
+            "INSERT INTO posting "
+            "(posting_id, account_id, amount, posting_date, category, category_type)"
             "VALUES ('1', '1', 100, '2025-12-26', 'rub', 'INCOME')"
         )
     )

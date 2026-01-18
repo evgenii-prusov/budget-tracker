@@ -5,6 +5,7 @@ from app.model import (
     Account,
     DuplicateAccountNameError,
     InvalidInitialBalanceError,
+    Transfer,
 )
 from app.repository import AbstractRepository
 from app.services import create_account
@@ -13,6 +14,7 @@ from app.services import create_account
 class FakeRepository(AbstractRepository):
     def __init__(self, accounts: list[Account] | None = None):
         self.accounts = accounts or []
+        self.transfers: list[Transfer] = []
         self.committed = False
 
     def add(self, account: Account):
@@ -32,6 +34,19 @@ class FakeRepository(AbstractRepository):
 
     def rollback(self):
         self.committed = False
+
+    def add_transfer(self, transfer: Transfer):
+        self.transfers.append(transfer)
+
+    def get_transfer(self, transfer_id: str) -> Transfer:
+        return next(t for t in self.transfers if t.transfer_id == transfer_id)
+
+    def list_transfers_for_account(self, account_id: str) -> list[Transfer]:
+        return [
+            t
+            for t in self.transfers
+            if t.source_account_id == account_id or t.dest_account_id == account_id
+        ]
 
 
 class TestCreateAccount:

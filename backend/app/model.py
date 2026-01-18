@@ -22,11 +22,10 @@ import functools
 
 
 class CategoryType(StrEnum):
-    """Transaction category types for financial entries."""
+    """Category types for financial postings."""
 
     EXPENSE = "EXPENSE"
     INCOME = "INCOME"
-    TRANSFER = "TRANSFER"
 
 
 class InsufficientFundsError(Exception):
@@ -48,21 +47,84 @@ class InvalidInitialBalanceError(Exception):
 
 
 @functools.total_ordering
-class Entry:
-    """Represents a financial entry on an account.
+class Transfer:
+    """Represents a transfer of funds between two accounts.
+
+    Unlike Posting, a Transfer is a single record that links two accounts.
+    No posting records are created for transfers.
+    """
+
+    def __init__(
+        self,
+        transfer_id: str | None,
+        source_account_id: str,
+        dest_account_id: str,
+        debit_amount: Decimal,
+        credit_amount: Decimal,
+        transfer_date: date,
+        description: str | None = None,
+    ):
+        if not isinstance(debit_amount, Decimal):
+            raise TypeError(
+                f"debit_amount must be Decimal, got {type(debit_amount).__name__}. "
+                f"Use Decimal(str(value)) to convert."
+            )
+        if not isinstance(credit_amount, Decimal):
+            raise TypeError(
+                f"credit_amount must be Decimal, got {type(credit_amount).__name__}. "
+                f"Use Decimal(str(value)) to convert."
+            )
+        if debit_amount <= 0 or credit_amount <= 0:
+            raise ValueError("Amounts must be greater than zero")
+
+        self.transfer_id = transfer_id or str(uuid4())
+        self.source_account_id = source_account_id
+        self.dest_account_id = dest_account_id
+        self.debit_amount = debit_amount
+        self.credit_amount = credit_amount
+        self.transfer_date = transfer_date
+        self.description = description
+
+    @property
+    def exchange_rate(self) -> Decimal:
+        """Calculate exchange rate as credit_amount / debit_amount."""
+        return self.credit_amount / self.debit_amount
+
+    def __repr__(self) -> str:
+        return (
+            f"Transfer({self.transfer_id!r}, {self.source_account_id!r}, "
+            f"{self.dest_account_id!r}, {self.debit_amount!r}, "
+            f"{self.credit_amount!r}, {self.transfer_date!r})"
+        )
+
+    def __eq__(self, other):
+        if not isinstance(other, Transfer):
+            return False
+        return self.transfer_id == other.transfer_id
+
+    def __hash__(self):
+        return hash(self.transfer_id)
+
+    def __lt__(self, other: Transfer):
+        return self.transfer_date < other.transfer_date
+
+
+@functools.total_ordering
+class Posting:
+    """Represents an income or expense posting on an account.
 
     The amount is stored as-is (positive or negative). The caller is
     responsible for ensuring the amount has the correct sign based on
-    the category_type. Use Account.record_entry() to automatically
+    the category_type. Use Account.record_posting() to automatically
     apply sign logic.
     """
 
     def __init__(
         self,
-        entry_id: str | None,
+        posting_id: str | None,
         account_id: str,
         amount: Decimal,
-        entry_date: date,
+        posting_date: date,
         category: str | None,
         category_type: CategoryType,
     ):
@@ -71,30 +133,30 @@ class Entry:
                 f"amount must be Decimal, got {type(amount).__name__}. "
                 f"Use Decimal(str(value)) to convert."
             )
-        self.entry_id = entry_id or str(uuid4())
+        self.posting_id = posting_id or str(uuid4())
         self.amount = amount
         self.account_id = account_id
-        self.entry_date = entry_date
+        self.posting_date = posting_date
         self.category = category
         self.category_type = category_type
 
     def __repr__(self) -> str:
         return (
-            f"Entry({self.entry_id!r}, {self.account_id!r}, {self.amount!r}, "
-            f"{self.entry_date!r}, {self.category!r}, {self.category_type!r})"
+            f"Posting({self.posting_id!r}, {self.account_id!r}, {self.amount!r}, "
+            f"{self.posting_date!r}, {self.category!r}, {self.category_type!r})"
         )
 
     def __eq__(self, other):
-        if not isinstance(other, Entry):
+        if not isinstance(other, Posting):
             return False
         else:
-            return self.entry_id == other.entry_id
+            return self.posting_id == other.posting_id
 
     def __hash__(self):
-        return hash(self.entry_id)
+        return hash(self.posting_id)
 
-    def __lt__(self, other: Entry):
-        return self.entry_date < other.entry_date
+    def __lt__(self, other: Posting):
+        return self.posting_date < other.posting_date
 
 
 class Account:
@@ -115,11 +177,16 @@ class Account:
         self.name = name
         self.currency = currency
         self.initial_balance = initial_balance
-        self._entries: list[Entry] = []
+        self._postings: list[Posting] = []
+        self._outgoing_transfers: list[Transfer] = []
+        self._incoming_transfers: list[Transfer] = []
 
     @property
     def balance(self) -> Decimal:
-        return self.initial_balance + sum(entry.amount for entry in self._entries)
+        posting_sum = sum(p.amount for p in self._postings)
+        outgoing_sum = sum(t.debit_amount for t in self._outgoing_transfers)
+        incoming_sum = sum(t.credit_amount for t in self._incoming_transfers)
+        return self.initial_balance + posting_sum - outgoing_sum + incoming_sum
 
     def __repr__(self) -> str:
         return (
@@ -136,34 +203,27 @@ class Account:
     def __hash__(self):
         return hash(self.account_id)
 
-    def record_entry(
+    def record_posting(
         self,
         amount: Decimal,
-        entry_date: date,
+        posting_date: date,
         *,
         category: str | None,
         category_type: CategoryType,
-    ) -> Entry:
-        """Record an entry on this account.
+    ) -> Posting:
+        """Record an income or expense posting on this account.
 
         Args:
-            amount: The entry amount. For EXPENSE and INCOME, the
-                absolute value is used and the sign is applied automatically.
-                For TRANSFER (or when category_type is None), the caller is
-                responsible for providing a correctly signed amount (negative
-                for debits, positive for credits); the value is preserved
-                without modification.
-            entry_date: The entry date
+            amount: The posting amount. The absolute value is used and
+                the sign is applied automatically based on category_type.
+            posting_date: The posting date
             category: Optional category label
-            category_type: Entry type - "EXPENSE", "INCOME", or
-                "TRANSFER"
+            category_type: Posting type - "EXPENSE" or "INCOME"
 
         Returns:
-            The created Entry with properly signed amount:
+            The created Posting with properly signed amount:
             - EXPENSE: amount becomes negative
             - INCOME: amount becomes positive
-            - TRANSFER or None: amount preserved as provided (caller must
-              ensure correct sign)
         """
         if not isinstance(amount, Decimal):
             raise TypeError(
@@ -173,95 +233,86 @@ class Account:
         # Apply sign based on category_type
         if category_type == CategoryType.EXPENSE:
             effective_amount = -abs(amount)
-        elif category_type == CategoryType.INCOME:
-            effective_amount = abs(amount)
         else:
-            # TRANSFER - preserve caller-provided amount
-            effective_amount = amount
+            # INCOME
+            effective_amount = abs(amount)
 
-        # Check if entry would result in negative balance
+        # Check if posting would result in negative balance
         new_balance = self.balance + effective_amount
         if new_balance < 0:
             raise InsufficientFundsError(
                 f"Insufficient funds in account '{self.name}' (id={self.account_id}): "
                 f"current balance {self.balance} {self.currency}, "
-                f"attempted entry {effective_amount} {self.currency}, "
+                f"attempted posting {effective_amount} {self.currency}, "
                 f"would result in balance {new_balance} {self.currency}"
             )
 
-        entry: Entry = Entry(
+        posting = Posting(
             None,
             self.account_id,
             effective_amount,
-            entry_date,
+            posting_date,
             category,
             category_type,
         )
-        self._entries.append(entry)
-        return entry
+        self._postings.append(posting)
+        return posting
 
 
-def transfer(
-    src: Account,
-    dst: Account,
-    entry_date: date,
+def create_transfer(
+    source: Account,
+    dest: Account,
+    transfer_date: date,
     *,
-    debit_amt: Decimal,
-    credit_amt: Decimal,
-) -> tuple[Entry, Entry]:
-    """Transfer funds between two accounts.
+    debit_amount: Decimal,
+    credit_amount: Decimal,
+    description: str | None = None,
+) -> Transfer:
+    """Create a transfer between two accounts.
 
-    Creates two TRANSFER entries: one debiting the source account
-    and one crediting the destination account. Supports different currencies
-    by allowing different debit and credit amounts.
+    Creates a single Transfer object linking two accounts. No posting
+    records are created for transfers.
 
     Args:
-        src: Source account to debit from
-        dst: Destination account to credit to
-        entry_date: Date of the transfer
-        debit_amt: Amount to deduct from source (must be positive). This
-            value is negated internally when recording the debit entry.
-        credit_amt: Amount to add to destination (must be positive)
+        source: Account to debit from
+        dest: Account to credit to
+        transfer_date: Date of transfer
+        debit_amount: Amount to deduct from source (must be positive)
+        credit_amount: Amount to add to destination (must be positive)
+        description: Optional transfer description
 
     Returns:
-        Tuple of (debit_entry, credit_entry)
+        The created Transfer object
 
     Raises:
-        TypeError: If debit_amt or credit_amt is not a Decimal
-        ValueError: If either amount is not positive
-
-    Note:
-        Both parameters expect positive values for user convenience.
-        The debit_amt is negated when passed to record_entry()
-        because TRANSFER entries use amounts as-is, and debits
-        must be negative to decrease the source account balance.
+        TypeError: If amounts are not Decimal
+        ValueError: If amounts are not positive
+        InsufficientFundsError: If source account would go negative
     """
-    if not isinstance(debit_amt, Decimal):
-        raise TypeError(
-            f"debit_amt must be Decimal, got {type(debit_amt).__name__}. "
-            f"Use Decimal(str(value)) to convert."
-        )
-    if not isinstance(credit_amt, Decimal):
-        raise TypeError(
-            f"credit_amt must be Decimal, got {type(credit_amt).__name__}. "
-            f"Use Decimal(str(value)) to convert."
-        )
-    if debit_amt <= 0 or credit_amt <= 0:
-        raise ValueError("Amounts must be greater than zero")
-
-    # Negate debit_amt because TRANSFER entries use amounts as-is,
-    # and debits must be negative to decrease the source account balance
-    debit_entry = src.record_entry(
-        -debit_amt,
-        entry_date,
-        category=None,
-        category_type=CategoryType.TRANSFER,
-    )
-    credit_entry = dst.record_entry(
-        credit_amt,
-        entry_date,
-        category=None,
-        category_type=CategoryType.TRANSFER,
+    # Validation happens in Transfer.__init__
+    transfer_obj = Transfer(
+        transfer_id=None,
+        source_account_id=source.account_id,
+        dest_account_id=dest.account_id,
+        debit_amount=debit_amount,
+        credit_amount=credit_amount,
+        transfer_date=transfer_date,
+        description=description,
     )
 
-    return debit_entry, credit_entry
+    # Add to collections for balance calculation
+    source._outgoing_transfers.append(transfer_obj)
+    dest._incoming_transfers.append(transfer_obj)
+
+    # Check source account has sufficient funds
+    if source.balance < 0:
+        # Rollback
+        source._outgoing_transfers.remove(transfer_obj)
+        dest._incoming_transfers.remove(transfer_obj)
+        raise InsufficientFundsError(
+            f"Insufficient funds in account '{source.name}' (id={source.account_id}): "
+            f"transfer of {debit_amount} {source.currency} "
+            f"would result in negative balance"
+        )
+
+    return transfer_obj

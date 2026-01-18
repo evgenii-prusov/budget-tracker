@@ -2,7 +2,9 @@ import abc
 
 from sqlalchemy.orm import Session
 
-from app.model import Account
+from sqlalchemy import or_
+
+from app.model import Account, Transfer
 
 
 class AbstractRepository(abc.ABC):
@@ -32,6 +34,18 @@ class AbstractRepository(abc.ABC):
         """Discard all pending changes."""
         raise NotImplementedError()
 
+    @abc.abstractmethod
+    def add_transfer(self, transfer: Transfer):
+        raise NotImplementedError()
+
+    @abc.abstractmethod
+    def get_transfer(self, transfer_id: str) -> Transfer:
+        raise NotImplementedError()
+
+    @abc.abstractmethod
+    def list_transfers_for_account(self, account_id: str) -> list[Transfer]:
+        raise NotImplementedError()
+
 
 class SqlAlchemyRepository(AbstractRepository):
     def __init__(self, session: Session):
@@ -54,3 +68,21 @@ class SqlAlchemyRepository(AbstractRepository):
 
     def rollback(self):
         self.session.rollback()
+
+    def add_transfer(self, transfer: Transfer):
+        self.session.add(transfer)
+
+    def get_transfer(self, transfer_id: str) -> Transfer:
+        return self.session.query(Transfer).filter_by(transfer_id=transfer_id).one()
+
+    def list_transfers_for_account(self, account_id: str) -> list[Transfer]:
+        return (
+            self.session.query(Transfer)
+            .filter(
+                or_(
+                    Transfer.source_account_id == account_id,  # type: ignore[operator]
+                    Transfer.dest_account_id == account_id,  # type: ignore[operator]
+                )
+            )
+            .all()
+        )

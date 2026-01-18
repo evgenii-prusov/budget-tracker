@@ -16,15 +16,29 @@ accounts = Table(
     Column("initial_balance", Numeric, nullable=False),
 )
 
-entries = Table(
-    "entry",
+postings = Table(
+    "posting",
     metadata,
-    Column("entry_id", String, primary_key=True),
+    Column("posting_id", String, primary_key=True),
     Column("account_id", String, ForeignKey("account.account_id"), nullable=False),
     Column("amount", Numeric, nullable=False),
-    Column("entry_date", Date, nullable=False),
+    Column("posting_date", Date, nullable=False),
     Column("category", String, nullable=True),
     Column("category_type", String, nullable=False),
+)
+
+transfers = Table(
+    "transfer",
+    metadata,
+    Column("transfer_id", String, primary_key=True),
+    Column(
+        "source_account_id", String, ForeignKey("account.account_id"), nullable=False
+    ),
+    Column("dest_account_id", String, ForeignKey("account.account_id"), nullable=False),
+    Column("debit_amount", Numeric, nullable=False),
+    Column("credit_amount", Numeric, nullable=False),
+    Column("transfer_date", Date, nullable=False),
+    Column("description", String, nullable=True),
 )
 
 
@@ -33,11 +47,22 @@ def start_mappers():
         model.Account,
         accounts,
         properties={
-            "_entries": relationship(
-                model.Entry,
+            "_postings": relationship(
+                model.Posting,
                 backref="account",
                 cascade="all, delete-orphan",
             ),
+            "_outgoing_transfers": relationship(
+                model.Transfer,
+                foreign_keys=[transfers.c.source_account_id],
+                backref="source_account",
+            ),
+            "_incoming_transfers": relationship(
+                model.Transfer,
+                foreign_keys=[transfers.c.dest_account_id],
+                backref="dest_account",
+            ),
         },
     )
-    mapper_registry.map_imperatively(model.Entry, entries)
+    mapper_registry.map_imperatively(model.Posting, postings)
+    mapper_registry.map_imperatively(model.Transfer, transfers)

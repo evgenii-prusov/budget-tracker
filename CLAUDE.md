@@ -280,6 +280,10 @@ amount = Decimal(123.45)  # Use Decimal(str(123.45)) or Decimal("123.45")
 - This convention prevents inconsistencies between production code, test code, and API layer
 - The domain layer validates all monetary values are Decimal instances at runtime (see `model.py`)
 
+### Git Commit Guidelines
+
+- Do not add `Co-Authored-By` lines to commit messages
+
 ## Important File Locations
 
 - Domain models: `backend/app/model.py`
