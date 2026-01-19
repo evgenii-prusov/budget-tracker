@@ -1,3 +1,4 @@
+from typing import Annotated
 from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -19,22 +20,18 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+RepoDep = Annotated[AbstractRepository, Depends(get_repository)]
+
 
 @app.get("/accounts", response_model=list[AccountResponse])
-def list_accounts(repo: AbstractRepository = Depends(get_repository)):
+def list_accounts(repo: RepoDep):
     return repo.list_all()
 
 
 @app.post("/accounts", status_code=201, response_model=AccountResponse)
-def create_account_endpoint(
-    account: AccountCreate,
-    repo: AbstractRepository = Depends(get_repository),
-):
+def create_account_endpoint(account: AccountCreate, repo: RepoDep):
     try:
-        new_account = create_account(
-            repo=repo,
-            **account.model_dump(),
-        )
+        new_account = create_account(repo=repo, **account.model_dump())
     except DuplicateAccountNameError as exc:
         raise HTTPException(status_code=409, detail=str(exc))
     except InvalidInitialBalanceError as exc:

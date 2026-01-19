@@ -1,3 +1,4 @@
+from typing import Annotated
 from fastapi import Depends
 from sqlalchemy import create_engine
 from sqlalchemy.exc import ArgumentError
@@ -44,7 +45,7 @@ def get_db_session():
 
 
 def get_repository(
-    session: Session = Depends(get_db_session),
+    session: Annotated[Session, Depends(get_db_session)],
 ) -> AbstractRepository:
     """Dependency that provides a repository instance."""
     return SqlAlchemyRepository(session)
