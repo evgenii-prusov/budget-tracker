@@ -1,10 +1,9 @@
 from decimal import Decimal
 
-from app.model import (
-    Account,
-    DuplicateAccountNameError,
-    InvalidInitialBalanceError,
-)
+from app.model import Account
+from app.model import DuplicateAccountNameError
+from app.model import InvalidInitialBalanceError
+
 from app.repository import AbstractRepository
 
 

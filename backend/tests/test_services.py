@@ -1,12 +1,11 @@
 import pytest
 from decimal import Decimal
 
-from app.model import (
-    Account,
-    DuplicateAccountNameError,
-    InvalidInitialBalanceError,
-    Transfer,
-)
+from app.model import Account
+from app.model import Transfer
+from app.model import DuplicateAccountNameError
+from app.model import InvalidInitialBalanceError
+
 from app.repository import AbstractRepository
 from app.services import create_account
 
@@ -56,10 +55,7 @@ class TestCreateAccount:
 
         # Act
         account = create_account(
-            repo=repo,
-            name="Test Account",
-            currency="USD",
-            initial_balance=Decimal(100),
+            repo, name="Test Account", currency="USD", initial_balance=Decimal(100)
         )
 
         # Assert
@@ -75,7 +71,7 @@ class TestCreateAccount:
 
         # Act
         account = create_account(
-            repo=repo,
+            repo,
             name="Zero Balance",
             currency="EUR",
             initial_balance=Decimal(0),
@@ -98,7 +94,7 @@ class TestCreateAccount:
         # Act & Assert
         with pytest.raises(DuplicateAccountNameError) as exc_info:
             create_account(
-                repo=repo,
+                repo,
                 name="Existing Account",
                 currency="EUR",
                 initial_balance=Decimal(0),
@@ -115,7 +111,7 @@ class TestCreateAccount:
         # Act & Assert
         with pytest.raises(InvalidInitialBalanceError) as exc_info:
             create_account(
-                repo=repo,
+                repo,
                 name="Negative Account",
                 currency="USD",
                 initial_balance=Decimal(-100),

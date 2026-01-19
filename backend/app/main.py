@@ -1,11 +1,16 @@
 from typing import Annotated
-from fastapi import Depends, FastAPI, HTTPException
+from fastapi import Depends
+from fastapi import FastAPI
+from fastapi import HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.dependencies import get_db_session, get_repository
-from app.model import DuplicateAccountNameError, InvalidInitialBalanceError
+from app.dependencies import get_db_session
+from app.dependencies import get_repository
+from app.model import DuplicateAccountNameError
+from app.model import InvalidInitialBalanceError
 from app.repository import AbstractRepository
-from app.schemas import AccountCreate, AccountResponse
+from app.schemas import AccountCreate
+from app.schemas import AccountResponse
 from app.services import create_account
 
 __all__ = ["app", "get_db_session", "get_repository"]
