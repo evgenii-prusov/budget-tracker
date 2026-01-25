@@ -1,11 +1,11 @@
 import pytest
 from decimal import Decimal
 
-from app.model import Account
-from app.model import create_transfer
-from app.model import InsufficientFundsError
-from app.model import PostingType
-from conftest import JAN_01
+from app.domain.model import Account
+from app.domain.model import create_transfer
+from app.domain.model import InsufficientFundsError
+from app.domain.model import PostingType
+from tests.constants import JAN_01
 
 
 class TestCreateTransfer:

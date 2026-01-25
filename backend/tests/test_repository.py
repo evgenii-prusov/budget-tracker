@@ -1,7 +1,7 @@
 from sqlalchemy import text
 from decimal import Decimal
 from app import repository
-from app.model import Account
+from app.domain.model import Account
 
 
 def test_repository_save_an_account(session, acc_eur, acc_rub):

@@ -1,11 +1,15 @@
 from typing import Annotated
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter
+from fastapi import Depends
+from fastapi import HTTPException
 
-from app.schemas import AccountResponse, AccountCreate
-from app.dependencies import get_repository
+from app.domain.exceptions import DuplicateAccountNameError
+from app.domain.exceptions import InvalidInitialBalanceError
 from app.repository import AbstractRepository
+from app.dependencies import get_repository
+from app.schemas import AccountResponse
+from app.schemas import AccountCreate
 from app.services import create_account
-from app.model import DuplicateAccountNameError, InvalidInitialBalanceError
 
 
 router = APIRouter()

@@ -1,7 +1,5 @@
-from app.model import Posting
-from conftest import JAN_01
-from conftest import JAN_02
-from conftest import JAN_03
+from app.domain.model import Posting
+from tests.constants import JAN_01, JAN_02, JAN_03
 
 
 def test_posting_objects_sort_chronologically_by_date(

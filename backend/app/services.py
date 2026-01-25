@@ -1,8 +1,8 @@
 from decimal import Decimal
 
-from app.model import Account
-from app.model import DuplicateAccountNameError
-from app.model import InvalidInitialBalanceError
+from app.domain.model import Account
+from app.domain.exceptions import DuplicateAccountNameError
+from app.domain.exceptions import InvalidInitialBalanceError
 
 from app.repository import AbstractRepository
 

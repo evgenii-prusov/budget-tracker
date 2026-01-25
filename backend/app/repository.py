@@ -4,7 +4,8 @@ from sqlalchemy.orm import Session
 
 from sqlalchemy import or_
 
-from app.model import Account, Transfer
+from app.domain.model import Account
+from app.domain.model import Transfer
 
 
 class AbstractRepository(abc.ABC):

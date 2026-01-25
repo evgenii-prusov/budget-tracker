@@ -1,7 +1,7 @@
 from decimal import Decimal
 from sqlalchemy import select, text
 
-from app.model import Account
+from app.domain.model import Account
 
 
 def test_account_mapper_loads_accounts(session):

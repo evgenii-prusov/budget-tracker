@@ -7,17 +7,13 @@ from sqlalchemy.orm import sessionmaker
 from app.db import metadata
 from app.db import start_mappers
 from app.db import mapper_registry
-from app.model import Account
-from app.model import Posting
-from app.model import PostingType
+from app.domain.model import Account
+from app.domain.model import Posting
+from app.domain.model import PostingType
 from app.main import app
 from app.dependencies import get_db_session
 from fastapi.testclient import TestClient
-
-# Shared date constants
-JAN_01 = date.fromisoformat("2025-01-01")
-JAN_02 = date.fromisoformat("2025-01-02")
-JAN_03 = date.fromisoformat("2025-01-03")
+from tests.constants import JAN_01, JAN_02, JAN_03
 
 
 @pytest.fixture
