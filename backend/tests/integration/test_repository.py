@@ -48,6 +48,17 @@ def test_repository_retrieve_account_with_postings(session):
     assert account.balance == 200
 
 
+def test_repository_get_nonexistent_account_returns_none(session):
+    # 1. Arrange: Empty database, no accounts
+    repo = repository.SqlAlchemyRepository(session)
+
+    # 2. Act: Try to get nonexistent account
+    account = repo.get("nonexistent-id")
+
+    # 3. Assert: Returns None, not an exception
+    assert account is None
+
+
 def test_repository_retrieve_all_accounts(session):
     session.execute(
         text(

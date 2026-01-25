@@ -24,8 +24,12 @@ class FakeRepository(AbstractRepository):
     def add(self, account: Account):
         self.accounts.append(account)
 
-    def get(self, account_id: str) -> Account:
-        return next(acc for acc in self.accounts if acc.account_id == account_id)
+    def get(self, account_id: str) -> Account | None:
+        try:
+            account = next(acc for acc in self.accounts if acc.account_id == account_id)
+        except StopIteration:
+            return None
+        return account
 
     def get_by_name(self, name: str) -> Account | None:
         return next((acc for acc in self.accounts if acc.name == name), None)

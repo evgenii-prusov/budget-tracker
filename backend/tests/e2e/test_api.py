@@ -5,6 +5,32 @@ from datetime import date
 from app.domain.model import Transfer, PostingType
 
 
+def test_get_account_success(client, session, acc_eur):
+    # 1. Arrange: Prepare data in the test database
+    session.add(acc_eur)
+    session.commit()
+
+    # 2. Act: Make the request
+    response = client.get("/accounts/a1")
+
+    # 3. Assert: Check status code and account properties
+    assert response.status_code == 200
+    data = response.json()
+    assert data["account_id"] == acc_eur.account_id
+    assert data["name"] == acc_eur.name
+    assert data["currency"] == acc_eur.currency
+    assert Decimal(data["initial_balance"]) == acc_eur.initial_balance
+
+
+def test_get_account_not_found(client, session):
+    # 1. Arrange: no data in database
+    # 2. Act: Make the request
+    response = client.get("/accounts/a1")
+
+    # 3. Assert: Check if 404 error code has been returned
+    assert response.status_code == 404
+
+
 def test_get_accounts(client, session, acc_eur):
     # 1. Arrange: Prepare data in the test database
     session.add(acc_eur)

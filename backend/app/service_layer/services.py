@@ -9,6 +9,13 @@ from app.domain.exceptions import AccountHasTransfersError
 from app.service_layer.abstract_repository import AbstractRepository
 
 
+def get_account(repo: AbstractRepository, *, account_id: str) -> Account:
+    existing_account = repo.get(account_id)
+    if existing_account is None:
+        raise AccountNotFoundError(f"Account with id '{account_id}' not found")
+    return existing_account
+
+
 def create_account(
     repo: AbstractRepository,
     *,
@@ -41,9 +48,8 @@ def create_account(
 
 def delete_account(repo: AbstractRepository, *, account_id: str) -> None:
     # Check if account exists
-    try:
-        account = repo.get(account_id)
-    except Exception:
+    account = repo.get(account_id)
+    if account is None:
         raise AccountNotFoundError(f"Account with id '{account_id}' not found")
 
     # Check if account has transfers

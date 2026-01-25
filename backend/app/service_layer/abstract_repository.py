@@ -10,7 +10,7 @@ class AbstractRepository(abc.ABC):
         raise NotImplementedError()
 
     @abc.abstractmethod
-    def get(self, account_id) -> Account:
+    def get(self, account_id: str) -> Account | None:
         raise NotImplementedError()
 
     @abc.abstractmethod

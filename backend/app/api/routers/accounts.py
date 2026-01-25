@@ -13,6 +13,7 @@ from app.api.schemas import AccountResponse
 from app.api.schemas import AccountCreate
 from app.service_layer.services import create_account
 from app.service_layer.services import delete_account
+from app.service_layer.services import get_account
 
 
 router = APIRouter()
@@ -22,6 +23,15 @@ RepoDep = Annotated[AbstractRepository, Depends(get_repository)]
 @router.get("/accounts", response_model=list[AccountResponse])
 def list_accounts(repo: RepoDep):
     return repo.list_all()
+
+
+@router.get("/accounts/{account_id}", response_model=AccountResponse)
+def get_account_endpoint(account_id: str, repo: RepoDep):
+    try:
+        account = get_account(repo=repo, account_id=account_id)
+    except AccountNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+    return account
 
 
 @router.post("/accounts", status_code=201, response_model=AccountResponse)
