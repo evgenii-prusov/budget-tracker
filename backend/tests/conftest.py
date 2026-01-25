@@ -11,7 +11,7 @@ from app.model import Account
 from app.model import Posting
 from app.model import PostingType
 from app.main import app
-from app.main import get_db_session
+from app.dependencies import get_db_session
 from fastapi.testclient import TestClient
 
 # Shared date constants
