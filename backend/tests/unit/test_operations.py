@@ -36,11 +36,11 @@ class TestCreateTransfer:
             JAN_01,
             debit_amount=Decimal(10),
             credit_amount=Decimal(1000),
-            description="Currency exchange",
+            description="D1",
         )
 
         # Assert: Description is stored
-        assert transfer.description == "Currency exchange"
+        assert transfer.description == "D1"
 
     def test_transfer_raises_insufficient_funds(
         self, acc_eur: Account, acc_rub: Account
@@ -117,15 +117,12 @@ class TestRecordPosting:
     def test_record_posting_preserves_category_name(self, acc_eur: Account):
         # Arrange & Act: Record posting with custom category
         acc_eur.record_posting(
-            Decimal(3),
-            JAN_01,
-            category="Taxi",
-            posting_type=PostingType.EXPENSE,
+            Decimal(3), JAN_01, category="cat_1", posting_type=PostingType.EXPENSE
         )
 
         # Assert: Category name is preserved
         posting = acc_eur._postings[-1]
-        assert posting.category == "Taxi"
+        assert posting.category == "cat_1"
 
     def test_record_posting_raises_insufficient_funds_when_balance_negative(
         self, acc_eur: Account
@@ -133,10 +130,7 @@ class TestRecordPosting:
         # Arrange & Act: Attempt to record expense exceeding balance
         with pytest.raises(InsufficientFundsError):
             acc_eur.record_posting(
-                Decimal(50),
-                JAN_01,
-                category="some_category",
-                posting_type=PostingType.EXPENSE,
+                Decimal(50), JAN_01, category="cat_1", posting_type=PostingType.EXPENSE
             )
 
     @pytest.mark.parametrize(
@@ -154,10 +148,7 @@ class TestRecordPosting:
         # Arrange & Act: Attempt to record posting with invalid amount type
         with pytest.raises(TypeError) as exc_info:
             acc_eur.record_posting(
-                amount,
-                JAN_01,
-                category="TAXI",
-                posting_type=PostingType.EXPENSE,
+                amount, JAN_01, category="cat_1", posting_type=PostingType.EXPENSE
             )
 
         # Assert: Verify error message content
@@ -169,10 +160,7 @@ class TestRecordPosting:
     def test_record_posting_succeeds_with_valid_decimal_amount(self, acc_eur: Account):
         # Arrange & Act: Record posting with valid Decimal amount
         posting = acc_eur.record_posting(
-            Decimal(10),
-            JAN_01,
-            category="TAXI",
-            posting_type=PostingType.EXPENSE,
+            Decimal(10), JAN_01, category="cat_1", posting_type=PostingType.EXPENSE
         )
 
         # Assert: Posting recorded with correct values
