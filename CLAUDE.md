@@ -48,6 +48,8 @@ budget-tracker/
 
 ## Development Commands
 
+**IMPORTANT: Always use `make` commands for all development workflow tasks.** Do not run `pytest`, `ruff`, `pre-commit`, or other tools directly. The Makefile provides standardized commands that ensure consistent behavior.
+
 The project provides two ways to run commands:
 1. **Root Makefile** - Run from project root (recommended)
 2. **Backend Makefile** - Run from `backend/` directory

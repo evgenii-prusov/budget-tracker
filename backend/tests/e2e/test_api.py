@@ -1,5 +1,8 @@
 import pytest
 from decimal import Decimal
+from datetime import date
+
+from app.domain.model import Transfer, PostingType
 
 
 def test_get_accounts(client, session, acc_eur):
@@ -121,3 +124,140 @@ def test_decimal_precision_persistence_flow(client):
     saved_account = next((a for a in accounts if a["account_id"] == created_id), None)
     assert saved_account is not None, f"Account {created_id} not found"
     assert Decimal(saved_account["initial_balance"]) == Decimal("999.99999")
+
+
+def test_delete_account_success(client, session, acc_eur):
+    """Successfully delete an account with no transfers."""
+    # 1. Arrange: Add account to database
+    session.add(acc_eur)
+    session.commit()
+
+    # 2. Act: Delete the account
+    response = client.delete(f"/accounts/{acc_eur.account_id}")
+
+    # 3. Assert: Check response and verify deletion
+    assert response.status_code == 204
+
+    # Verify account is gone
+    get_response = client.get("/accounts")
+    assert get_response.status_code == 200
+    assert get_response.json() == []
+
+
+def test_delete_account_with_postings_succeeds(client, session, acc_eur):
+    """Delete succeeds when account has postings (cascade tested in integration)."""
+    # 1. Arrange: Add account with a posting
+    acc_eur.record_posting(
+        Decimal(10),
+        date(2025, 1, 1),
+        category="food",
+        posting_type=PostingType.EXPENSE,
+    )
+    session.add(acc_eur)
+    session.commit()
+
+    # 2. Act: Delete the account
+    response = client.delete(f"/accounts/{acc_eur.account_id}")
+
+    # 3. Assert
+    assert response.status_code == 204
+
+    # Verify account and postings are gone
+    get_response = client.get("/accounts")
+    assert get_response.json() == []
+
+
+def test_delete_account_not_found(client):
+    """Attempting to delete non-existent account returns 404."""
+    # 1. Arrange: Empty database
+
+    # 2. Act: Try to delete non-existent account
+    response = client.delete("/accounts/nonexistent-id")
+
+    # 3. Assert
+    assert response.status_code == 404
+    data = response.json()
+    assert "not found" in data["detail"]
+    assert "nonexistent-id" in data["detail"]
+
+
+def test_delete_account_with_transfer_returns_409(client, session, acc_eur, acc_rub):
+    """Cannot delete account involved in a transfer."""
+    # 1. Arrange: Create two accounts and a transfer between them
+    session.add(acc_eur)
+    session.add(acc_rub)
+
+    transfer = Transfer(
+        transfer_id="t-1",
+        source_account_id=acc_eur.account_id,
+        dest_account_id=acc_rub.account_id,
+        debit_amount=Decimal(10),
+        credit_amount=Decimal(1000),  # Different currency
+        transfer_date=date(2025, 1, 1),
+    )
+    session.add(transfer)
+    session.commit()
+
+    # 2. Act: Try to delete source account
+    response = client.delete(f"/accounts/{acc_eur.account_id}")
+
+    # 3. Assert
+    assert response.status_code == 409
+    data = response.json()
+    assert "Cannot delete" in data["detail"]
+    assert "transfer" in data["detail"]
+
+    # Verify account still exists
+    get_response = client.get("/accounts")
+    assert len(get_response.json()) == 2
+
+
+def test_delete_account_destination_of_transfer_returns_409(
+    client, session, acc_eur, acc_rub
+):
+    """Cannot delete account that is destination of a transfer."""
+    # 1. Arrange
+    session.add(acc_eur)
+    session.add(acc_rub)
+
+    transfer = Transfer(
+        transfer_id="t-1",
+        source_account_id=acc_eur.account_id,
+        dest_account_id=acc_rub.account_id,
+        debit_amount=Decimal(10),
+        credit_amount=Decimal(1000),
+        transfer_date=date(2025, 1, 1),
+    )
+    session.add(transfer)
+    session.commit()
+
+    # 2. Act: Try to delete destination account
+    response = client.delete(f"/accounts/{acc_rub.account_id}")
+
+    # 3. Assert
+    assert response.status_code == 409
+    assert "Cannot delete" in response.json()["detail"]
+
+
+def test_delete_then_recreate_same_name(client, session, acc_eur):
+    """After deleting an account, can create new account with same name."""
+    # 1. Arrange: Create and delete an account
+    session.add(acc_eur)
+    session.commit()
+
+    delete_response = client.delete(f"/accounts/{acc_eur.account_id}")
+    assert delete_response.status_code == 204
+
+    # 2. Act: Create new account with same name
+    create_response = client.post(
+        "/accounts",
+        json={
+            "name": acc_eur.name,
+            "currency": "USD",
+            "initial_balance": 0,
+        },
+    )
+
+    # 3. Assert
+    assert create_response.status_code == 201
+    assert create_response.json()["name"] == acc_eur.name

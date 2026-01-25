@@ -22,6 +22,9 @@ class SqlAlchemyRepository(AbstractRepository):
     def list_all(self) -> list[Account]:
         return self.session.query(Account).all()
 
+    def delete(self, account: Account) -> None:
+        self.session.delete(account)
+
     def commit(self):
         self.session.commit()
 

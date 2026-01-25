@@ -1,7 +1,8 @@
 from sqlalchemy import text
 from decimal import Decimal
+from datetime import date
 from app.adapters import repository
-from app.domain.model import Account
+from app.domain.model import Account, PostingType
 
 
 def test_repository_save_an_account(session, acc_eur, acc_rub):
@@ -68,3 +69,35 @@ def test_repository_retrieve_all_accounts(session):
             account_id="2", name="eur", currency="EUR", initial_balance=Decimal(200)
         ),
     ]
+
+
+def test_repository_delete_account_cascades_postings(session):
+    """Verify ORM cascade configuration: deleting account also deletes postings."""
+    # Arrange: Create account with posting via ORM
+    account = Account("acc-1", "Test", "USD", Decimal(100))
+    account.record_posting(
+        Decimal(10),
+        date(2025, 1, 1),
+        category="food",
+        posting_type=PostingType.EXPENSE,
+    )
+    session.add(account)
+    session.commit()
+
+    # Verify both exist in database (raw SQL, bypasses ORM cache)
+    account_count = session.execute(text("SELECT COUNT(*) FROM account")).scalar()
+    posting_count = session.execute(text("SELECT COUNT(*) FROM posting")).scalar()
+    assert account_count == 1
+    assert posting_count == 1
+
+    # Act: Delete via repository
+    repo = repository.SqlAlchemyRepository(session)
+    loaded_account = repo.get("acc-1")
+    repo.delete(loaded_account)
+    session.commit()
+
+    # Assert: Both account AND posting are gone (raw SQL verification)
+    account_count = session.execute(text("SELECT COUNT(*) FROM account")).scalar()
+    posting_count = session.execute(text("SELECT COUNT(*) FROM posting")).scalar()
+    assert account_count == 0
+    assert posting_count == 0  # Cascade delete worked

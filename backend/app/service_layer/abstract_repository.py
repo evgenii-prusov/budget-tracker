@@ -22,6 +22,10 @@ class AbstractRepository(abc.ABC):
         raise NotImplementedError()
 
     @abc.abstractmethod
+    def delete(self, account: Account) -> None:
+        raise NotImplementedError()
+
+    @abc.abstractmethod
     def commit(self):
         """Persist all pending changes."""
         raise NotImplementedError()
