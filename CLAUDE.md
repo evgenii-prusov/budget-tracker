@@ -15,13 +15,25 @@ Budget Tracker is a personal finance application for tracking income, expenses, 
 budget-tracker/
 ├── backend/                    # Python FastAPI backend
 │   ├── app/                    # Main application package
-│   │   ├── main.py             # FastAPI endpoints
-│   │   ├── model.py            # Domain models
-│   │   ├── db.py               # Database schema
-│   │   ├── repository.py       # Repository pattern
-│   │   ├── schemas.py          # Pydantic schemas
-│   │   └── services.py         # Business logic
+│   │   ├── main.py             # FastAPI app entrypoint
+│   │   ├── domain/             # Core business logic (pure Python)
+│   │   │   ├── model.py        # Entities: Account, Posting, Transfer
+│   │   │   └── exceptions.py   # Domain exceptions
+│   │   ├── service_layer/      # Application/Use case layer
+│   │   │   ├── services.py     # Use cases (create_account, etc.)
+│   │   │   └── abstract_repository.py  # Repository interface (port)
+│   │   ├── adapters/           # Infrastructure implementations
+│   │   │   ├── orm.py          # SQLAlchemy tables + mappers
+│   │   │   └── repository.py   # SqlAlchemyRepository
+│   │   └── api/                # HTTP/Web layer
+│   │       ├── schemas.py      # Pydantic DTOs
+│   │       ├── dependencies.py # FastAPI dependency injection
+│   │       └── routers/        # API endpoint routers
+│   │           └── accounts.py
 │   ├── tests/                  # Test suite
+│   │   ├── unit/               # Unit tests (isolated, no DB)
+│   │   ├── integration/        # Integration tests (DB, ORM)
+│   │   └── e2e/                # End-to-end tests (full HTTP API)
 │   ├── pyproject.toml          # Backend dependencies
 │   ├── Makefile                # Backend-specific commands
 │   └── budget.db               # SQLite database
@@ -102,10 +114,10 @@ uv run pytest --cov=app --cov-report=term-missing
 uv run pytest --cov=app --cov-report=html
 
 # Run specific test file
-uv run pytest tests/test_api.py
+uv run pytest tests/e2e/test_api.py
 
 # Run specific test function
-uv run pytest tests/test_api.py::test_get_accounts
+uv run pytest tests/e2e/test_api.py::test_get_accounts
 ```
 
 ### Code Quality (Direct Commands)
@@ -143,26 +155,36 @@ cd backend && uv run fastapi dev app/main.py
 
 ## Architecture Overview
 
-### Domain-Driven Design
+### Clean Architecture Layers
 
-The codebase follows a clean architecture pattern with clear separation between domain logic, persistence, and API layers:
+The codebase follows clean/hexagonal architecture with four distinct layers:
 
-- **Domain Layer** (`model.py`): Pure Python domain entities (`Account`, `Entry`) with business logic. No framework dependencies.
-- **Persistence Layer** (`db.py`, `repository.py`): SQLAlchemy imperative mapping pattern. The `start_mappers()` function maps domain entities to database tables without polluting domain models with ORM concerns.
-- **API Layer** (`main.py`): FastAPI endpoints with Pydantic validation. Uses dependency injection for database sessions.
+| Layer | Location | Purpose | Dependencies |
+|-------|----------|---------|--------------|
+| **Domain** | `app/domain/` | Pure business logic, entities | None |
+| **Service Layer** | `app/service_layer/` | Use cases, ports (interfaces) | Domain |
+| **Adapters** | `app/adapters/` | Infrastructure (ORM, repositories) | Domain, Service Layer |
+| **API** | `app/api/` | HTTP interface (FastAPI) | All layers |
+
+### Layer Details
+
+- **Domain Layer** (`domain/`): Pure Python entities (`Account`, `Posting`, `Transfer`) with business logic. No framework dependencies.
+- **Service Layer** (`service_layer/`): Application use cases and the `AbstractRepository` port (interface). Orchestrates domain objects.
+- **Adapters Layer** (`adapters/`): Infrastructure implementations including `SqlAlchemyRepository` and ORM mappings.
+- **API Layer** (`api/`): FastAPI routers, Pydantic schemas, and dependency injection.
 
 ### Key Architectural Patterns
 
 **Imperative Mapping (SQLAlchemy)**
-- Domain models are pure Python classes in `model.py`
-- Database schema is defined in `db.py` using SQLAlchemy Core tables
+- Domain models are pure Python classes in `domain/model.py`
+- Database schema is defined in `adapters/orm.py` using SQLAlchemy Core tables
 - `start_mappers()` function creates the mapping between domain and persistence
 - This keeps domain logic independent of database concerns
 
 **Repository Pattern**
-- `AbstractRepository` defines the interface for data access
-- `SqlAlchemyRepository` implements persistence using SQLAlchemy sessions
-- Allows easy testing by swapping implementations
+- `AbstractRepository` in `service_layer/` defines the interface (port)
+- `SqlAlchemyRepository` in `adapters/` implements persistence (adapter)
+- Allows easy testing by swapping implementations (see `FakeRepository` in tests)
 
 **Entry Sign Convention**
 - Entries store amounts with their actual sign (positive or negative)
@@ -286,16 +308,28 @@ amount = Decimal(123.45)  # Use Decimal(str(123.45)) or Decimal("123.45")
 
 ## Important File Locations
 
-- Domain models: `backend/app/model.py`
-- Database schema: `backend/app/db.py`
-- Repository pattern: `backend/app/repository.py`
-- API endpoints: `backend/app/main.py`
-- Pydantic schemas: `backend/app/schemas.py`
-- Service layer: `backend/app/services.py`
-- Test configuration: `backend/tests/conftest.py`
-- Product specification: `docs/SPECIFICATION.md` (comprehensive domain details)
-- Pre-commit config: `.pre-commit-config.yaml`
-- Backend dependencies: `backend/pyproject.toml` (managed by uv)
+### Application Code
+- **Domain models**: `backend/app/domain/model.py`
+- **Domain exceptions**: `backend/app/domain/exceptions.py`
+- **Service layer**: `backend/app/service_layer/services.py`
+- **Repository interface**: `backend/app/service_layer/abstract_repository.py`
+- **Repository implementation**: `backend/app/adapters/repository.py`
+- **ORM mappings**: `backend/app/adapters/orm.py`
+- **API routers**: `backend/app/api/routers/accounts.py`
+- **Pydantic schemas**: `backend/app/api/schemas.py`
+- **FastAPI dependencies**: `backend/app/api/dependencies.py`
+- **App entrypoint**: `backend/app/main.py`
+
+### Tests
+- **Test configuration**: `backend/tests/conftest.py`
+- **Unit tests**: `backend/tests/unit/`
+- **Integration tests**: `backend/tests/integration/`
+- **E2E tests**: `backend/tests/e2e/`
+
+### Configuration
+- **Product specification**: `docs/SPECIFICATION.md` (comprehensive domain details)
+- **Pre-commit config**: `.pre-commit-config.yaml`
+- **Backend dependencies**: `backend/pyproject.toml` (managed by uv)
 
 ## Technology Stack
 
