@@ -1,6 +1,6 @@
 from sqlalchemy import text
 from decimal import Decimal
-from app import repository
+from app.adapters import repository
 from app.domain.model import Account
 
 

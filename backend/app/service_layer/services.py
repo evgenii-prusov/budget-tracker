@@ -4,7 +4,7 @@ from app.domain.model import Account
 from app.domain.exceptions import DuplicateAccountNameError
 from app.domain.exceptions import InvalidInitialBalanceError
 
-from app.repository import AbstractRepository
+from app.service_layer.abstract_repository import AbstractRepository
 
 
 def create_account(

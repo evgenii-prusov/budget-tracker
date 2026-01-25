@@ -6,8 +6,8 @@ from app.domain.model import Transfer
 from app.domain.exceptions import DuplicateAccountNameError
 from app.domain.exceptions import InvalidInitialBalanceError
 
-from app.repository import AbstractRepository
-from app.services import create_account
+from app.service_layer.abstract_repository import AbstractRepository
+from app.service_layer.services import create_account
 
 
 class FakeRepository(AbstractRepository):

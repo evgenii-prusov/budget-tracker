@@ -5,11 +5,11 @@ from fastapi import HTTPException
 
 from app.domain.exceptions import DuplicateAccountNameError
 from app.domain.exceptions import InvalidInitialBalanceError
-from app.repository import AbstractRepository
-from app.dependencies import get_repository
-from app.schemas import AccountResponse
-from app.schemas import AccountCreate
-from app.services import create_account
+from app.service_layer.abstract_repository import AbstractRepository
+from app.api.dependencies import get_repository
+from app.api.schemas import AccountResponse
+from app.api.schemas import AccountCreate
+from app.service_layer.services import create_account
 
 
 router = APIRouter()

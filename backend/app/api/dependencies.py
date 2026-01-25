@@ -6,9 +6,10 @@ from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.orm.exc import UnmappedClassError
 from sqlalchemy.orm.util import class_mapper
 
-from app.db import metadata, start_mappers
+from app.adapters.orm import metadata, start_mappers
 from app.domain.model import Account
-from app.repository import AbstractRepository, SqlAlchemyRepository
+from app.service_layer.abstract_repository import AbstractRepository
+from app.adapters.repository import SqlAlchemyRepository
 
 DATABASE_URL = "sqlite:///budget.db"
 
