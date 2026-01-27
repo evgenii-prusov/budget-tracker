@@ -16,6 +16,13 @@ accounts = Table(
     Column("initial_balance", Numeric, nullable=False),
 )
 
+categories = Table(
+    "category",
+    metadata,
+    Column("category_id", String, primary_key=True),
+    Column("name", String, nullable=False, unique=True),
+)
+
 postings = Table(
     "posting",
     metadata,
@@ -23,7 +30,7 @@ postings = Table(
     Column("account_id", String, ForeignKey("account.account_id"), nullable=False),
     Column("amount", Numeric, nullable=False),
     Column("posting_date", Date, nullable=False),
-    Column("category", String, nullable=True),
+    Column("category_id", String, ForeignKey("category.category_id"), nullable=True),
     Column("posting_type", String, nullable=False),
 )
 
@@ -64,5 +71,6 @@ def start_mappers():
             ),
         },
     )
+    mapper_registry.map_imperatively(model.Category, categories)
     mapper_registry.map_imperatively(model.Posting, postings)
     mapper_registry.map_imperatively(model.Transfer, transfers)

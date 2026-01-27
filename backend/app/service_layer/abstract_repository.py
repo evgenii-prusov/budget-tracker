@@ -2,6 +2,7 @@ import abc
 
 from app.domain.model import Account
 from app.domain.model import Transfer
+from app.domain.model import Category
 
 
 class AbstractRepository(abc.ABC):
@@ -45,4 +46,29 @@ class AbstractRepository(abc.ABC):
 
     @abc.abstractmethod
     def list_transfers_for_account(self, account_id: str) -> list[Transfer]:
+        raise NotImplementedError()
+
+    # Category methods
+    @abc.abstractmethod
+    def add_category(self, category: Category):
+        raise NotImplementedError()
+
+    @abc.abstractmethod
+    def get_category(self, category_id: str) -> Category | None:
+        raise NotImplementedError()
+
+    @abc.abstractmethod
+    def get_category_by_name(self, name: str) -> Category | None:
+        raise NotImplementedError()
+
+    @abc.abstractmethod
+    def list_categories(self) -> list[Category]:
+        raise NotImplementedError()
+
+    @abc.abstractmethod
+    def delete_category(self, category: Category) -> None:
+        raise NotImplementedError()
+
+    @abc.abstractmethod
+    def count_postings_for_category(self, category_id: str) -> int:
         raise NotImplementedError()

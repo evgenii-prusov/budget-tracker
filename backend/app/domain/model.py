@@ -30,6 +30,29 @@ class PostingType(StrEnum):
     INCOME = "INCOME"
 
 
+class Category:
+    """Represents a transaction category."""
+
+    def __init__(
+        self,
+        category_id: str | None,
+        name: str,
+    ):
+        self.category_id = category_id or str(uuid4())
+        self.name = name
+
+    def __repr__(self) -> str:
+        return f"Category({self.category_id!r}, {self.name!r})"
+
+    def __eq__(self, other):
+        if not isinstance(other, Category):
+            return False
+        return self.category_id == other.category_id
+
+    def __hash__(self):
+        return hash(self.category_id)
+
+
 @functools.total_ordering
 class Transfer:
     """Represents a transfer of funds between two accounts.
@@ -104,7 +127,7 @@ class Posting:
         account_id: str,
         amount: Decimal,
         posting_date: date,
-        category: str | None,
+        category_id: str | None,
         posting_type: PostingType,
     ):
         if not isinstance(amount, Decimal):
@@ -116,13 +139,13 @@ class Posting:
         self.amount = amount
         self.account_id = account_id
         self.posting_date = posting_date
-        self.category = category
+        self.category_id = category_id
         self.posting_type = posting_type
 
     def __repr__(self) -> str:
         return (
             f"Posting({self.posting_id!r}, {self.account_id!r}, {self.amount!r}, "
-            f"{self.posting_date!r}, {self.category!r}, {self.posting_type!r})"
+            f"{self.posting_date!r}, {self.category_id!r}, {self.posting_type!r})"
         )
 
     def __eq__(self, other):
@@ -187,7 +210,7 @@ class Account:
         amount: Decimal,
         posting_date: date,
         *,
-        category: str | None,
+        category_id: str | None,
         posting_type: PostingType,
     ) -> Posting:
         """Record an income or expense posting on this account.
@@ -196,7 +219,7 @@ class Account:
             amount: The posting amount. The absolute value is used and
                 the sign is applied automatically based on posting_type.
             posting_date: The posting date
-            category: Optional category label
+            category_id: Optional category ID
             posting_type: "EXPENSE" or "INCOME"
 
         Returns:
@@ -231,7 +254,7 @@ class Account:
             self.account_id,
             effective_amount,
             posting_date,
-            category,
+            category_id,
             posting_type,
         )
         self._postings.append(posting)

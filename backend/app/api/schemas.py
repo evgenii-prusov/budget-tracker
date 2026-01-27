@@ -21,4 +21,20 @@ class AccountResponse(BaseModel):
     account_id: str
     name: str
     currency: str
-    initial_balance: Decimal = Decimal("0.0")
+    initial_balance: Decimal = Decimal(0)
+
+
+class CategoryCreate(BaseModel):
+    name: str = Field(
+        ...,
+        min_length=2,
+        max_length=100,
+        description="Category name",
+    )
+
+
+class CategoryResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    category_id: str
+    name: str

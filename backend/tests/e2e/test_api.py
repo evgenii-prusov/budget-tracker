@@ -173,11 +173,12 @@ def test_delete_account_success(client, session, acc_eur):
 def test_delete_account_with_postings_succeeds(client, session, acc_eur):
     """Delete succeeds when account has postings (cascade tested in integration)."""
     # 1. Arrange: Add account with a posting
+    # Create a posting directly in domain model to simulate history
     acc_eur.record_posting(
-        Decimal(10),
+        Decimal(100),
         date(2025, 1, 1),
-        category="food",
-        posting_type=PostingType.EXPENSE,
+        category_id="legacy",
+        posting_type=PostingType.INCOME,
     )
     session.add(acc_eur)
     session.commit()

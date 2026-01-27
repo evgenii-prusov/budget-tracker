@@ -3,6 +3,7 @@ from sqlalchemy import or_
 
 from app.domain.model import Account
 from app.domain.model import Transfer
+from app.domain.model import Category
 from app.service_layer.abstract_repository import AbstractRepository
 
 
@@ -48,3 +49,26 @@ class SqlAlchemyRepository(AbstractRepository):
             )
             .all()
         )
+
+    # Category methods
+    def add_category(self, category: Category):
+        self.session.add(category)
+
+    def get_category(self, category_id: str) -> Category | None:
+        return (
+            self.session.query(Category).filter_by(category_id=category_id).one_or_none()
+        )
+
+    def get_category_by_name(self, name: str) -> Category | None:
+        return self.session.query(Category).filter_by(name=name).first()
+
+    def list_categories(self) -> list[Category]:
+        return self.session.query(Category).all()
+
+    def delete_category(self, category: Category) -> None:
+        self.session.delete(category)
+
+    def count_postings_for_category(self, category_id: str) -> int:
+        from app.domain.model import Posting
+
+        return self.session.query(Posting).filter_by(category_id=category_id).count()

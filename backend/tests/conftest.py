@@ -83,10 +83,10 @@ def make_posting():
         account_id: str = "a-1",
         amount: Decimal = Decimal(0),
         posting_date: date = JAN_01,
-        category: str | None = "test",
-        category_type: PostingType = PostingType.EXPENSE,
+        category_id: str | None = "test",
+        posting_type: PostingType = PostingType.EXPENSE,
     ) -> Posting:
-        return Posting(id, account_id, amount, posting_date, category, category_type)
+        return Posting(id, account_id, amount, posting_date, category_id, posting_type)
 
     return _make_posting
 

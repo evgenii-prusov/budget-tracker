@@ -10,13 +10,13 @@ def test_account_balance_is_sum_of_init_balance_and_postings(
 ):
     # Arrange: Record multiple postings of different types
     acc_eur.record_posting(
-        Decimal(2), JAN_01, category="CAT_1", posting_type=PostingType.EXPENSE
+        Decimal(2), JAN_01, category_id="CAT_1", posting_type=PostingType.EXPENSE
     )
     acc_eur.record_posting(
-        Decimal(3), JAN_01, category="CAT_2", posting_type=PostingType.EXPENSE
+        Decimal(3), JAN_01, category_id="CAT_2", posting_type=PostingType.EXPENSE
     )
     acc_eur.record_posting(
-        Decimal(500), JAN_01, category="CAT_3", posting_type=PostingType.INCOME
+        Decimal(500), JAN_01, category_id="CAT_3", posting_type=PostingType.INCOME
     )
 
     # Act: Get account balance

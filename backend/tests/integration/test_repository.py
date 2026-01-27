@@ -32,8 +32,8 @@ def test_repository_retrieve_account_with_postings(session):
     session.execute(
         text(
             "INSERT INTO posting "
-            "(posting_id, account_id, amount, posting_date, category, posting_type)"
-            "VALUES ('1', '1', 100, '2025-12-26', 'rub', 'INCOME')"
+            "(posting_id, account_id, amount, posting_date, category_id, posting_type)"
+            "VALUES ('1', '1', 100, '2025-12-26', NULL, 'INCOME')"
         )
     )
     session.commit()
@@ -89,7 +89,7 @@ def test_repository_delete_account_cascades_postings(session):
     account.record_posting(
         Decimal(10),
         date(2025, 1, 1),
-        category="food",
+        category_id=None,
         posting_type=PostingType.EXPENSE,
     )
     session.add(account)

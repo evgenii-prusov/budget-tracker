@@ -5,6 +5,7 @@ from datetime import date
 from app.domain.model import Account
 from app.domain.model import Transfer
 from app.domain.model import PostingType
+from app.domain.model import Category
 from app.domain.exceptions import DuplicateAccountNameError
 from app.domain.exceptions import InvalidInitialBalanceError
 from app.domain.exceptions import AccountNotFoundError
@@ -13,12 +14,14 @@ from app.domain.exceptions import AccountHasTransfersError
 from app.service_layer.abstract_repository import AbstractRepository
 from app.service_layer.services import create_account
 from app.service_layer.services import delete_account
+from tests.constants import JAN_01
 
 
 class FakeRepository(AbstractRepository):
     def __init__(self, accounts: list[Account] | None = None):
         self.accounts = accounts or []
         self.transfers: list[Transfer] = []
+        self.categories: list[Category] = []
         self.committed = False
 
     def add(self, account: Account):
@@ -58,6 +61,29 @@ class FakeRepository(AbstractRepository):
 
     def delete(self, account: Account) -> None:
         self.accounts.remove(account)
+
+    def add_category(self, category: Category):
+        self.categories.append(category)
+
+    def get_category(self, category_id: str) -> Category | None:
+        return next((c for c in self.categories if c.category_id == category_id), None)
+
+    def get_category_by_name(self, name: str) -> Category | None:
+        return next((c for c in self.categories if c.name == name), None)
+
+    def list_categories(self) -> list[Category]:
+        return list(self.categories)
+
+    def delete_category(self, category: Category) -> None:
+        self.categories.remove(category)
+
+    def count_postings_for_category(self, category_id: str) -> int:
+        count = 0
+        for acc in self.accounts:
+            for p in acc._postings:
+                if p.category_id == category_id:
+                    count += 1
+        return count
 
 
 class TestCreateAccount:
@@ -163,9 +189,9 @@ class TestDeleteAccount:
             initial_balance=Decimal(100),
         )
         account.record_posting(
-            Decimal(50),
-            date(2025, 1, 1),
-            category="food",
+            amount=Decimal("100.00"),
+            posting_date=JAN_01,
+            category_id="FOOD",
             posting_type=PostingType.EXPENSE,
         )
         repo = FakeRepository(accounts=[account])
