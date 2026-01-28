@@ -76,19 +76,34 @@ class TestUpdateCategory:
         assert updated.name == "Food"
         assert repo.committed is True
 
+    def test_update_category_same_name_succeeds(self):
+        # Arrange
+        repo = FakeRepository()
+        category = create_category(repo, name="Groceries")
+        repo.committed = False
+
+        # Act - update to same name
+        updated = update_category_name(
+            repo, category_id=category.category_id, new_name="Groceries"
+        )
+
+        # Assert
+        assert updated.name == "Groceries"
+        assert repo.committed is True
+
     def test_update_category_duplicate_name_raises_error(self):
         # Arrange
         repo = FakeRepository()
         c1 = create_category(repo, name="Groceries")
         _c2 = create_category(repo, name="Food")
+        repo.committed = False
 
         # Act & Assert
         with pytest.raises(DuplicateCategoryNameError):
             update_category_name(repo, category_id=c1.category_id, new_name="Food")
 
         assert c1.name == "Groceries"
-        # repo.committed is False would be ideal, but create_category committed already.
-        # But for the update operation specifically, it shouldn't have committed again.
+        assert repo.committed is False
 
     def test_update_category_not_found_raises_error(self):
         # Arrange

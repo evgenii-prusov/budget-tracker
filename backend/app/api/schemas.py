@@ -46,6 +46,15 @@ class CategoryCreate(BaseModel):
     )
 
 
+class CategoryUpdate(BaseModel):
+    name: str = Field(
+        ...,
+        min_length=2,
+        max_length=100,
+        description="New category name",
+    )
+
+
 class CategoryResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

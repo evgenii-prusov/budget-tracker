@@ -84,6 +84,21 @@ def test_update_category_endpoint(client: TestClient, session: Session):
     assert response.json()["name"] == "Groceries"
 
 
+def test_update_category_same_name_succeeds(client: TestClient, session: Session):
+    # Arrange
+    session.execute(
+        text("INSERT INTO category (category_id, name) VALUES ('c1', 'Food')")
+    )
+    session.commit()
+
+    # Act - update to same name
+    response = client.patch("/categories/c1", json={"name": "Food"})
+
+    # Assert
+    assert response.status_code == 200
+    assert response.json()["name"] == "Food"
+
+
 def test_update_category_duplicate_returns_409(client: TestClient, session: Session):
     # Arrange
     session.execute(

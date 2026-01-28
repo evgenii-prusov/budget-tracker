@@ -10,6 +10,7 @@ from app.service_layer.abstract_repository import AbstractRepository
 from app.api.dependencies import get_repository
 from app.api.schemas import CategoryResponse
 from app.api.schemas import CategoryCreate
+from app.api.schemas import CategoryUpdate
 from app.service_layer.services import create_category
 from app.service_layer.services import list_categories
 from app.service_layer.services import update_category_name
@@ -47,7 +48,7 @@ def create_category_endpoint(category: CategoryCreate, repo: RepoDep):
 
 @router.patch("/categories/{category_id}", response_model=CategoryResponse)
 def update_category_endpoint(
-    category_id: str, category_update: CategoryCreate, repo: RepoDep
+    category_id: str, category_update: CategoryUpdate, repo: RepoDep
 ):
     try:
         updated_category = update_category_name(
@@ -57,6 +58,9 @@ def update_category_endpoint(
         raise HTTPException(status_code=404, detail=str(exc))
     except DuplicateCategoryNameError as exc:
         raise HTTPException(status_code=409, detail=str(exc))
+    except Exception as exc:
+        repo.rollback()
+        raise HTTPException(status_code=400, detail=str(exc))
 
     return updated_category
 
