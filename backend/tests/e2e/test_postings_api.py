@@ -52,17 +52,8 @@ def test_create_posting_income_success(client, test_data):
     assert "posting_id" in posting_response
 
 
-def test_create_posting_no_category_success(client):
-    # Only create account
-    acc_response = client.post(
-        "/accounts/",
-        json={
-            "name": "Test Account No Cat",
-            "currency": "EUR",
-            "initial_balance": "100.00",
-        },
-    )
-    account_id = acc_response.json()["account_id"]
+def test_create_posting_no_category_success(client, test_data):
+    account_id = test_data["account_id"]
 
     posting_data = {
         "account_id": account_id,
@@ -122,21 +113,12 @@ def test_create_posting_category_not_found(client, test_data):
     )
 
 
-def test_create_posting_insufficient_funds(client):
-    # Create account with low balance
-    acc_response = client.post(
-        "/accounts/",
-        json={
-            "name": "Low Balance Account",
-            "currency": "EUR",
-            "initial_balance": "10.00",
-        },
-    )
-    account_id = acc_response.json()["account_id"]
+def test_create_posting_insufficient_funds(client, test_data):
+    account_id = test_data["account_id"]
 
     posting_data = {
         "account_id": account_id,
-        "amount": "50.00",
+        "amount": "150.00",
         "posting_date": JAN_01.isoformat(),
         "posting_type": "EXPENSE",
         "category_id": None,
@@ -146,7 +128,7 @@ def test_create_posting_insufficient_funds(client):
 
     assert response.status_code == 422
     assert (
-        "Insufficient funds in account 'Low Balance Account'"
+        "Insufficient funds in account 'Test Posting Account'"
         in response.json()["detail"]
     )
 

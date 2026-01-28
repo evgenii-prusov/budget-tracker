@@ -14,11 +14,13 @@ from app.domain.exceptions import AccountNotFoundError
 from app.domain.exceptions import AccountHasTransfersError
 from app.domain.exceptions import CategoryNotFoundError
 from app.domain.exceptions import InsufficientFundsError
+from app.domain.exceptions import PostingNotFoundError
 
 from app.service_layer.abstract_repository import AbstractRepository
 from app.service_layer.services import create_account
 from app.service_layer.services import delete_account
-from app.service_layer.services import create_posting  # Import create_posting
+from app.service_layer.services import create_posting
+from app.service_layer.services import get_posting
 from tests.constants import JAN_01
 
 
@@ -488,3 +490,32 @@ class TestCreatePosting:
             "cat-1"
         )  # Category lookup happens first
         mock_repo.commit.assert_not_called()  # Commit should not happen on error
+
+
+class TestGetPosting:
+    def test_get_posting_success(self):
+        # Arrange
+        mock_repo = Mock(spec=AbstractRepository)
+        expected_posting = Posting(
+            "p1", "a1", Decimal("100.00"), JAN_01, "c1", PostingType.INCOME
+        )
+        mock_repo.get_posting.return_value = expected_posting
+
+        # Act
+        posting = get_posting(mock_repo, posting_id="p1")
+
+        # Assert
+        assert posting == expected_posting
+        mock_repo.get_posting.assert_called_once_with("p1")
+
+    def test_get_posting_not_found_raises_error(self):
+        # Arrange
+        mock_repo = Mock(spec=AbstractRepository)
+        mock_repo.get_posting.return_value = None
+
+        # Act & Assert
+        with pytest.raises(PostingNotFoundError) as exc_info:
+            get_posting(mock_repo, posting_id="non-existent")
+
+        assert "Posting with id 'non-existent' not found" in str(exc_info.value)
+        mock_repo.get_posting.assert_called_once_with("non-existent")
