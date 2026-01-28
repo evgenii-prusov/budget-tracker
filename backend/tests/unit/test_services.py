@@ -1,7 +1,6 @@
 import pytest
 from decimal import Decimal
 from datetime import date
-from unittest.mock import Mock
 
 from app.domain.model import Account
 from app.domain.model import Transfer
@@ -316,136 +315,103 @@ class TestDeleteAccount:
         assert "3 transfer" in str(exc_info.value)
 
 
-# Unit tests for create_posting service
 class TestCreatePosting:
     def test_create_posting_success_expense(self):
-        mock_repo = Mock(spec=AbstractRepository)
-
-        # Use a real Account instance for testing its domain logic
-        real_account = Account(
+        # Arrange
+        account = Account(
             account_id="acc-1",
             name="Test Account",
             currency="EUR",
             initial_balance=Decimal(100),
         )
-        mock_repo.get.return_value = real_account
+        category = Category(category_id="cat-1", name="Food")
+        repo = FakeRepository(accounts=[account])
+        repo.add_category(category)
 
-        # Mock category retrieval
-        mock_category_id = "cat-1"
-        mock_category = Mock()  # A mock category object is enough
-        mock_repo.get_category.return_value = mock_category
-
-        posting_date = date(2023, 1, 1)
-        amount = Decimal(50)
-        posting_type = PostingType.EXPENSE
-
-        # Call the service function
-        created_posting = create_posting(
-            mock_repo,
+        # Act
+        posting = create_posting(
+            repo,
             account_id="acc-1",
-            amount=amount,
-            posting_date=posting_date,
-            posting_type=posting_type,
-            category_id=mock_category_id,
+            amount=Decimal(50),
+            posting_date=date(2023, 1, 1),
+            posting_type=PostingType.EXPENSE,
+            category_id="cat-1",
         )
 
-        # Assertions
-        mock_repo.get.assert_called_once_with("acc-1")
-        mock_repo.get_category.assert_called_once_with(mock_category_id)
-        mock_repo.commit.assert_called_once()
-
-        # Verify the returned posting object
-        assert isinstance(created_posting, Posting)
-        assert created_posting.account_id == "acc-1"
-        assert created_posting.posting_date == posting_date
-        assert created_posting.category_id == mock_category_id
-        assert created_posting.posting_type == PostingType.EXPENSE
-
-        # The amount should be signed by Account.record_posting (negative for EXPENSE)
-        assert created_posting.amount == Decimal("-50")
-
-        # Check that the posting was added to the real account instance's postings
-        assert len(real_account._postings) == 1
-        assert real_account._postings[0] == created_posting
-        assert real_account.balance == Decimal(100) - Decimal(
-            50
-        )  # Check account balance update
+        # Assert
+        assert isinstance(posting, Posting)
+        assert posting.account_id == "acc-1"
+        assert posting.posting_date == date(2023, 1, 1)
+        assert posting.category_id == "cat-1"
+        assert posting.posting_type == PostingType.EXPENSE
+        assert posting.amount == Decimal("-50")  # Negative for expense
+        assert account.balance == Decimal(50)  # 100 - 50
+        assert len(account._postings) == 1
+        assert repo.committed is True
 
     def test_create_posting_success_income_no_category(self):
-        mock_repo = Mock(spec=AbstractRepository)
-        real_account = Account(
+        # Arrange
+        account = Account(
             account_id="acc-1",
             name="Test Account",
             currency="EUR",
             initial_balance=Decimal(100),
         )
-        mock_repo.get.return_value = real_account
+        repo = FakeRepository(accounts=[account])
 
-        posting_date = date(2023, 1, 1)
-        amount = Decimal(75)
-        posting_type = PostingType.INCOME
-
-        created_posting = create_posting(
-            mock_repo,
+        # Act
+        posting = create_posting(
+            repo,
             account_id="acc-1",
-            amount=amount,
-            posting_date=posting_date,
-            posting_type=posting_type,
+            amount=Decimal(75),
+            posting_date=date(2023, 1, 1),
+            posting_type=PostingType.INCOME,
             category_id=None,
         )
 
-        mock_repo.get.assert_called_once_with("acc-1")
-        mock_repo.get_category.assert_not_called()  # Category not used
-        mock_repo.commit.assert_called_once()
-
-        assert isinstance(created_posting, Posting)
-        assert created_posting.account_id == "acc-1"
-        assert created_posting.posting_date == posting_date
-        assert created_posting.category_id is None
-        assert created_posting.posting_type == PostingType.INCOME
-        assert created_posting.amount == Decimal(
-            "75"
-        )  # For INCOME, amount should be positive
-
-        assert len(real_account._postings) == 1
-        assert real_account._postings[0] == created_posting
-        assert real_account.balance == Decimal(100) + Decimal(75)
+        # Assert
+        assert isinstance(posting, Posting)
+        assert posting.account_id == "acc-1"
+        assert posting.category_id is None
+        assert posting.posting_type == PostingType.INCOME
+        assert posting.amount == Decimal("75")  # Positive for income
+        assert account.balance == Decimal(175)  # 100 + 75
+        assert repo.committed is True
 
     def test_create_posting_account_not_found(self):
-        mock_repo = Mock(spec=AbstractRepository)
-        mock_repo.get.return_value = None  # Account not found
+        # Arrange
+        repo = FakeRepository()
 
+        # Act & Assert
         with pytest.raises(
             AccountNotFoundError, match="Account with id 'non-existent-acc' not found"
         ):
             create_posting(
-                mock_repo,
+                repo,
                 account_id="non-existent-acc",
                 amount=Decimal(50),
                 posting_date=date(2023, 1, 1),
                 posting_type=PostingType.EXPENSE,
             )
 
-        mock_repo.get.assert_called_once_with("non-existent-acc")
-        mock_repo.get_category.assert_not_called()
-        mock_repo.commit.assert_not_called()
+        assert repo.committed is False
 
     def test_create_posting_category_not_found(self):
-        mock_repo = Mock(spec=AbstractRepository)
-        real_account = Account(
+        # Arrange
+        account = Account(
             account_id="acc-1",
             name="Test Account",
             currency="EUR",
             initial_balance=Decimal(100),
         )
-        mock_repo.get.return_value = real_account
-        mock_repo.get_category.return_value = None  # Category not found
+        repo = FakeRepository(accounts=[account])
 
+        # Act & Assert
         with pytest.raises(
             CategoryNotFoundError, match="Category with id 'non-existent-cat' not found"
         ):
             create_posting(
-                mock_repo,
+                repo,
                 account_id="acc-1",
                 amount=Decimal(50),
                 posting_date=date(2023, 1, 1),
@@ -453,31 +419,26 @@ class TestCreatePosting:
                 category_id="non-existent-cat",
             )
 
-        mock_repo.get.assert_called_once_with("acc-1")
-        mock_repo.get_category.assert_called_once_with("non-existent-cat")
-        mock_repo.commit.assert_not_called()
+        assert repo.committed is False
 
     def test_create_posting_insufficient_funds(self):
-        mock_repo = Mock(spec=AbstractRepository)
-        real_account = Account(
+        # Arrange
+        account = Account(
             account_id="acc-1",
             name="Test Account",
             currency="EUR",
             initial_balance=Decimal(10),  # Low balance
         )
-        mock_repo.get.return_value = real_account
+        category = Category(category_id="cat-1", name="Food")
+        repo = FakeRepository(accounts=[account])
+        repo.add_category(category)
 
-        # Mock category retrieval, as it's called before InsufficientFundsError is raised
-        # from Account.record_posting
-        mock_repo.get_category.return_value = Mock()
-
-        # When services.create_posting calls real_account.record_posting,
-        # it should raise InsufficientFundsError because the balance is too low.
+        # Act & Assert
         with pytest.raises(
             InsufficientFundsError, match="Insufficient funds in account 'Test Account'"
         ):
             create_posting(
-                mock_repo,
+                repo,
                 account_id="acc-1",
                 amount=Decimal(50),  # Amount larger than balance
                 posting_date=date(2023, 1, 1),
@@ -485,37 +446,40 @@ class TestCreatePosting:
                 category_id="cat-1",
             )
 
-        mock_repo.get.assert_called_once_with("acc-1")
-        mock_repo.get_category.assert_called_once_with(
-            "cat-1"
-        )  # Category lookup happens first
-        mock_repo.commit.assert_not_called()  # Commit should not happen on error
+        assert repo.committed is False
 
 
 class TestGetPosting:
     def test_get_posting_success(self):
         # Arrange
-        mock_repo = Mock(spec=AbstractRepository)
-        expected_posting = Posting(
-            "p1", "a1", Decimal("100.00"), JAN_01, "c1", PostingType.INCOME
+        account = Account(
+            account_id="acc-1",
+            name="Test Account",
+            currency="EUR",
+            initial_balance=Decimal(100),
         )
-        mock_repo.get_posting.return_value = expected_posting
+        account.record_posting(
+            amount=Decimal(50),
+            posting_date=JAN_01,
+            category_id="cat-1",
+            posting_type=PostingType.INCOME,
+        )
+        repo = FakeRepository(accounts=[account])
+        posting_id = account._postings[0].posting_id
 
         # Act
-        posting = get_posting(mock_repo, posting_id="p1")
+        posting = get_posting(repo, posting_id=posting_id)
 
         # Assert
-        assert posting == expected_posting
-        mock_repo.get_posting.assert_called_once_with("p1")
+        assert posting == account._postings[0]
+        assert posting.amount == Decimal(50)
 
     def test_get_posting_not_found_raises_error(self):
         # Arrange
-        mock_repo = Mock(spec=AbstractRepository)
-        mock_repo.get_posting.return_value = None
+        repo = FakeRepository()
 
         # Act & Assert
         with pytest.raises(PostingNotFoundError) as exc_info:
-            get_posting(mock_repo, posting_id="non-existent")
+            get_posting(repo, posting_id="non-existent")
 
         assert "Posting with id 'non-existent' not found" in str(exc_info.value)
-        mock_repo.get_posting.assert_called_once_with("non-existent")

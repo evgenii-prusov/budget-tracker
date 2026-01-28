@@ -66,6 +66,7 @@ The project follows a **Clean Architecture** (Hexagonal) pattern with strict lay
 *   **Pattern:** Arrange-Act-Assert.
 *   **Database:** Tests use an in-memory SQLite database with `StaticPool` (recreated per test).
 *   **Fixtures:** Use `session` (DB session), `client` (FastAPI client), `acc_eur`/`acc_rub` (pre-configured accounts).
+*   **Prefer Fakes over Mocks:** Use `FakeRepository` (in `tests/unit/test_services.py`) instead of `unittest.mock.Mock` for unit tests. Fakes test outcomes (state changes), not implementation details (method calls). Reserve `Mock` only for testing infrastructure failures or external service interactions.
 
 ### 4. Git
 *   **Commit Messages:** clear, concise, "why" over "what".

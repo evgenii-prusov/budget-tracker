@@ -225,6 +225,44 @@ The test suite properly handles ORM mapper lifecycle:
 - Uses in-memory SQLite with StaticPool for thread safety
 - Creates fresh schema for each test
 
+### Prefer Fakes Over Mocks
+
+**Use `FakeRepository` instead of `Mock` for unit tests when possible.**
+
+The codebase provides a `FakeRepository` class in `tests/unit/test_services.py` that implements `AbstractRepository` with in-memory storage. Prefer this over `unittest.mock.Mock` because:
+
+- **Tests verify outcomes, not implementation details** - Fakes test what happened (state changes), not how (which methods were called)
+- **Less brittle** - Tests won't break if internal call order changes
+- **More realistic** - Fakes implement the same contract as the real repository
+- **Easier to understand** - No mock setup/verification ceremony
+
+```python
+# Preferred: Use FakeRepository
+def test_create_posting_success(self):
+    account = Account(account_id="acc-1", name="Test", currency="EUR", initial_balance=Decimal(100))
+    category = Category(category_id="cat-1", name="Food")
+    repo = FakeRepository(accounts=[account])
+    repo.add_category(category)
+
+    posting = create_posting(repo, account_id="acc-1", amount=Decimal(50), ...)
+
+    assert posting.amount == Decimal("-50")
+    assert account.balance == Decimal(50)
+    assert repo.committed is True
+
+# Avoid: Mock with call verification
+def test_create_posting_success(self):
+    mock_repo = Mock(spec=AbstractRepository)
+    mock_repo.get.return_value = real_account
+    mock_repo.get_category.return_value = Mock()
+    ...
+    mock_repo.get.assert_called_once_with("acc-1")  # Tests implementation, not behavior
+```
+
+Reserve `Mock` for cases where you need to:
+- Test error handling for infrastructure failures (e.g., database connection errors)
+- Verify specific interactions with external services that can't be easily faked
+
 ## Domain Concepts
 
 ### Transaction Types
