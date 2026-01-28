@@ -2,6 +2,8 @@ from decimal import Decimal
 
 from app.domain.model import Account
 from app.domain.model import Category
+from app.domain.model import Posting
+from app.domain.model import PostingType
 from app.domain.exceptions import DuplicateAccountNameError
 from app.domain.exceptions import InvalidInitialBalanceError
 from app.domain.exceptions import AccountNotFoundError
@@ -11,6 +13,7 @@ from app.domain.exceptions import CategoryNotFoundError
 from app.domain.exceptions import CategoryInUseError
 
 from app.service_layer.abstract_repository import AbstractRepository
+from datetime import date
 
 
 def get_account(repo: AbstractRepository, *, account_id: str) -> Account:
@@ -65,6 +68,34 @@ def delete_account(repo: AbstractRepository, *, account_id: str) -> None:
 
     repo.delete(account)
     repo.commit()
+
+
+def create_posting(
+    repo: AbstractRepository,
+    *,
+    account_id: str,
+    amount: Decimal,
+    posting_date: date,
+    posting_type: PostingType,
+    category_id: str | None = None,
+) -> Posting:
+    account = repo.get(account_id)
+    if not account:
+        raise AccountNotFoundError(f"Account with id '{account_id}' not found")
+
+    if category_id:
+        category = repo.get_category(category_id)
+        if not category:
+            raise CategoryNotFoundError(f"Category with id '{category_id}' not found")
+
+    posting = account.record_posting(
+        amount=amount,
+        posting_date=posting_date,
+        category_id=category_id,
+        posting_type=posting_type,
+    )
+    repo.commit()
+    return posting
 
 
 # Category Services

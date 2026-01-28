@@ -75,6 +75,11 @@ The project follows a **Clean Architecture** (Hexagonal) pattern with strict lay
 *   **Standard Retrieval:** Use the simple entity name (e.g., `account`, `category`) when retrieving an object by its ID for actions or return.
 *   **Duplicate Check:** Use `existing_<entity_name>` (e.g., `existing_account`) specifically when checking for name collisions during creation.
 
+### 6. Import Style
+*   **Explicit Imports:** Use explicit imports over module imports where possible.
+*   **One per Line:** Put each import on its own line (e.g., `from module import A` and `from module import B`, not `from module import A, B`).
+*   **Order:** Standard library, then third-party, then local application imports.
+
 ## Directory Structure
 
 *   `backend/`: Python backend source code.

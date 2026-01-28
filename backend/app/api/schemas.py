@@ -1,6 +1,13 @@
 from decimal import Decimal
+from datetime import date
+from enum import StrEnum
 
 from pydantic import BaseModel, Field, ConfigDict
+
+
+class PostingType(StrEnum):
+    EXPENSE = "EXPENSE"
+    INCOME = "INCOME"
 
 
 class AccountCreate(BaseModel):
@@ -38,3 +45,22 @@ class CategoryResponse(BaseModel):
 
     category_id: str
     name: str
+
+
+class PostingCreate(BaseModel):
+    account_id: str
+    amount: Decimal = Field(..., gt=0)
+    posting_date: date
+    posting_type: PostingType
+    category_id: str | None = None
+
+
+class PostingResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    posting_id: str
+    account_id: str
+    amount: Decimal
+    posting_date: date
+    posting_type: PostingType
+    category_id: str | None
