@@ -14,10 +14,10 @@ from app.service_layer.abstract_repository import AbstractRepository
 
 
 def get_account(repo: AbstractRepository, *, account_id: str) -> Account:
-    existing_account = repo.get(account_id)
-    if existing_account is None:
+    account = repo.get(account_id)
+    if account is None:
         raise AccountNotFoundError(f"Account with id '{account_id}' not found")
-    return existing_account
+    return account
 
 
 def create_account(
@@ -76,8 +76,8 @@ def create_category(
     name: str,
 ) -> Category:
     # Check for duplicate name
-    existing = repo.get_category_by_name(name)
-    if existing:
+    existing_category = repo.get_category_by_name(name)
+    if existing_category:
         raise DuplicateCategoryNameError(f"Category with name '{name}' already exists")
 
     new_category = Category(

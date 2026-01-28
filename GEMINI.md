@@ -71,6 +71,10 @@ The project follows a **Clean Architecture** (Hexagonal) pattern with strict lay
 *   **Commit Messages:** clear, concise, "why" over "what".
 *   **No Co-Authors:** Do not add `Co-Authored-By` lines.
 
+### 5. Variable Naming (Service Layer)
+*   **Standard Retrieval:** Use the simple entity name (e.g., `account`, `category`) when retrieving an object by its ID for actions or return.
+*   **Duplicate Check:** Use `existing_<entity_name>` (e.g., `existing_account`) specifically when checking for name collisions during creation.
+
 ## Directory Structure
 
 *   `backend/`: Python backend source code.
