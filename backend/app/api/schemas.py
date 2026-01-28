@@ -18,6 +18,16 @@ class AccountCreate(BaseModel):
     initial_balance: Decimal = Decimal(0)
 
 
+class AccountUpdate(BaseModel):
+    name: str = Field(
+        ...,
+        min_length=3,
+        max_length=100,
+        pattern=r"^[A-Za-z0-9]+(?:[ _-][A-Za-z0-9]+)*$",
+        description="New account name (3-100 characters, must start with alphanumeric)",
+    )
+
+
 class AccountResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

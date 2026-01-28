@@ -11,9 +11,11 @@ from app.service_layer.abstract_repository import AbstractRepository
 from app.api.dependencies import get_repository
 from app.api.schemas import AccountResponse
 from app.api.schemas import AccountCreate
+from app.api.schemas import AccountUpdate
 from app.service_layer.services import create_account
 from app.service_layer.services import delete_account
 from app.service_layer.services import get_account
+from app.service_layer.services import update_account_name
 
 
 router = APIRouter()
@@ -47,6 +49,25 @@ def create_account_endpoint(account: AccountCreate, repo: RepoDep):
         raise HTTPException(status_code=400, detail=str(exc))
 
     return new_account
+
+
+@router.patch("/accounts/{account_id}", response_model=AccountResponse)
+def update_account_name_endpoint(
+    account_id: str, account_update: AccountUpdate, repo: RepoDep
+):
+    try:
+        updated_account = update_account_name(
+            repo=repo, account_id=account_id, new_name=account_update.name
+        )
+    except AccountNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+    except DuplicateAccountNameError as exc:
+        raise HTTPException(status_code=409, detail=str(exc))
+    except Exception as exc:
+        repo.rollback()
+        raise HTTPException(status_code=400, detail=str(exc))
+
+    return updated_account
 
 
 @router.delete("/accounts/{account_id}", status_code=204)

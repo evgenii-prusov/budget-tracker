@@ -288,3 +288,54 @@ def test_delete_then_recreate_same_name(client, session, acc_eur):
     # 3. Assert
     assert create_response.status_code == 201
     assert create_response.json()["name"] == acc_eur.name
+
+
+def test_update_account_name_success(client, session, acc_eur):
+    """Successfully update an account name."""
+    # 1. Arrange: Add account to database
+    session.add(acc_eur)
+    session.commit()
+
+    # 2. Act: Update the account name
+    response = client.patch(
+        f"/accounts/{acc_eur.account_id}",
+        json={"name": "New Account Name"},
+    )
+
+    # 3. Assert: Check response and verify update
+    assert response.status_code == 200
+    data = response.json()
+    assert data["name"] == "New Account Name"
+    assert data["account_id"] == acc_eur.account_id
+
+    # Verify update in database
+    get_response = client.get(f"/accounts/{acc_eur.account_id}")
+    assert get_response.json()["name"] == "New Account Name"
+
+
+def test_update_account_name_duplicate(client, session, acc_eur, acc_rub):
+    """Updating account name to an existing name returns 409."""
+    # 1. Arrange: Add two accounts to database
+    session.add(acc_eur)
+    session.add(acc_rub)
+    session.commit()
+
+    # 2. Act: Try to update first account with second account's name
+    response = client.patch(
+        f"/accounts/{acc_eur.account_id}",
+        json={"name": acc_rub.name},
+    )
+
+    # 3. Assert: Check response
+    assert response.status_code == 409
+    assert "already exists" in response.json()["detail"]
+
+
+def test_update_account_name_not_found(client):
+    """Updating a non-existent account returns 404."""
+    response = client.patch(
+        "/accounts/nonexistent-id",
+        json={"name": "New Name"},
+    )
+    assert response.status_code == 404
+    assert "not found" in response.json()["detail"]

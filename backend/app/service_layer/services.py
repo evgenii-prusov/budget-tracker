@@ -24,6 +24,22 @@ def get_account(repo: AbstractRepository, *, account_id: str) -> Account:
     return account
 
 
+def update_account_name(
+    repo: AbstractRepository, *, account_id: str, new_name: str
+) -> Account:
+    account = repo.get(account_id)
+    if account is None:
+        raise AccountNotFoundError(f"Account with id '{account_id}' not found")
+
+    existing_account = repo.get_by_name(new_name)
+    if existing_account and existing_account.account_id != account_id:
+        raise DuplicateAccountNameError(f"Account with name '{new_name}' already exists")
+
+    account.name = new_name
+    repo.commit()
+    return account
+
+
 def create_account(
     repo: AbstractRepository,
     *,

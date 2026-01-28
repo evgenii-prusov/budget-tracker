@@ -20,6 +20,7 @@ from app.service_layer.services import create_account
 from app.service_layer.services import delete_account
 from app.service_layer.services import create_posting
 from app.service_layer.services import get_posting
+from app.service_layer.services import update_account_name
 from tests.constants import JAN_01
 
 
@@ -172,6 +173,62 @@ class TestCreateAccount:
         assert "-100" in str(exc_info.value)
         assert repo.committed is False  # Should not commit on error
         assert len(repo.accounts) == 0  # Should not add account
+
+
+class TestUpdateAccountName:
+    def test_update_account_name_success(self):
+        # Arrange
+        account = Account(
+            account_id="acc-1",
+            name="Old Name",
+            currency="USD",
+            initial_balance=Decimal(100),
+        )
+        repo = FakeRepository(accounts=[account])
+
+        # Act
+        updated_account = update_account_name(
+            repo, account_id="acc-1", new_name="New Name"
+        )
+
+        # Assert
+        assert updated_account.name == "New Name"
+        assert repo.committed is True
+
+    def test_update_account_name_duplicate_name_raises_error(self):
+        # Arrange
+        account1 = Account(
+            account_id="acc-1",
+            name="Account 1",
+            currency="USD",
+            initial_balance=Decimal(100),
+        )
+        account2 = Account(
+            account_id="acc-2",
+            name="Account 2",
+            currency="USD",
+            initial_balance=Decimal(100),
+        )
+        repo = FakeRepository(accounts=[account1, account2])
+
+        # Act & Assert
+        with pytest.raises(DuplicateAccountNameError) as exc_info:
+            update_account_name(repo, account_id="acc-1", new_name="Account 2")
+
+        assert "already exists" in str(exc_info.value)
+        assert repo.committed is False
+        assert account1.name == "Account 1"  # Should not change name
+
+    def test_update_account_name_not_found_raises_error(self):
+        # Arrange
+        repo = FakeRepository()
+
+        # Act & Assert
+        with pytest.raises(AccountNotFoundError) as exc_info:
+            update_account_name(repo, account_id="nonexistent-id", new_name="New Name")
+
+        assert "not found" in str(exc_info.value)
+        assert repo.committed is False
 
 
 class TestDeleteAccount:
