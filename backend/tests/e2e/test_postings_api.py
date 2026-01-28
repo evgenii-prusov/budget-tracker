@@ -166,3 +166,82 @@ def test_get_posting_not_found(client):
     response = client.get("/postings/non-existent-id")
     assert response.status_code == 404
     assert "Posting with id 'non-existent-id' not found" in response.json()["detail"]
+
+
+def test_list_postings_endpoint(client, test_data):
+    account_id = test_data["account_id"]
+
+    # Create two postings
+    client.post(
+        "/postings/",
+        json={
+            "account_id": account_id,
+            "amount": "10.00",
+            "posting_date": JAN_01.isoformat(),
+            "posting_type": "EXPENSE",
+        },
+    )
+    client.post(
+        "/postings/",
+        json={
+            "account_id": account_id,
+            "amount": "20.00",
+            "posting_date": JAN_01.isoformat(),
+            "posting_type": "EXPENSE",
+        },
+    )
+
+    # Act
+    response = client.get("/postings/")
+
+    # Assert
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data) == 2
+
+
+def test_list_postings_endpoint_filtered(client, test_data):
+    account_id = test_data["account_id"]
+
+    # Create another account
+    acc_response = client.post(
+        "/accounts/",
+        json={
+            "name": "Another Account",
+            "currency": "EUR",
+            "initial_balance": "100.00",
+        },
+    )
+    another_account_id = acc_response.json()["account_id"]
+
+    # Create posting in original account
+    client.post(
+        "/postings/",
+        json={
+            "account_id": account_id,
+            "amount": "10.00",
+            "posting_date": JAN_01.isoformat(),
+            "posting_type": "EXPENSE",
+        },
+    )
+
+    # Create posting in another account
+    client.post(
+        "/postings/",
+        json={
+            "account_id": another_account_id,
+            "amount": "20.00",
+            "posting_date": JAN_01.isoformat(),
+            "posting_type": "EXPENSE",
+        },
+    )
+
+    # Act: Get filtered by account_id
+    response = client.get(f"/postings/?account_id={account_id}")
+
+    # Assert
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data) == 1
+    for posting in data:
+        assert posting["account_id"] == account_id

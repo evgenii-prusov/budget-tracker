@@ -59,6 +59,12 @@ class SqlAlchemyRepository(AbstractRepository):
     def get_posting(self, posting_id: str) -> Posting | None:
         return self.session.query(Posting).filter_by(posting_id=posting_id).one_or_none()
 
+    def list_postings(self, account_id: str | None = None) -> list[Posting]:
+        query = self.session.query(Posting)
+        if account_id is not None:
+            query = query.filter_by(account_id=account_id)
+        return query.all()
+
     # Category methods
     def add_category(self, category: Category):
         self.session.add(category)

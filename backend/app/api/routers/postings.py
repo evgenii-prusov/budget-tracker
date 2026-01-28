@@ -16,12 +16,21 @@ from app.domain.model import PostingType
 from app.service_layer.abstract_repository import AbstractRepository
 from app.service_layer.services import create_posting
 from app.service_layer.services import get_posting
+from app.service_layer.services import list_postings
 
 
 router = APIRouter(
     prefix="/postings",
     tags=["postings"],
 )
+
+
+@router.get("/", response_model=list[PostingResponse])
+def list_postings_endpoint(
+    repo: Annotated[AbstractRepository, Depends(get_repository)],
+    account_id: str | None = None,
+):
+    return list_postings(repo, account_id=account_id)
 
 
 @router.post("/", response_model=PostingResponse, status_code=status.HTTP_201_CREATED)

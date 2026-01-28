@@ -21,6 +21,7 @@ from app.service_layer.services import create_account
 from app.service_layer.services import delete_account
 from app.service_layer.services import create_posting
 from app.service_layer.services import get_posting
+from app.service_layer.services import list_postings
 from app.service_layer.services import update_account_name
 from app.service_layer.services import create_transfer
 from app.service_layer.services import get_transfer
@@ -105,6 +106,13 @@ class FakeRepository(AbstractRepository):
                 if p.posting_id == posting_id:
                     return p
         return None
+
+    def list_postings(self, account_id: str | None = None) -> list[Posting]:
+        all_postings = []
+        for acc in self.accounts:
+            if account_id is None or acc.account_id == account_id:
+                all_postings.extend(acc._postings)
+        return all_postings
 
 
 class TestCreateAccount:
@@ -547,6 +555,55 @@ class TestGetPosting:
             get_posting(repo, posting_id="non-existent")
 
         assert "Posting with id 'non-existent' not found" in str(exc_info.value)
+
+
+class TestListPostings:
+    def test_list_postings_empty(self):
+        # Arrange
+        repo = FakeRepository()
+
+        # Act
+        postings = list_postings(repo)
+
+        # Assert
+        assert postings == []
+
+    def test_list_postings_all(self):
+        # Arrange
+        a1 = Account("a1", "A1", "EUR", Decimal(100))
+        a2 = Account("a2", "A2", "EUR", Decimal(100))
+        a1.record_posting(
+            Decimal(10), JAN_01, category_id="c1", posting_type=PostingType.EXPENSE
+        )
+        a2.record_posting(
+            Decimal(20), JAN_01, category_id="c1", posting_type=PostingType.EXPENSE
+        )
+        repo = FakeRepository(accounts=[a1, a2])
+
+        # Act
+        postings = list_postings(repo)
+
+        # Assert
+        assert len(postings) == 2
+
+    def test_list_postings_filtered_by_account(self):
+        # Arrange
+        a1 = Account("a1", "A1", "EUR", Decimal(100))
+        a2 = Account("a2", "A2", "EUR", Decimal(100))
+        p1 = a1.record_posting(
+            Decimal(10), JAN_01, category_id="c1", posting_type=PostingType.EXPENSE
+        )
+        _p2 = a2.record_posting(
+            Decimal(20), JAN_01, category_id="c1", posting_type=PostingType.EXPENSE
+        )
+        repo = FakeRepository(accounts=[a1, a2])
+
+        # Act
+        postings = list_postings(repo, account_id="a1")
+
+        # Assert
+        assert len(postings) == 1
+        assert postings[0] == p1
 
 
 class TestTransferServices:

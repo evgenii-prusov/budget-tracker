@@ -57,6 +57,10 @@ class AbstractRepository(abc.ABC):
     def get_posting(self, posting_id: str) -> Posting | None:
         raise NotImplementedError()
 
+    @abc.abstractmethod
+    def list_postings(self, account_id: str | None = None) -> list[Posting]:
+        raise NotImplementedError()
+
     # Category methods
     @abc.abstractmethod
     def add_category(self, category: Category):

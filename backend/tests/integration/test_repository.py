@@ -3,6 +3,7 @@ from decimal import Decimal
 from datetime import date
 from app.adapters import repository
 from app.domain.model import Account, PostingType
+from tests.constants import JAN_01
 
 
 def test_repository_save_an_account(session, acc_eur, acc_rub):
@@ -112,3 +113,42 @@ def test_repository_delete_account_cascades_postings(session):
     posting_count = session.execute(text("SELECT COUNT(*) FROM posting")).scalar()
     assert account_count == 0
     assert posting_count == 0  # Cascade delete worked
+
+
+def test_list_postings_empty(session):
+    repo = repository.SqlAlchemyRepository(session)
+    assert repo.list_postings() == []
+
+
+def test_list_postings_returns_all(session):
+    repo = repository.SqlAlchemyRepository(session)
+    account = Account("a1", "Test", "EUR", Decimal(100))
+    repo.add(account)
+    account.record_posting(
+        Decimal(10), JAN_01, category_id=None, posting_type=PostingType.EXPENSE
+    )
+    repo.commit()
+
+    postings = repo.list_postings()
+
+    assert len(postings) == 1
+
+
+def test_list_postings_filtered_by_account(session):
+    repo = repository.SqlAlchemyRepository(session)
+    a1 = Account("a1", "Test1", "EUR", Decimal(100))
+    a2 = Account("a2", "Test2", "EUR", Decimal(100))
+    repo.add(a1)
+    repo.add(a2)
+    a1.record_posting(
+        Decimal(10), JAN_01, category_id=None, posting_type=PostingType.EXPENSE
+    )
+    a2.record_posting(
+        Decimal(20), JAN_01, category_id=None, posting_type=PostingType.EXPENSE
+    )
+    repo.commit()
+
+    postings = repo.list_postings(account_id="a1")
+
+    assert len(postings) == 1
+    assert postings[0].account_id == "a1"

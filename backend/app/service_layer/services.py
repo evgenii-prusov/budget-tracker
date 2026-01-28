@@ -125,6 +125,12 @@ def get_posting(repo: AbstractRepository, *, posting_id: str) -> Posting:
     return posting
 
 
+def list_postings(
+    repo: AbstractRepository, *, account_id: str | None = None
+) -> list[Posting]:
+    return repo.list_postings(account_id=account_id)
+
+
 # Category Services
 
 
