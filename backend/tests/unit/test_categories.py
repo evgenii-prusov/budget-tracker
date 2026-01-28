@@ -4,6 +4,7 @@ from app.domain.exceptions import CategoryNotFoundError
 from app.domain.exceptions import CategoryInUseError
 from app.service_layer.services import create_category
 from app.service_layer.services import list_categories
+from app.service_layer.services import update_category_name
 from app.service_layer.services import delete_category
 from tests.unit.test_services import FakeRepository
 from app.domain.model import Account
@@ -58,6 +59,44 @@ class TestListCategories:
         assert len(cats) == 2
         assert c1 in cats
         assert c2 in cats
+
+
+class TestUpdateCategory:
+    def test_update_category_success(self):
+        # Arrange
+        repo = FakeRepository()
+        category = create_category(repo, name="Groceries")
+
+        # Act
+        updated = update_category_name(
+            repo, category_id=category.category_id, new_name="Food"
+        )
+
+        # Assert
+        assert updated.name == "Food"
+        assert repo.committed is True
+
+    def test_update_category_duplicate_name_raises_error(self):
+        # Arrange
+        repo = FakeRepository()
+        c1 = create_category(repo, name="Groceries")
+        _c2 = create_category(repo, name="Food")
+
+        # Act & Assert
+        with pytest.raises(DuplicateCategoryNameError):
+            update_category_name(repo, category_id=c1.category_id, new_name="Food")
+
+        assert c1.name == "Groceries"
+        # repo.committed is False would be ideal, but create_category committed already.
+        # But for the update operation specifically, it shouldn't have committed again.
+
+    def test_update_category_not_found_raises_error(self):
+        # Arrange
+        repo = FakeRepository()
+
+        # Act & Assert
+        with pytest.raises(CategoryNotFoundError):
+            update_category_name(repo, category_id="non-existent", new_name="New Name")
 
 
 class TestDeleteCategory:

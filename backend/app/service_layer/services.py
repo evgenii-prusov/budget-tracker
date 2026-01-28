@@ -1,4 +1,5 @@
 from decimal import Decimal
+from datetime import date
 
 from app.domain.model import Account
 from app.domain.model import Category
@@ -17,7 +18,6 @@ from app.domain.exceptions import PostingNotFoundError
 from app.domain.exceptions import TransferNotFoundError
 
 from app.service_layer.abstract_repository import AbstractRepository
-from datetime import date
 
 
 def get_account(repo: AbstractRepository, *, account_id: str) -> Account:
@@ -149,6 +149,24 @@ def create_category(
 
 def list_categories(repo: AbstractRepository) -> list[Category]:
     return repo.list_categories()
+
+
+def update_category_name(
+    repo: AbstractRepository, *, category_id: str, new_name: str
+) -> Category:
+    category = repo.get_category(category_id)
+    if category is None:
+        raise CategoryNotFoundError(f"Category with id '{category_id}' not found")
+
+    existing_category = repo.get_category_by_name(new_name)
+    if existing_category and existing_category.category_id != category_id:
+        raise DuplicateCategoryNameError(
+            f"Category with name '{new_name}' already exists"
+        )
+
+    category.name = new_name
+    repo.commit()
+    return category
 
 
 def delete_category(repo: AbstractRepository, *, category_id: str) -> None:

@@ -12,6 +12,7 @@ from app.api.schemas import CategoryResponse
 from app.api.schemas import CategoryCreate
 from app.service_layer.services import create_category
 from app.service_layer.services import list_categories
+from app.service_layer.services import update_category_name
 from app.service_layer.services import delete_category
 
 
@@ -42,6 +43,22 @@ def create_category_endpoint(category: CategoryCreate, repo: RepoDep):
         raise HTTPException(status_code=409, detail=str(exc))
 
     return new_category
+
+
+@router.patch("/categories/{category_id}", response_model=CategoryResponse)
+def update_category_endpoint(
+    category_id: str, category_update: CategoryCreate, repo: RepoDep
+):
+    try:
+        updated_category = update_category_name(
+            repo=repo, category_id=category_id, new_name=category_update.name
+        )
+    except CategoryNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+    except DuplicateCategoryNameError as exc:
+        raise HTTPException(status_code=409, detail=str(exc))
+
+    return updated_category
 
 
 @router.delete("/categories/{category_id}", status_code=204)

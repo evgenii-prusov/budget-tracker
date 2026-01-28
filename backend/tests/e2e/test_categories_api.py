@@ -65,6 +65,48 @@ def test_get_category_endpoint(client: TestClient, session: Session):
     assert data["name"] == "Food"
 
 
+def test_update_category_endpoint(client: TestClient, session: Session):
+    # Arrange
+    session.execute(
+        text("INSERT INTO category (category_id, name) VALUES ('c1', 'Food')")
+    )
+    session.commit()
+
+    # Act
+    response = client.patch("/categories/c1", json={"name": "Groceries"})
+
+    # Assert
+    assert response.status_code == 200
+    assert response.json()["name"] == "Groceries"
+
+    # Verify change
+    response = client.get("/categories/c1")
+    assert response.json()["name"] == "Groceries"
+
+
+def test_update_category_duplicate_returns_409(client: TestClient, session: Session):
+    # Arrange
+    session.execute(
+        text(
+            "INSERT INTO category (category_id, name) VALUES "
+            "('c1', 'Food'), ('c2', 'Groceries')"
+        )
+    )
+    session.commit()
+
+    # Act
+    response = client.patch("/categories/c1", json={"name": "Groceries"})
+
+    # Assert
+    assert response.status_code == 409
+    assert "already exists" in response.json()["detail"]
+
+
+def test_update_category_not_found_returns_404(client: TestClient):
+    response = client.patch("/categories/non-existent", json={"name": "New Name"})
+    assert response.status_code == 404
+
+
 def test_delete_category_endpoint(client: TestClient, session: Session):
     # Arrange
     session.execute(
