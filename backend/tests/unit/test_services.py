@@ -14,6 +14,7 @@ from app.domain.exceptions import AccountHasTransfersError
 from app.domain.exceptions import CategoryNotFoundError
 from app.domain.exceptions import InsufficientFundsError
 from app.domain.exceptions import PostingNotFoundError
+from app.domain.exceptions import TransferNotFoundError
 
 from app.service_layer.abstract_repository import AbstractRepository
 from app.service_layer.services import create_account
@@ -21,6 +22,9 @@ from app.service_layer.services import delete_account
 from app.service_layer.services import create_posting
 from app.service_layer.services import get_posting
 from app.service_layer.services import update_account_name
+from app.service_layer.services import create_transfer
+from app.service_layer.services import get_transfer
+from app.service_layer.services import list_transfers
 from tests.constants import JAN_01
 
 
@@ -56,8 +60,8 @@ class FakeRepository(AbstractRepository):
     def add_transfer(self, transfer: Transfer):
         self.transfers.append(transfer)
 
-    def get_transfer(self, transfer_id: str) -> Transfer:
-        return next(t for t in self.transfers if t.transfer_id == transfer_id)
+    def get_transfer(self, transfer_id: str) -> Transfer | None:
+        return next((t for t in self.transfers if t.transfer_id == transfer_id), None)
 
     def list_transfers_for_account(self, account_id: str) -> list[Transfer]:
         return [
@@ -65,6 +69,9 @@ class FakeRepository(AbstractRepository):
             for t in self.transfers
             if t.source_account_id == account_id or t.dest_account_id == account_id
         ]
+
+    def list_transfers(self) -> list[Transfer]:
+        return list(self.transfers)
 
     def delete(self, account: Account) -> None:
         self.accounts.remove(account)
@@ -540,3 +547,139 @@ class TestGetPosting:
             get_posting(repo, posting_id="non-existent")
 
         assert "Posting with id 'non-existent' not found" in str(exc_info.value)
+
+
+class TestTransferServices:
+    def test_create_transfer_success(self):
+        # Arrange
+        source = Account("src", "Source", "USD", Decimal(100))
+        dest = Account("dst", "Dest", "USD", Decimal(0))
+        repo = FakeRepository(accounts=[source, dest])
+
+        # Act
+        transfer = create_transfer(
+            repo,
+            source_account_id="src",
+            dest_account_id="dst",
+            debit_amount=Decimal(10),
+            credit_amount=Decimal(10),
+            transfer_date=JAN_01,
+            description="Test Transfer",
+        )
+
+        # Assert
+        assert transfer.source_account_id == "src"
+        assert transfer.dest_account_id == "dst"
+        assert transfer.debit_amount == Decimal(10)
+        assert transfer.description == "Test Transfer"
+        assert len(repo.transfers) == 1
+        assert repo.committed is True
+
+    def test_create_transfer_source_not_found(self):
+        # Arrange
+        dest = Account("dst", "Dest", "USD", Decimal(0))
+        repo = FakeRepository(accounts=[dest])
+
+        # Act & Assert
+        with pytest.raises(AccountNotFoundError) as exc:
+            create_transfer(
+                repo,
+                source_account_id="src",
+                dest_account_id="dst",
+                debit_amount=Decimal(10),
+                credit_amount=Decimal(10),
+                transfer_date=JAN_01,
+            )
+        assert "Source account" in str(exc.value)
+
+    def test_create_transfer_dest_not_found(self):
+        # Arrange
+        source = Account("src", "Source", "USD", Decimal(100))
+        repo = FakeRepository(accounts=[source])
+
+        # Act & Assert
+        with pytest.raises(AccountNotFoundError) as exc:
+            create_transfer(
+                repo,
+                source_account_id="src",
+                dest_account_id="dst",
+                debit_amount=Decimal(10),
+                credit_amount=Decimal(10),
+                transfer_date=JAN_01,
+            )
+        assert "Destination account" in str(exc.value)
+
+    def test_create_transfer_insufficient_funds(self):
+        # Arrange
+        source = Account("src", "Source", "USD", Decimal(5))
+        dest = Account("dst", "Dest", "USD", Decimal(0))
+        repo = FakeRepository(accounts=[source, dest])
+
+        # Act & Assert
+        with pytest.raises(InsufficientFundsError):
+            create_transfer(
+                repo,
+                source_account_id="src",
+                dest_account_id="dst",
+                debit_amount=Decimal(10),
+                credit_amount=Decimal(10),
+                transfer_date=JAN_01,
+            )
+
+    def test_get_transfer_success(self):
+        # Arrange
+        source = Account("src", "Source", "USD", Decimal(100))
+        dest = Account("dst", "Dest", "USD", Decimal(0))
+        repo = FakeRepository(accounts=[source, dest])
+        transfer = create_transfer(
+            repo,
+            source_account_id="src",
+            dest_account_id="dst",
+            debit_amount=Decimal(10),
+            credit_amount=Decimal(10),
+            transfer_date=JAN_01,
+        )
+
+        # Act
+        retrieved = get_transfer(repo, transfer_id=transfer.transfer_id)
+
+        # Assert
+        assert retrieved == transfer
+
+    def test_get_transfer_not_found(self):
+        # Arrange
+        repo = FakeRepository()
+
+        # Act & Assert
+        with pytest.raises(TransferNotFoundError):
+            get_transfer(repo, transfer_id="non-existent")
+
+    def test_list_transfers(self):
+        # Arrange
+        source = Account("src", "Source", "USD", Decimal(100))
+        dest = Account("dst", "Dest", "USD", Decimal(0))
+        repo = FakeRepository(accounts=[source, dest])
+        t1 = create_transfer(
+            repo,
+            source_account_id="src",
+            dest_account_id="dst",
+            debit_amount=Decimal(10),
+            credit_amount=Decimal(10),
+            transfer_date=JAN_01,
+        )
+        t2 = create_transfer(
+            repo,
+            source_account_id="src",
+            dest_account_id="dst",
+            debit_amount=Decimal(20),
+            credit_amount=Decimal(20),
+            transfer_date=JAN_01,
+        )
+
+        # Act
+        transfers = list_transfers(repo)
+
+        # Assert
+        assert len(transfers) == 2
+        assert t1 in transfers
+        assert t2 in transfers

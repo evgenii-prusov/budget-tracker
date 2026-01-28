@@ -4,6 +4,8 @@ from app.domain.model import Account
 from app.domain.model import Category
 from app.domain.model import Posting
 from app.domain.model import PostingType
+from app.domain.model import Transfer
+from app.domain.model import create_transfer as domain_create_transfer
 from app.domain.exceptions import DuplicateAccountNameError
 from app.domain.exceptions import InvalidInitialBalanceError
 from app.domain.exceptions import AccountNotFoundError
@@ -12,6 +14,7 @@ from app.domain.exceptions import DuplicateCategoryNameError
 from app.domain.exceptions import CategoryNotFoundError
 from app.domain.exceptions import CategoryInUseError
 from app.domain.exceptions import PostingNotFoundError
+from app.domain.exceptions import TransferNotFoundError
 
 from app.service_layer.abstract_repository import AbstractRepository
 from datetime import date
@@ -161,3 +164,53 @@ def delete_category(repo: AbstractRepository, *, category_id: str) -> None:
 
     repo.delete_category(category)
     repo.commit()
+
+
+# Transfer Services
+
+
+def create_transfer(
+    repo: AbstractRepository,
+    *,
+    source_account_id: str,
+    dest_account_id: str,
+    debit_amount: Decimal,
+    credit_amount: Decimal,
+    transfer_date: date,
+    description: str | None = None,
+) -> Transfer:
+    source_account = repo.get(source_account_id)
+    if not source_account:
+        raise AccountNotFoundError(
+            f"Source account with id '{source_account_id}' not found"
+        )
+
+    dest_account = repo.get(dest_account_id)
+    if not dest_account:
+        raise AccountNotFoundError(
+            f"Destination account with id '{dest_account_id}' not found"
+        )
+
+    transfer = domain_create_transfer(
+        source=source_account,
+        dest=dest_account,
+        transfer_date=transfer_date,
+        debit_amount=debit_amount,
+        credit_amount=credit_amount,
+        description=description,
+    )
+
+    repo.add_transfer(transfer)
+    repo.commit()
+    return transfer
+
+
+def get_transfer(repo: AbstractRepository, *, transfer_id: str) -> Transfer:
+    transfer = repo.get_transfer(transfer_id)
+    if transfer is None:
+        raise TransferNotFoundError(f"Transfer with id '{transfer_id}' not found")
+    return transfer
+
+
+def list_transfers(repo: AbstractRepository) -> list[Transfer]:
+    return repo.list_transfers()

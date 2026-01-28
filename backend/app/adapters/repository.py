@@ -36,8 +36,10 @@ class SqlAlchemyRepository(AbstractRepository):
     def add_transfer(self, transfer: Transfer):
         self.session.add(transfer)
 
-    def get_transfer(self, transfer_id: str) -> Transfer:
-        return self.session.query(Transfer).filter_by(transfer_id=transfer_id).one()
+    def get_transfer(self, transfer_id: str) -> Transfer | None:
+        return (
+            self.session.query(Transfer).filter_by(transfer_id=transfer_id).one_or_none()
+        )
 
     def list_transfers_for_account(self, account_id: str) -> list[Transfer]:
         return (
@@ -50,6 +52,9 @@ class SqlAlchemyRepository(AbstractRepository):
             )
             .all()
         )
+
+    def list_transfers(self) -> list[Transfer]:
+        return self.session.query(Transfer).all()
 
     def get_posting(self, posting_id: str) -> Posting | None:
         return self.session.query(Posting).filter_by(posting_id=posting_id).one_or_none()

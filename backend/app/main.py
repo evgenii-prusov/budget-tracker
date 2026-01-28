@@ -3,11 +3,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api.routers import accounts
 from app.api.routers import categories
 from app.api.routers import postings
+from app.api.routers import transfers
 
 app = FastAPI()
 app.include_router(accounts.router)
 app.include_router(categories.router)
 app.include_router(postings.router)
+app.include_router(transfers.router)
 
 # Add CORS middleware
 app.add_middleware(

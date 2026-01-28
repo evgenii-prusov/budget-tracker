@@ -50,3 +50,9 @@ class PostingNotFoundError(Exception):
     """Raised when a posting with the given ID does not exist."""
 
     pass
+
+
+class TransferNotFoundError(Exception):
+    """Raised when a transfer with the given ID does not exist."""
+
+    pass

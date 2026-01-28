@@ -70,3 +70,24 @@ class PostingResponse(BaseModel):
     posting_date: date
     posting_type: PostingType
     category_id: str | None
+
+
+class TransferCreate(BaseModel):
+    source_account_id: str
+    dest_account_id: str
+    debit_amount: Decimal = Field(..., gt=0, le=1_000_000_000)
+    credit_amount: Decimal = Field(..., gt=0, le=1_000_000_000)
+    transfer_date: date
+    description: str | None = None
+
+
+class TransferResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    transfer_id: str
+    source_account_id: str
+    dest_account_id: str
+    debit_amount: Decimal
+    credit_amount: Decimal
+    transfer_date: date
+    description: str | None
