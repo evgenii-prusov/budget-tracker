@@ -1,13 +1,9 @@
 from decimal import Decimal
 from datetime import date
-from enum import StrEnum
 
 from pydantic import BaseModel, Field, ConfigDict
 
-
-class PostingType(StrEnum):
-    EXPENSE = "EXPENSE"
-    INCOME = "INCOME"
+from app.domain.model import PostingType
 
 
 class AccountCreate(BaseModel):
@@ -49,7 +45,7 @@ class CategoryResponse(BaseModel):
 
 class PostingCreate(BaseModel):
     account_id: str
-    amount: Decimal = Field(..., gt=0)
+    amount: Decimal = Field(..., gt=0, le=1_000_000_000)
     posting_date: date
     posting_type: PostingType
     category_id: str | None = None

@@ -44,3 +44,9 @@ class CategoryInUseError(Exception):
     """Raised when attempting to delete a category that is in use (has transactions)."""
 
     pass
+
+
+class PostingNotFoundError(Exception):
+    """Raised when a posting with the given ID does not exist."""
+
+    pass

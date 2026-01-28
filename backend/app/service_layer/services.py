@@ -11,6 +11,7 @@ from app.domain.exceptions import AccountHasTransfersError
 from app.domain.exceptions import DuplicateCategoryNameError
 from app.domain.exceptions import CategoryNotFoundError
 from app.domain.exceptions import CategoryInUseError
+from app.domain.exceptions import PostingNotFoundError
 
 from app.service_layer.abstract_repository import AbstractRepository
 from datetime import date
@@ -95,6 +96,13 @@ def create_posting(
         posting_type=posting_type,
     )
     repo.commit()
+    return posting
+
+
+def get_posting(repo: AbstractRepository, *, posting_id: str) -> Posting:
+    posting = repo.get_posting(posting_id)
+    if posting is None:
+        raise PostingNotFoundError(f"Posting with id '{posting_id}' not found")
     return posting
 
 

@@ -90,6 +90,13 @@ class FakeRepository(AbstractRepository):
                     count += 1
         return count
 
+    def get_posting(self, posting_id: str) -> Posting | None:
+        for acc in self.accounts:
+            for p in acc._postings:
+                if p.posting_id == posting_id:
+                    return p
+        return None
+
 
 class TestCreateAccount:
     def test_create_account_success(self):

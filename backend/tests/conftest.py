@@ -107,3 +107,26 @@ def posting_2() -> Posting:
 def posting_3() -> Posting:
     """Posting on Jan 03 for testing (taxi expense)."""
     return Posting("p-3", "a-2", Decimal(1), JAN_03, "taxi", PostingType.EXPENSE)
+
+
+@pytest.fixture
+def test_data(client):
+    """Creates a test account and category via API and returns their IDs."""
+    # Create account
+    acc_response = client.post(
+        "/accounts/",
+        json={
+            "name": "Test Posting Account",
+            "currency": "EUR",
+            "initial_balance": "100.00",
+        },
+    )
+    assert acc_response.status_code == 201
+    account_id = acc_response.json()["account_id"]
+
+    # Create category
+    cat_response = client.post("/categories/", json={"name": "Test Category"})
+    assert cat_response.status_code == 201
+    category_id = cat_response.json()["category_id"]
+
+    return {"account_id": account_id, "category_id": category_id}

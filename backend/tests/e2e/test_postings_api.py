@@ -1,34 +1,15 @@
 from decimal import Decimal
+from tests.constants import JAN_01, JAN_02, JAN_03
 
 
-def create_test_resources(client):
-    # Create account
-    acc_response = client.post(
-        "/accounts/",
-        json={
-            "name": "Test Posting Account",
-            "currency": "EUR",
-            "initial_balance": "100.00",
-        },
-    )
-    assert acc_response.status_code == 201
-    account_id = acc_response.json()["account_id"]
-
-    # Create category
-    cat_response = client.post("/categories/", json={"name": "Test Category"})
-    assert cat_response.status_code == 201
-    category_id = cat_response.json()["category_id"]
-
-    return account_id, category_id
-
-
-def test_create_posting_expense_success(client):
-    account_id, category_id = create_test_resources(client)
+def test_create_posting_expense_success(client, test_data):
+    account_id = test_data["account_id"]
+    category_id = test_data["category_id"]
 
     posting_data = {
         "account_id": account_id,
         "amount": "50.00",
-        "posting_date": "2023-01-15",
+        "posting_date": JAN_01.isoformat(),
         "posting_type": "EXPENSE",
         "category_id": category_id,
     }
@@ -40,19 +21,20 @@ def test_create_posting_expense_success(client):
 
     assert posting_response["account_id"] == account_id
     assert Decimal(posting_response["amount"]) == Decimal("-50.00")
-    assert posting_response["posting_date"] == "2023-01-15"
+    assert posting_response["posting_date"] == JAN_01.isoformat()
     assert posting_response["posting_type"] == "EXPENSE"
     assert posting_response["category_id"] == category_id
     assert "posting_id" in posting_response
 
 
-def test_create_posting_income_success(client):
-    account_id, category_id = create_test_resources(client)
+def test_create_posting_income_success(client, test_data):
+    account_id = test_data["account_id"]
+    category_id = test_data["category_id"]
 
     posting_data = {
         "account_id": account_id,
         "amount": "75.50",
-        "posting_date": "2023-02-20",
+        "posting_date": JAN_02.isoformat(),
         "posting_type": "INCOME",
         "category_id": category_id,
     }
@@ -64,7 +46,7 @@ def test_create_posting_income_success(client):
 
     assert posting_response["account_id"] == account_id
     assert Decimal(posting_response["amount"]) == Decimal("75.50")
-    assert posting_response["posting_date"] == "2023-02-20"
+    assert posting_response["posting_date"] == JAN_02.isoformat()
     assert posting_response["posting_type"] == "INCOME"
     assert posting_response["category_id"] == category_id
     assert "posting_id" in posting_response
@@ -85,7 +67,7 @@ def test_create_posting_no_category_success(client):
     posting_data = {
         "account_id": account_id,
         "amount": "25.00",
-        "posting_date": "2023-03-10",
+        "posting_date": JAN_03.isoformat(),
         "posting_type": "EXPENSE",
         # category_id omitted
     }
@@ -97,20 +79,18 @@ def test_create_posting_no_category_success(client):
 
     assert posting_response["account_id"] == account_id
     assert Decimal(posting_response["amount"]) == Decimal("-25.00")
-    assert posting_response["posting_date"] == "2023-03-10"
+    assert posting_response["posting_date"] == JAN_03.isoformat()
     assert posting_response["posting_type"] == "EXPENSE"
     assert posting_response["category_id"] is None
 
 
-def test_create_posting_account_not_found(client):
-    # Create only category
-    cat_response = client.post("/categories/", json={"name": "Test Category For Fail"})
-    category_id = cat_response.json()["category_id"]
+def test_create_posting_account_not_found(client, test_data):
+    category_id = test_data["category_id"]
 
     posting_data = {
         "account_id": "non-existent-account-id",
         "amount": "50.00",
-        "posting_date": "2023-01-15",
+        "posting_date": JAN_01.isoformat(),
         "posting_type": "EXPENSE",
         "category_id": category_id,
     }
@@ -123,22 +103,13 @@ def test_create_posting_account_not_found(client):
     )
 
 
-def test_create_posting_category_not_found(client):
-    # Create only account
-    acc_response = client.post(
-        "/accounts/",
-        json={
-            "name": "Test Account For Fail",
-            "currency": "EUR",
-            "initial_balance": "100.00",
-        },
-    )
-    account_id = acc_response.json()["account_id"]
+def test_create_posting_category_not_found(client, test_data):
+    account_id = test_data["account_id"]
 
     posting_data = {
         "account_id": account_id,
         "amount": "50.00",
-        "posting_date": "2023-01-15",
+        "posting_date": JAN_01.isoformat(),
         "posting_type": "EXPENSE",
         "category_id": "non-existent-category-id",
     }
@@ -166,7 +137,7 @@ def test_create_posting_insufficient_funds(client):
     posting_data = {
         "account_id": account_id,
         "amount": "50.00",
-        "posting_date": "2023-01-15",
+        "posting_date": JAN_01.isoformat(),
         "posting_type": "EXPENSE",
         "category_id": None,
     }
@@ -178,3 +149,38 @@ def test_create_posting_insufficient_funds(client):
         "Insufficient funds in account 'Low Balance Account'"
         in response.json()["detail"]
     )
+
+
+def test_get_posting_success(client, test_data):
+    account_id = test_data["account_id"]
+    category_id = test_data["category_id"]
+
+    # Create posting
+    posting_data = {
+        "account_id": account_id,
+        "amount": "123.45",
+        "posting_date": JAN_01.isoformat(),
+        "posting_type": "INCOME",
+        "category_id": category_id,
+    }
+    create_response = client.post("/postings/", json=posting_data)
+    assert create_response.status_code == 201
+    posting_id = create_response.json()["posting_id"]
+
+    # Get posting
+    response = client.get(f"/postings/{posting_id}")
+    assert response.status_code == 200
+    data = response.json()
+
+    assert data["posting_id"] == posting_id
+    assert data["account_id"] == account_id
+    assert Decimal(data["amount"]) == Decimal("123.45")
+    assert data["posting_date"] == JAN_01.isoformat()
+    assert data["posting_type"] == "INCOME"
+    assert data["category_id"] == category_id
+
+
+def test_get_posting_not_found(client):
+    response = client.get("/postings/non-existent-id")
+    assert response.status_code == 404
+    assert "Posting with id 'non-existent-id' not found" in response.json()["detail"]

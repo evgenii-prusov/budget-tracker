@@ -4,6 +4,7 @@ from sqlalchemy import or_
 from app.domain.model import Account
 from app.domain.model import Transfer
 from app.domain.model import Category
+from app.domain.model import Posting
 from app.service_layer.abstract_repository import AbstractRepository
 
 
@@ -49,6 +50,9 @@ class SqlAlchemyRepository(AbstractRepository):
             )
             .all()
         )
+
+    def get_posting(self, posting_id: str) -> Posting | None:
+        return self.session.query(Posting).filter_by(posting_id=posting_id).one_or_none()
 
     # Category methods
     def add_category(self, category: Category):
