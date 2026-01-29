@@ -17,6 +17,9 @@ from app.domain.model import PostingType
 from app.domain.model import Transfer
 from app.domain.model import create_transfer as domain_create_transfer
 from app.service_layer.unit_of_work import AbstractUnitOfWork
+from app.core.logging_config import get_logger
+
+logger = get_logger(__name__)
 
 
 def get_account(uow: AbstractUnitOfWork, *, account_id: str) -> Account:
@@ -43,6 +46,7 @@ def update_account_name(
 
         account.name = new_name
         uow.commit()
+        logger.info("Updated account name for id: %s to '%s'", account_id, new_name)
         return account
 
 
@@ -73,6 +77,12 @@ def create_account(
         )
         uow.repo.add(new_account)
         uow.commit()
+        logger.info(
+            "Created account: %s (currency: %s, initial_balance: %s)",
+            new_account.name,
+            new_account.currency,
+            new_account.initial_balance,
+        )
 
         return new_account
 
@@ -94,6 +104,7 @@ def delete_account(uow: AbstractUnitOfWork, *, account_id: str) -> None:
 
         uow.repo.delete(account)
         uow.commit()
+        logger.info("Deleted account id: %s", account_id)
 
 
 def create_posting(
@@ -124,6 +135,12 @@ def create_posting(
             posting_type=posting_type,
         )
         uow.commit()
+        logger.info(
+            "Created %s posting for account %s: %s",
+            posting_type,
+            account_id,
+            posting.amount,
+        )
         return posting
 
 
@@ -164,6 +181,7 @@ def create_category(
         )
         uow.repo.add_category(new_category)
         uow.commit()
+        logger.info("Created category: %s", name)
         return new_category
 
 
@@ -205,6 +223,7 @@ def delete_category(uow: AbstractUnitOfWork, *, category_id: str) -> None:
 
         uow.repo.delete_category(category)
         uow.commit()
+        logger.info("Deleted category id: %s", category_id)
 
 
 # Transfer Services
@@ -244,6 +263,13 @@ def create_transfer(
 
         uow.repo.add_transfer(transfer)
         uow.commit()
+        logger.info(
+            "Created transfer from %s to %s: %s (debit) / %s (credit)",
+            source_account_id,
+            dest_account_id,
+            debit_amount,
+            credit_amount,
+        )
         return transfer
 
 

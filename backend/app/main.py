@@ -4,8 +4,13 @@ from app.api.routers import accounts
 from app.api.routers import categories
 from app.api.routers import postings
 from app.api.routers import transfers
+from app.core.logging_config import setup_logging
+from app.api.middleware import LoggingMiddleware
+
+setup_logging()
 
 app = FastAPI()
+app.add_middleware(LoggingMiddleware)
 app.include_router(accounts.router)
 app.include_router(categories.router)
 app.include_router(postings.router)
