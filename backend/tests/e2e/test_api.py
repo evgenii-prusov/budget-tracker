@@ -183,8 +183,8 @@ def test_delete_account_success(client):
     assert get_response.json() == []
 
 
-def test_delete_account_with_postings_succeeds(client):
-    """Delete succeeds when account has postings (cascade)."""
+def test_delete_account_with_postings_fails(client):
+    """Delete fails when account has postings."""
     # 1. Arrange: Create account, category, and posting via API
     acc = client.post(
         "/accounts",
@@ -206,11 +206,14 @@ def test_delete_account_with_postings_succeeds(client):
     response = client.delete(f"/accounts/{acc['account_id']}")
 
     # 3. Assert
-    assert response.status_code == 204
+    assert response.status_code == 409
+    assert "has 1 posting" in response.json()["detail"]
 
-    # Verify account and postings are gone
+    # Verify account still exists
     get_response = client.get("/accounts")
-    assert get_response.json() == []
+    accounts = get_response.json()
+    assert len(accounts) == 1
+    assert accounts[0]["account_id"] == acc["account_id"]
 
 
 def test_delete_account_not_found(client):

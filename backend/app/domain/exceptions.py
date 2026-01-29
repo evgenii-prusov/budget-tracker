@@ -34,6 +34,12 @@ class AccountHasTransfersError(Exception):
     pass
 
 
+class AccountHasPostingsError(Exception):
+    """Raised when attempting to delete an account that has postings."""
+
+    pass
+
+
 class DuplicateCategoryNameError(Exception):
     """Raised when attempting to create a category with a duplicate name."""
 

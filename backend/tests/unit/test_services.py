@@ -11,6 +11,7 @@ from app.domain.exceptions import DuplicateAccountNameError
 from app.domain.exceptions import InvalidInitialBalanceError
 from app.domain.exceptions import AccountNotFoundError
 from app.domain.exceptions import AccountHasTransfersError
+from app.domain.exceptions import AccountHasPostingsError
 from app.domain.exceptions import CategoryNotFoundError
 from app.domain.exceptions import InsufficientFundsError
 from app.domain.exceptions import PostingNotFoundError
@@ -116,6 +117,13 @@ class FakeRepository(AbstractRepository):
             if account_id is None or acc.account_id == account_id:
                 all_postings.extend(acc._postings)
         return all_postings[skip : skip + limit]
+
+    def count_postings_for_account(self, account_id: str) -> int:
+        count = 0
+        for acc in self.accounts:
+            if acc.account_id == account_id:
+                count += len(acc._postings)
+        return count
 
 
 class FakeUnitOfWork(AbstractUnitOfWork):
@@ -300,8 +308,8 @@ class TestDeleteAccount:
         assert uow.committed is True
         assert len(uow.repo.accounts) == 0
 
-    def test_delete_account_with_postings_succeeds(self):
-        """Service allows deletion when account has postings (cascade is ORM concern)."""
+    def test_delete_account_with_postings_raises_error(self):
+        """Service prevents deletion when account has postings."""
         # Arrange
         uow = FakeUnitOfWork()
         account = create_account(
@@ -321,12 +329,14 @@ class TestDeleteAccount:
         )
         uow.committed = False
 
-        # Act
-        delete_account(uow, account_id=account.account_id)
+        # Act & Assert
+        with pytest.raises(AccountHasPostingsError) as exc:
+            delete_account(uow, account_id=account.account_id)
 
-        # Assert
-        assert uow.committed is True
-        assert len(uow.repo.accounts) == 0
+        assert "Cannot delete" in str(exc.value)
+        assert "1 posting" in str(exc.value)
+        assert uow.committed is False
+        assert len(uow.repo.accounts) == 1
 
     def test_delete_account_not_found_raises_error(self):
         # Arrange

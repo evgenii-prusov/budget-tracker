@@ -53,6 +53,10 @@ class AbstractRepository(abc.ABC):
     ) -> list[Posting]:
         raise NotImplementedError()
 
+    @abc.abstractmethod
+    def count_postings_for_account(self, account_id: str) -> int:
+        raise NotImplementedError()
+
     # Category methods
     @abc.abstractmethod
     def add_category(self, category: Category):

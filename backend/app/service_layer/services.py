@@ -2,6 +2,7 @@ from datetime import date
 from decimal import Decimal
 
 from app.domain.exceptions import AccountHasTransfersError
+from app.domain.exceptions import AccountHasPostingsError
 from app.domain.exceptions import AccountNotFoundError
 from app.domain.exceptions import CategoryInUseError
 from app.domain.exceptions import CategoryNotFoundError
@@ -100,6 +101,13 @@ def delete_account(uow: AbstractUnitOfWork, *, account_id: str) -> None:
             raise AccountHasTransfersError(
                 f"Cannot delete account '{account.name}': "
                 f"has {len(transfers)} transfer(s)"
+            )
+
+        # Check if account has postings
+        posting_count = uow.repo.count_postings_for_account(account_id)
+        if posting_count > 0:
+            raise AccountHasPostingsError(
+                f"Cannot delete account '{account.name}': has {posting_count} posting(s)"
             )
 
         uow.repo.delete(account)

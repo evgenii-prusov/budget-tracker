@@ -9,6 +9,7 @@ from app.domain.exceptions import InvalidInitialBalanceError
 from app.domain.exceptions import InvalidCurrencyError
 from app.domain.exceptions import AccountNotFoundError
 from app.domain.exceptions import AccountHasTransfersError
+from app.domain.exceptions import AccountHasPostingsError
 from app.service_layer.unit_of_work import AbstractUnitOfWork
 from app.api.dependencies import get_unit_of_work
 from app.api.schemas import AccountResponse
@@ -76,7 +77,7 @@ def delete_account_endpoint(account_id: str, uow: UoWDep):
         delete_account(uow=uow, account_id=account_id)
     except AccountNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc))
-    except AccountHasTransfersError as exc:
+    except (AccountHasTransfersError, AccountHasPostingsError) as exc:
         raise HTTPException(status_code=409, detail=str(exc))
 
     return None

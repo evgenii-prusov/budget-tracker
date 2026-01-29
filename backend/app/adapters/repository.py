@@ -61,6 +61,11 @@ class SqlAlchemyRepository(AbstractRepository):
             query = query.filter_by(account_id=account_id)
         return query.offset(skip).limit(limit).all()
 
+    def count_postings_for_account(self, account_id: str) -> int:
+        from app.domain.model import Posting
+
+        return self.session.query(Posting).filter_by(account_id=account_id).count()
+
     # Category methods
     def add_category(self, category: Category):
         self.session.add(category)

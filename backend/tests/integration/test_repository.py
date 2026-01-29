@@ -169,3 +169,22 @@ def test_repository_pagination(session):
     page2 = repo.list_all(skip=3, limit=3)
     assert len(page2) == 3
     assert page2[0].name == "Acc 3"
+
+
+def test_count_postings_for_account(session):
+    repo = repository.SqlAlchemyRepository(session)
+    account = Account("acc-count", "Count Test", "USD", Decimal(0))
+    repo.add(account)
+
+    # Add 3 postings
+    for i in range(3):
+        account.record_posting(
+            Decimal(10), JAN_01, category_id=None, posting_type=PostingType.INCOME
+        )
+    session.commit()
+
+    count = repo.count_postings_for_account("acc-count")
+    assert count == 3
+
+    count_empty = repo.count_postings_for_account("non-existent")
+    assert count_empty == 0
