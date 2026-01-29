@@ -28,16 +28,6 @@ class AbstractRepository(abc.ABC):
         raise NotImplementedError()
 
     @abc.abstractmethod
-    def commit(self):
-        """Persist all pending changes."""
-        raise NotImplementedError()
-
-    @abc.abstractmethod
-    def rollback(self):
-        """Discard all pending changes."""
-        raise NotImplementedError()
-
-    @abc.abstractmethod
     def add_transfer(self, transfer: Transfer):
         raise NotImplementedError()
 

@@ -6,7 +6,7 @@ from app.service_layer.services import create_category
 from app.service_layer.services import list_categories
 from app.service_layer.services import update_category_name
 from app.service_layer.services import delete_category
-from tests.unit.test_services import FakeRepository
+from tests.unit.test_services import FakeUnitOfWork
 from app.domain.model import Account
 from decimal import Decimal
 from tests.constants import JAN_01
@@ -16,44 +16,44 @@ from app.domain.model import PostingType
 class TestCreateCategory:
     def test_create_category_success(self):
         # Arrange
-        repo = FakeRepository()
+        uow = FakeUnitOfWork()
 
         # Act
-        category = create_category(repo, name="Groceries")
+        category = create_category(uow, name="Groceries")
 
         # Assert
         assert category.name == "Groceries"
-        assert repo.committed is True
-        assert len(repo.categories) == 1
+        assert uow.committed is True
+        assert len(uow.repo.categories) == 1
 
     def test_create_category_duplicate_name_raises_error(self):
         # Arrange
-        repo = FakeRepository()
-        create_category(repo, name="Groceries")
+        uow = FakeUnitOfWork()
+        create_category(uow, name="Groceries")
 
         # Act & Assert
         with pytest.raises(DuplicateCategoryNameError):
-            create_category(repo, name="Groceries")
+            create_category(uow, name="Groceries")
 
-        assert len(repo.categories) == 1
+        assert len(uow.repo.categories) == 1
 
 
 class TestListCategories:
     def test_list_categories_empty(self):
         # Arrange
-        repo = FakeRepository()
+        uow = FakeUnitOfWork()
 
         # Act & Assert
-        assert list_categories(repo) == []
+        assert list_categories(uow) == []
 
     def test_list_categories_returns_all(self):
         # Arrange
-        repo = FakeRepository()
-        c1 = create_category(repo, name="C1")
-        c2 = create_category(repo, name="C2")
+        uow = FakeUnitOfWork()
+        c1 = create_category(uow, name="C1")
+        c2 = create_category(uow, name="C2")
 
         # Act
-        cats = list_categories(repo)
+        cats = list_categories(uow)
 
         # Assert
         assert len(cats) == 2
@@ -64,81 +64,91 @@ class TestListCategories:
 class TestUpdateCategory:
     def test_update_category_success(self):
         # Arrange
-        repo = FakeRepository()
-        category = create_category(repo, name="Groceries")
+        uow = FakeUnitOfWork()
+        category = create_category(uow, name="Groceries")
 
         # Act
         updated = update_category_name(
-            repo, category_id=category.category_id, new_name="Food"
+            uow, category_id=category.category_id, new_name="Food"
         )
 
         # Assert
         assert updated.name == "Food"
-        assert repo.committed is True
+        assert uow.committed is True
 
     def test_update_category_same_name_succeeds(self):
         # Arrange
-        repo = FakeRepository()
-        category = create_category(repo, name="Groceries")
-        repo.committed = False
+        uow = FakeUnitOfWork()
+        category = create_category(uow, name="Groceries")
+        uow.committed = False
 
         # Act - update to same name
         updated = update_category_name(
-            repo, category_id=category.category_id, new_name="Groceries"
+            uow,
+            category_id=category.category_id,
+            new_name="Groceries",
         )
 
         # Assert
         assert updated.name == "Groceries"
-        assert repo.committed is True
+        assert uow.committed is True
 
     def test_update_category_duplicate_name_raises_error(self):
         # Arrange
-        repo = FakeRepository()
-        c1 = create_category(repo, name="Groceries")
-        _c2 = create_category(repo, name="Food")
-        repo.committed = False
+        uow = FakeUnitOfWork()
+        c1 = create_category(uow, name="Groceries")
+        _c2 = create_category(uow, name="Food")
+        uow.committed = False
 
         # Act & Assert
         with pytest.raises(DuplicateCategoryNameError):
-            update_category_name(repo, category_id=c1.category_id, new_name="Food")
+            update_category_name(
+                uow,
+                category_id=c1.category_id,
+                new_name="Food",
+            )
 
         assert c1.name == "Groceries"
-        assert repo.committed is False
+        assert uow.committed is False
 
     def test_update_category_not_found_raises_error(self):
         # Arrange
-        repo = FakeRepository()
+        uow = FakeUnitOfWork()
 
         # Act & Assert
         with pytest.raises(CategoryNotFoundError):
-            update_category_name(repo, category_id="non-existent", new_name="New Name")
+            update_category_name(
+                uow,
+                category_id="non-existent",
+                new_name="New Name",
+            )
 
 
 class TestDeleteCategory:
     def test_delete_category_success(self):
         # Arrange
-        repo = FakeRepository()
-        c1 = create_category(repo, name="C1")
+        uow = FakeUnitOfWork()
+        c1 = create_category(uow, name="C1")
 
         # Act
-        delete_category(repo, category_id=c1.category_id)
+        delete_category(uow, category_id=c1.category_id)
 
         # Assert
-        assert repo.committed is True
-        assert len(repo.categories) == 0
+        assert uow.committed is True
+        assert len(uow.repo.categories) == 0
 
     def test_delete_category_not_found_raises_error(self):
         # Arrange
-        repo = FakeRepository()
+        uow = FakeUnitOfWork()
 
         # Act & Assert
         with pytest.raises(CategoryNotFoundError):
-            delete_category(repo, category_id="non-existent")
+            delete_category(uow, category_id="non-existent")
 
     def test_delete_category_in_use_raises_error(self):
         # Arrange
-        repo = FakeRepository()
-        c1 = create_category(repo, name="C1")
+        uow = FakeUnitOfWork()
+        c1 = create_category(uow, name="C1")
 
         # Create an account and add a posting using this category
         account = Account("a1", "acc", "USD", initial_balance=Decimal(100))
@@ -148,10 +158,10 @@ class TestDeleteCategory:
             category_id=c1.category_id,
             posting_type=PostingType.EXPENSE,
         )
-        repo.add(account)
+        uow.repo.add(account)
 
         # Act & Assert
         with pytest.raises(CategoryInUseError):
-            delete_category(repo, category_id=c1.category_id)
+            delete_category(uow, category_id=c1.category_id)
 
-        assert len(repo.categories) == 1
+        assert len(uow.repo.categories) == 1

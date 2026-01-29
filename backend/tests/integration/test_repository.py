@@ -127,7 +127,7 @@ def test_list_postings_returns_all(session):
     account.record_posting(
         Decimal(10), JAN_01, category_id=None, posting_type=PostingType.EXPENSE
     )
-    repo.commit()
+    session.commit()
 
     postings = repo.list_postings()
 
@@ -146,7 +146,7 @@ def test_list_postings_filtered_by_account(session):
     a2.record_posting(
         Decimal(20), JAN_01, category_id=None, posting_type=PostingType.EXPENSE
     )
-    repo.commit()
+    session.commit()
 
     postings = repo.list_postings(account_id="a1")
 

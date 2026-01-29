@@ -27,12 +27,6 @@ class SqlAlchemyRepository(AbstractRepository):
     def delete(self, account: Account) -> None:
         self.session.delete(account)
 
-    def commit(self):
-        self.session.commit()
-
-    def rollback(self):
-        self.session.rollback()
-
     def add_transfer(self, transfer: Transfer):
         self.session.add(transfer)
 

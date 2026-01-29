@@ -8,8 +8,8 @@ from sqlalchemy.orm.util import class_mapper
 
 from app.adapters.orm import metadata, start_mappers
 from app.domain.model import Account
-from app.service_layer.abstract_repository import AbstractRepository
-from app.adapters.repository import SqlAlchemyRepository
+from app.service_layer.unit_of_work import AbstractUnitOfWork
+from app.adapters.unit_of_work import SqlAlchemyUnitOfWork
 
 DATABASE_URL = "sqlite:///budget.db"
 
@@ -45,8 +45,8 @@ def get_db_session():
         session.close()
 
 
-def get_repository(
+def get_unit_of_work(
     session: Annotated[Session, Depends(get_db_session)],
-) -> AbstractRepository:
-    """Dependency that provides a repository instance."""
-    return SqlAlchemyRepository(session)
+) -> AbstractUnitOfWork:
+    """Dependency that provides a unit of work instance."""
+    return SqlAlchemyUnitOfWork(session)

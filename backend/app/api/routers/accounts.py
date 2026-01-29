@@ -7,8 +7,8 @@ from app.domain.exceptions import DuplicateAccountNameError
 from app.domain.exceptions import InvalidInitialBalanceError
 from app.domain.exceptions import AccountNotFoundError
 from app.domain.exceptions import AccountHasTransfersError
-from app.service_layer.abstract_repository import AbstractRepository
-from app.api.dependencies import get_repository
+from app.service_layer.unit_of_work import AbstractUnitOfWork
+from app.api.dependencies import get_unit_of_work
 from app.api.schemas import AccountResponse
 from app.api.schemas import AccountCreate
 from app.api.schemas import AccountUpdate
@@ -19,27 +19,27 @@ from app.service_layer.services import update_account_name
 
 
 router = APIRouter()
-RepoDep = Annotated[AbstractRepository, Depends(get_repository)]
+UoWDep = Annotated[AbstractUnitOfWork, Depends(get_unit_of_work)]
 
 
 @router.get("/accounts", response_model=list[AccountResponse])
-def list_accounts(repo: RepoDep):
-    return repo.list_all()
+def list_accounts(uow: UoWDep):
+    return uow.repo.list_all()
 
 
 @router.get("/accounts/{account_id}", response_model=AccountResponse)
-def get_account_endpoint(account_id: str, repo: RepoDep):
+def get_account_endpoint(account_id: str, uow: UoWDep):
     try:
-        account = get_account(repo=repo, account_id=account_id)
+        account = get_account(uow=uow, account_id=account_id)
     except AccountNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc))
     return account
 
 
 @router.post("/accounts", status_code=201, response_model=AccountResponse)
-def create_account_endpoint(account: AccountCreate, repo: RepoDep):
+def create_account_endpoint(account: AccountCreate, uow: UoWDep):
     try:
-        new_account = create_account(repo=repo, **account.model_dump())
+        new_account = create_account(uow=uow, **account.model_dump())
     except DuplicateAccountNameError as exc:
         raise HTTPException(status_code=409, detail=str(exc))
     except InvalidInitialBalanceError as exc:
@@ -50,11 +50,11 @@ def create_account_endpoint(account: AccountCreate, repo: RepoDep):
 
 @router.patch("/accounts/{account_id}", response_model=AccountResponse)
 def update_account_name_endpoint(
-    account_id: str, account_update: AccountUpdate, repo: RepoDep
+    account_id: str, account_update: AccountUpdate, uow: UoWDep
 ):
     try:
         updated_account = update_account_name(
-            repo=repo, account_id=account_id, new_name=account_update.name
+            uow=uow, account_id=account_id, new_name=account_update.name
         )
     except AccountNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc))
@@ -65,9 +65,9 @@ def update_account_name_endpoint(
 
 
 @router.delete("/accounts/{account_id}", status_code=204)
-def delete_account_endpoint(account_id: str, repo: RepoDep):
+def delete_account_endpoint(account_id: str, uow: UoWDep):
     try:
-        delete_account(repo=repo, account_id=account_id)
+        delete_account(uow=uow, account_id=account_id)
     except AccountNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc))
     except AccountHasTransfersError as exc:
