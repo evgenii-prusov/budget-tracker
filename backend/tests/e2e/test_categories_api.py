@@ -1,18 +1,10 @@
 from fastapi.testclient import TestClient
-from sqlalchemy.orm import Session
-from sqlalchemy import text
 
 
-def test_list_categories_endpoint(client: TestClient, session: Session):
+def test_list_categories_endpoint(client: TestClient):
     # Arrange
-    session.execute(
-        text(
-            "INSERT INTO category (category_id, name) VALUES "
-            "('c1', 'Food'),"
-            "('c2', 'Salary')"
-        )
-    )
-    session.commit()
+    client.post("/categories", json={"name": "Food"})
+    client.post("/categories", json={"name": "Salary"})
 
     # Act
     response = client.get("/categories")
@@ -49,15 +41,12 @@ def test_create_category_duplicate_returns_409(client: TestClient):
     assert "already exists" in response.json()["detail"]
 
 
-def test_get_category_endpoint(client: TestClient, session: Session):
+def test_get_category_endpoint(client: TestClient):
     # Arrange
-    session.execute(
-        text("INSERT INTO category (category_id, name) VALUES ('c1', 'Food')")
-    )
-    session.commit()
+    cat = client.post("/categories", json={"name": "Food"}).json()
 
     # Act
-    response = client.get("/categories/c1")
+    response = client.get(f"/categories/{cat['category_id']}")
 
     # Assert
     assert response.status_code == 200
@@ -65,52 +54,46 @@ def test_get_category_endpoint(client: TestClient, session: Session):
     assert data["name"] == "Food"
 
 
-def test_update_category_endpoint(client: TestClient, session: Session):
+def test_update_category_endpoint(client: TestClient):
     # Arrange
-    session.execute(
-        text("INSERT INTO category (category_id, name) VALUES ('c1', 'Food')")
-    )
-    session.commit()
+    cat = client.post("/categories", json={"name": "Food"}).json()
+    category_id = cat["category_id"]
 
     # Act
-    response = client.patch("/categories/c1", json={"name": "Groceries"})
+    response = client.patch(f"/categories/{category_id}", json={"name": "Groceries"})
 
     # Assert
     assert response.status_code == 200
     assert response.json()["name"] == "Groceries"
 
     # Verify change
-    response = client.get("/categories/c1")
+    response = client.get(f"/categories/{category_id}")
     assert response.json()["name"] == "Groceries"
 
 
-def test_update_category_same_name_succeeds(client: TestClient, session: Session):
+def test_update_category_same_name_succeeds(client: TestClient):
     # Arrange
-    session.execute(
-        text("INSERT INTO category (category_id, name) VALUES ('c1', 'Food')")
-    )
-    session.commit()
+    cat = client.post("/categories", json={"name": "Food"}).json()
+    category_id = cat["category_id"]
 
     # Act - update to same name
-    response = client.patch("/categories/c1", json={"name": "Food"})
+    response = client.patch(f"/categories/{category_id}", json={"name": "Food"})
 
     # Assert
     assert response.status_code == 200
     assert response.json()["name"] == "Food"
 
 
-def test_update_category_duplicate_returns_409(client: TestClient, session: Session):
+def test_update_category_duplicate_returns_409(client: TestClient):
     # Arrange
-    session.execute(
-        text(
-            "INSERT INTO category (category_id, name) VALUES "
-            "('c1', 'Food'), ('c2', 'Groceries')"
-        )
-    )
-    session.commit()
+    client.post("/categories", json={"name": "Food"})
+    cat2 = client.post("/categories", json={"name": "Groceries"}).json()
 
     # Act
-    response = client.patch("/categories/c1", json={"name": "Groceries"})
+    response = client.patch(
+        f"/categories/{cat2['category_id']}",
+        json={"name": "Food"},
+    )
 
     # Assert
     assert response.status_code == 409
@@ -122,21 +105,19 @@ def test_update_category_not_found_returns_404(client: TestClient):
     assert response.status_code == 404
 
 
-def test_delete_category_endpoint(client: TestClient, session: Session):
+def test_delete_category_endpoint(client: TestClient):
     # Arrange
-    session.execute(
-        text("INSERT INTO category (category_id, name) VALUES ('c1', 'Food')")
-    )
-    session.commit()
+    cat = client.post("/categories", json={"name": "Food"}).json()
+    category_id = cat["category_id"]
 
     # Act
-    response = client.delete("/categories/c1")
+    response = client.delete(f"/categories/{category_id}")
 
     # Assert
     assert response.status_code == 204
 
     # Verify deleted
-    response = client.get("/categories/c1")
+    response = client.get(f"/categories/{category_id}")
     assert response.status_code == 404
 
 
@@ -145,28 +126,26 @@ def test_delete_category_not_found_returns_404(client: TestClient):
     assert response.status_code == 404
 
 
-def test_delete_category_in_use_returns_409(client: TestClient, session: Session):
-    # Arrange: Create category and posting that uses it
-    session.execute(
-        text("INSERT INTO category (category_id, name) VALUES ('c1', 'Food')")
+def test_delete_category_in_use_returns_409(client: TestClient):
+    # Arrange: Create category, account, and posting via API
+    cat = client.post("/categories", json={"name": "Food"}).json()
+    acc = client.post(
+        "/accounts",
+        json={"name": "Cash", "currency": "USD", "initial_balance": 100},
+    ).json()
+    client.post(
+        "/postings/",
+        json={
+            "account_id": acc["account_id"],
+            "amount": 10,
+            "posting_date": "2024-01-01",
+            "category_id": cat["category_id"],
+            "posting_type": "EXPENSE",
+        },
     )
-    session.execute(
-        text(
-            "INSERT INTO account (account_id, name, currency, initial_balance) "
-            "VALUES ('a1', 'Cash', 'USD', 100)"
-        )
-    )
-    session.execute(
-        text(
-            "INSERT INTO posting "
-            "(posting_id, account_id, amount, posting_date, category_id, posting_type) "
-            "VALUES ('p1', 'a1', -10, '2024-01-01', 'c1', 'EXPENSE')"
-        )
-    )
-    session.commit()
 
     # Act
-    response = client.delete("/categories/c1")
+    response = client.delete(f"/categories/{cat['category_id']}")
 
     # Assert
     assert response.status_code == 409
