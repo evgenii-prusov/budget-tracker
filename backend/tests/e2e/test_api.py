@@ -1,28 +1,29 @@
 import pytest
 from decimal import Decimal
-from datetime import date
-
-from app.domain.model import Transfer, PostingType
 
 
-def test_get_account_success(client, session, acc_eur):
-    # 1. Arrange: Prepare data in the test database
-    session.add(acc_eur)
-    session.commit()
+def test_get_account_success(client):
+    # 1. Arrange: Create account via API
+    create_response = client.post(
+        "/accounts",
+        json={"name": "EUR_1", "currency": "EUR", "initial_balance": "35"},
+    )
+    assert create_response.status_code == 201
+    account_id = create_response.json()["account_id"]
 
     # 2. Act: Make the request
-    response = client.get("/accounts/a1")
+    response = client.get(f"/accounts/{account_id}")
 
     # 3. Assert: Check status code and account properties
     assert response.status_code == 200
     data = response.json()
-    assert data["account_id"] == acc_eur.account_id
-    assert data["name"] == acc_eur.name
-    assert data["currency"] == acc_eur.currency
-    assert Decimal(data["initial_balance"]) == acc_eur.initial_balance
+    assert data["account_id"] == account_id
+    assert data["name"] == "EUR_1"
+    assert data["currency"] == "EUR"
+    assert Decimal(data["initial_balance"]) == Decimal(35)
 
 
-def test_get_account_not_found(client, session):
+def test_get_account_not_found(client):
     # 1. Arrange: no data in database
     # 2. Act: Make the request
     response = client.get("/accounts/a1")
@@ -31,10 +32,13 @@ def test_get_account_not_found(client, session):
     assert response.status_code == 404
 
 
-def test_get_accounts(client, session, acc_eur):
-    # 1. Arrange: Prepare data in the test database
-    session.add(acc_eur)
-    session.commit()
+def test_get_accounts(client):
+    # 1. Arrange: Create account via API
+    create_response = client.post(
+        "/accounts",
+        json={"name": "EUR_1", "currency": "EUR", "initial_balance": "35"},
+    )
+    assert create_response.status_code == 201
 
     # 2. Act: Make the request
     response = client.get("/accounts")
@@ -43,8 +47,7 @@ def test_get_accounts(client, session, acc_eur):
     assert response.status_code == 200
     data = response.json()
     assert len(data) == 1
-    assert data[0]["account_id"] == acc_eur.account_id
-    assert data[0]["name"] == acc_eur.name
+    assert data[0]["name"] == "EUR_1"
 
 
 def test_get_accounts_empty_database(client):
@@ -59,16 +62,22 @@ def test_get_accounts_empty_database(client):
     assert data == []
 
 
-def test_create_account_duplicate_name(client, session, acc_eur):
-    # 1. Arrange: Add an account to the database
-    session.add(acc_eur)
-    session.commit()
+def test_create_account_duplicate_name(client):
+    # 1. Arrange: Create an account via API
+    client.post(
+        "/accounts",
+        json={
+            "name": "EUR_1",
+            "currency": "EUR",
+            "initial_balance": "35",
+        },
+    )
 
     # 2. Act: Try to create an account with the same name
     response = client.post(
         "/accounts",
         json={
-            "name": acc_eur.name,
+            "name": "EUR_1",
             "currency": "USD",
             "initial_balance": 100.0,
         },
@@ -78,7 +87,7 @@ def test_create_account_duplicate_name(client, session, acc_eur):
     assert response.status_code == 409
     data = response.json()
     assert "already exists" in data["detail"]
-    assert acc_eur.name in data["detail"]
+    assert "EUR_1" in data["detail"]
 
 
 def test_create_account_negative_initial_balance(client):
@@ -152,14 +161,18 @@ def test_decimal_precision_persistence_flow(client):
     assert Decimal(saved_account["initial_balance"]) == Decimal("999.99999")
 
 
-def test_delete_account_success(client, session, acc_eur):
+def test_delete_account_success(client):
     """Successfully delete an account with no transfers."""
-    # 1. Arrange: Add account to database
-    session.add(acc_eur)
-    session.commit()
+    # 1. Arrange: Create account via API
+    create_response = client.post(
+        "/accounts",
+        json={"name": "EUR_1", "currency": "EUR", "initial_balance": "35"},
+    )
+    assert create_response.status_code == 201
+    account_id = create_response.json()["account_id"]
 
     # 2. Act: Delete the account
-    response = client.delete(f"/accounts/{acc_eur.account_id}")
+    response = client.delete(f"/accounts/{account_id}")
 
     # 3. Assert: Check response and verify deletion
     assert response.status_code == 204
@@ -170,21 +183,27 @@ def test_delete_account_success(client, session, acc_eur):
     assert get_response.json() == []
 
 
-def test_delete_account_with_postings_succeeds(client, session, acc_eur):
-    """Delete succeeds when account has postings (cascade tested in integration)."""
-    # 1. Arrange: Add account with a posting
-    # Create a posting directly in domain model to simulate history
-    acc_eur.record_posting(
-        Decimal(100),
-        date(2025, 1, 1),
-        category_id="legacy",
-        posting_type=PostingType.INCOME,
+def test_delete_account_with_postings_succeeds(client):
+    """Delete succeeds when account has postings (cascade)."""
+    # 1. Arrange: Create account, category, and posting via API
+    acc = client.post(
+        "/accounts",
+        json={"name": "EUR_1", "currency": "EUR", "initial_balance": "35"},
+    ).json()
+    cat = client.post("/categories/", json={"name": "Test"}).json()
+    client.post(
+        "/postings/",
+        json={
+            "account_id": acc["account_id"],
+            "amount": "100",
+            "posting_date": "2025-01-01",
+            "category_id": cat["category_id"],
+            "posting_type": "INCOME",
+        },
     )
-    session.add(acc_eur)
-    session.commit()
 
     # 2. Act: Delete the account
-    response = client.delete(f"/accounts/{acc_eur.account_id}")
+    response = client.delete(f"/accounts/{acc['account_id']}")
 
     # 3. Assert
     assert response.status_code == 204
@@ -208,25 +227,30 @@ def test_delete_account_not_found(client):
     assert "nonexistent-id" in data["detail"]
 
 
-def test_delete_account_with_transfer_returns_409(client, session, acc_eur, acc_rub):
+def test_delete_account_with_transfer_returns_409(client):
     """Cannot delete account involved in a transfer."""
-    # 1. Arrange: Create two accounts and a transfer between them
-    session.add(acc_eur)
-    session.add(acc_rub)
-
-    transfer = Transfer(
-        transfer_id="t-1",
-        source_account_id=acc_eur.account_id,
-        dest_account_id=acc_rub.account_id,
-        debit_amount=Decimal(10),
-        credit_amount=Decimal(1000),  # Different currency
-        transfer_date=date(2025, 1, 1),
+    # 1. Arrange: Create two accounts and a transfer via API
+    acc1 = client.post(
+        "/accounts",
+        json={"name": "EUR_1", "currency": "EUR", "initial_balance": "35"},
+    ).json()
+    acc2 = client.post(
+        "/accounts",
+        json={"name": "RUB_1", "currency": "RUB", "initial_balance": "0"},
+    ).json()
+    client.post(
+        "/transfers/",
+        json={
+            "source_account_id": acc1["account_id"],
+            "dest_account_id": acc2["account_id"],
+            "debit_amount": "10",
+            "credit_amount": "1000",
+            "transfer_date": "2025-01-01",
+        },
     )
-    session.add(transfer)
-    session.commit()
 
     # 2. Act: Try to delete source account
-    response = client.delete(f"/accounts/{acc_eur.account_id}")
+    response = client.delete(f"/accounts/{acc1['account_id']}")
 
     # 3. Assert
     assert response.status_code == 409
@@ -239,47 +263,54 @@ def test_delete_account_with_transfer_returns_409(client, session, acc_eur, acc_
     assert len(get_response.json()) == 2
 
 
-def test_delete_account_destination_of_transfer_returns_409(
-    client, session, acc_eur, acc_rub
-):
+def test_delete_account_destination_of_transfer_returns_409(client):
     """Cannot delete account that is destination of a transfer."""
-    # 1. Arrange
-    session.add(acc_eur)
-    session.add(acc_rub)
-
-    transfer = Transfer(
-        transfer_id="t-1",
-        source_account_id=acc_eur.account_id,
-        dest_account_id=acc_rub.account_id,
-        debit_amount=Decimal(10),
-        credit_amount=Decimal(1000),
-        transfer_date=date(2025, 1, 1),
+    # 1. Arrange: Create two accounts and a transfer via API
+    acc1 = client.post(
+        "/accounts",
+        json={"name": "EUR_1", "currency": "EUR", "initial_balance": "35"},
+    ).json()
+    acc2 = client.post(
+        "/accounts",
+        json={"name": "RUB_1", "currency": "RUB", "initial_balance": "0"},
+    ).json()
+    client.post(
+        "/transfers/",
+        json={
+            "source_account_id": acc1["account_id"],
+            "dest_account_id": acc2["account_id"],
+            "debit_amount": "10",
+            "credit_amount": "1000",
+            "transfer_date": "2025-01-01",
+        },
     )
-    session.add(transfer)
-    session.commit()
 
     # 2. Act: Try to delete destination account
-    response = client.delete(f"/accounts/{acc_rub.account_id}")
+    response = client.delete(f"/accounts/{acc2['account_id']}")
 
     # 3. Assert
     assert response.status_code == 409
     assert "Cannot delete" in response.json()["detail"]
 
 
-def test_delete_then_recreate_same_name(client, session, acc_eur):
+def test_delete_then_recreate_same_name(client):
     """After deleting an account, can create new account with same name."""
-    # 1. Arrange: Create and delete an account
-    session.add(acc_eur)
-    session.commit()
+    # 1. Arrange: Create and delete an account via API
+    create_response = client.post(
+        "/accounts",
+        json={"name": "EUR_1", "currency": "EUR", "initial_balance": "35"},
+    )
+    assert create_response.status_code == 201
+    account_id = create_response.json()["account_id"]
 
-    delete_response = client.delete(f"/accounts/{acc_eur.account_id}")
+    delete_response = client.delete(f"/accounts/{account_id}")
     assert delete_response.status_code == 204
 
     # 2. Act: Create new account with same name
     create_response = client.post(
         "/accounts",
         json={
-            "name": acc_eur.name,
+            "name": "EUR_1",
             "currency": "USD",
             "initial_balance": 0,
         },
@@ -287,18 +318,22 @@ def test_delete_then_recreate_same_name(client, session, acc_eur):
 
     # 3. Assert
     assert create_response.status_code == 201
-    assert create_response.json()["name"] == acc_eur.name
+    assert create_response.json()["name"] == "EUR_1"
 
 
-def test_update_account_name_success(client, session, acc_eur):
+def test_update_account_name_success(client):
     """Successfully update an account name."""
-    # 1. Arrange: Add account to database
-    session.add(acc_eur)
-    session.commit()
+    # 1. Arrange: Create account via API
+    create_response = client.post(
+        "/accounts",
+        json={"name": "EUR_1", "currency": "EUR", "initial_balance": "35"},
+    )
+    assert create_response.status_code == 201
+    account_id = create_response.json()["account_id"]
 
     # 2. Act: Update the account name
     response = client.patch(
-        f"/accounts/{acc_eur.account_id}",
+        f"/accounts/{account_id}",
         json={"name": "New Account Name"},
     )
 
@@ -306,24 +341,29 @@ def test_update_account_name_success(client, session, acc_eur):
     assert response.status_code == 200
     data = response.json()
     assert data["name"] == "New Account Name"
-    assert data["account_id"] == acc_eur.account_id
+    assert data["account_id"] == account_id
 
     # Verify update in database
-    get_response = client.get(f"/accounts/{acc_eur.account_id}")
+    get_response = client.get(f"/accounts/{account_id}")
     assert get_response.json()["name"] == "New Account Name"
 
 
-def test_update_account_name_duplicate(client, session, acc_eur, acc_rub):
+def test_update_account_name_duplicate(client):
     """Updating account name to an existing name returns 409."""
-    # 1. Arrange: Add two accounts to database
-    session.add(acc_eur)
-    session.add(acc_rub)
-    session.commit()
+    # 1. Arrange: Create two accounts via API
+    acc1 = client.post(
+        "/accounts",
+        json={"name": "EUR_1", "currency": "EUR", "initial_balance": "35"},
+    ).json()
+    client.post(
+        "/accounts",
+        json={"name": "RUB_1", "currency": "RUB", "initial_balance": "0"},
+    )
 
     # 2. Act: Try to update first account with second account's name
     response = client.patch(
-        f"/accounts/{acc_eur.account_id}",
-        json={"name": acc_rub.name},
+        f"/accounts/{acc1['account_id']}",
+        json={"name": "RUB_1"},
     )
 
     # 3. Assert: Check response

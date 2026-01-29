@@ -1,6 +1,5 @@
 import pytest
 from decimal import Decimal
-from datetime import date
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
@@ -67,28 +66,6 @@ def acc_eur() -> Account:
 @pytest.fixture
 def acc_rub() -> Account:
     return Account("a2", "RUB_1", "RUB", Decimal(0))
-
-
-@pytest.fixture
-def make_posting():
-    """Factory fixture for creating Posting objects with customizable data.
-
-    Usage:
-        def test_something(make_posting):
-            posting = make_posting(id="p-1", amount=Decimal(100))
-    """
-
-    def _make_posting(
-        id: str = "p-1",
-        account_id: str = "a-1",
-        amount: Decimal = Decimal(0),
-        posting_date: date = JAN_01,
-        category_id: str | None = "test",
-        posting_type: PostingType = PostingType.EXPENSE,
-    ) -> Posting:
-        return Posting(id, account_id, amount, posting_date, category_id, posting_type)
-
-    return _make_posting
 
 
 @pytest.fixture
