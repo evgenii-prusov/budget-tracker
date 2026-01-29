@@ -5,6 +5,7 @@ from fastapi import HTTPException
 
 from app.domain.exceptions import DuplicateAccountNameError
 from app.domain.exceptions import InvalidInitialBalanceError
+from app.domain.exceptions import InvalidCurrencyError
 from app.domain.exceptions import AccountNotFoundError
 from app.domain.exceptions import AccountHasTransfersError
 from app.service_layer.unit_of_work import AbstractUnitOfWork
@@ -42,7 +43,7 @@ def create_account_endpoint(account: AccountCreate, uow: UoWDep):
         new_account = create_account(uow=uow, **account.model_dump())
     except DuplicateAccountNameError as exc:
         raise HTTPException(status_code=409, detail=str(exc))
-    except InvalidInitialBalanceError as exc:
+    except (InvalidInitialBalanceError, InvalidCurrencyError) as exc:
         raise HTTPException(status_code=400, detail=str(exc))
 
     return new_account

@@ -253,11 +253,11 @@ Every balance access iterates all postings and transfers. With thousands of tran
 ## Action Items Summary
 
 ### Critical (Fix Before Production)
-- [ ] Remove `except Exception` catch-all blocks
-- [ ] Add currency validation
+- [x] Remove `except Exception` catch-all blocks
+- [x] Add currency validation
 
 ### High Priority
-- [ ] Implement proper transaction management / Unit of Work
+- [x] Implement proper transaction management / Unit of Work
 - [ ] Add logging infrastructure
 
 ### Medium Priority

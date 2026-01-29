@@ -21,6 +21,7 @@ from enum import StrEnum
 import functools
 
 from app.domain.exceptions import InsufficientFundsError
+from app.domain.exceptions import InvalidCurrencyError
 
 
 class PostingType(StrEnum):
@@ -28,6 +29,9 @@ class PostingType(StrEnum):
 
     EXPENSE = "EXPENSE"
     INCOME = "INCOME"
+
+
+VALID_CURRENCIES = frozenset({"USD", "EUR", "GBP", "RUB", "CHF", "JPY", "CNY"})
 
 
 class Category:
@@ -177,6 +181,8 @@ class Account:
             )
         self.account_id = account_id or str(uuid4())
         self.name = name
+        if currency not in VALID_CURRENCIES:
+            raise InvalidCurrencyError(f"Invalid currency: {currency}")
         self.currency = currency
         self.initial_balance = initial_balance
         self._postings: list[Posting] = []

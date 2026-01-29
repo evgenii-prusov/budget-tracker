@@ -1,9 +1,21 @@
 from decimal import Decimal
+import pytest
 
 from app.domain.model import Account
 from app.domain.model import PostingType
 from app.domain.model import create_transfer
+from app.domain.exceptions import InvalidCurrencyError
 from tests.constants import JAN_01
+
+
+def test_create_account_with_invalid_currency_raises_error():
+    with pytest.raises(InvalidCurrencyError, match="Invalid currency: BITCOIN"):
+        Account(
+            account_id="acc1",
+            name="Test Account",
+            currency="BITCOIN",
+            initial_balance=Decimal(100),
+        )
 
 
 def test_account_balance_is_sum_of_init_balance_and_postings(

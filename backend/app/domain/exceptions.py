@@ -16,6 +16,12 @@ class InvalidInitialBalanceError(Exception):
     pass
 
 
+class InvalidCurrencyError(Exception):
+    """Raised when attempting to create an account with an invalid currency code."""
+
+    pass
+
+
 class AccountNotFoundError(Exception):
     """Raised when an account with the given ID does not exist."""
 
