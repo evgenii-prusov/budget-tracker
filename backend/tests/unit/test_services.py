@@ -127,7 +127,7 @@ class FakeUnitOfWork(AbstractUnitOfWork):
         self.committed = True
 
     def rollback(self):
-        self.committed = False
+        pass
 
 
 class TestCreateAccount:
