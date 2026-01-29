@@ -58,9 +58,6 @@ def update_category_endpoint(
         raise HTTPException(status_code=404, detail=str(exc))
     except DuplicateCategoryNameError as exc:
         raise HTTPException(status_code=409, detail=str(exc))
-    except Exception as exc:
-        repo.rollback()
-        raise HTTPException(status_code=400, detail=str(exc))
 
     return updated_category
 

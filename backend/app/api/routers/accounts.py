@@ -44,9 +44,6 @@ def create_account_endpoint(account: AccountCreate, repo: RepoDep):
         raise HTTPException(status_code=409, detail=str(exc))
     except InvalidInitialBalanceError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
-    except Exception as exc:
-        repo.rollback()
-        raise HTTPException(status_code=400, detail=str(exc))
 
     return new_account
 
@@ -63,9 +60,6 @@ def update_account_name_endpoint(
         raise HTTPException(status_code=404, detail=str(exc))
     except DuplicateAccountNameError as exc:
         raise HTTPException(status_code=409, detail=str(exc))
-    except Exception as exc:
-        repo.rollback()
-        raise HTTPException(status_code=400, detail=str(exc))
 
     return updated_account
 
@@ -78,8 +72,5 @@ def delete_account_endpoint(account_id: str, repo: RepoDep):
         raise HTTPException(status_code=404, detail=str(exc))
     except AccountHasTransfersError as exc:
         raise HTTPException(status_code=409, detail=str(exc))
-    except Exception as exc:
-        repo.rollback()
-        raise HTTPException(status_code=400, detail=str(exc))
 
     return None
