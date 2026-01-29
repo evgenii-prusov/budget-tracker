@@ -19,6 +19,7 @@ from app.domain.exceptions import TransferNotFoundError
 from app.service_layer.abstract_repository import AbstractRepository
 from app.service_layer.services import create_account
 from app.service_layer.services import delete_account
+from app.service_layer.services import create_category
 from app.service_layer.services import create_posting
 from app.service_layer.services import get_posting
 from app.service_layer.services import list_postings
@@ -150,13 +151,14 @@ class TestCreateAccount:
 
     def test_create_account_duplicate_name_raises_error(self):
         # Arrange
-        existing = Account(
-            account_id="existing-id",
+        repo = FakeRepository()
+        create_account(
+            repo,
             name="Existing Account",
             currency="USD",
             initial_balance=Decimal(100),
         )
-        repo = FakeRepository(accounts=[existing])
+        repo.committed = False
 
         # Act & Assert
         with pytest.raises(DuplicateAccountNameError) as exc_info:
@@ -193,17 +195,20 @@ class TestCreateAccount:
 class TestUpdateAccountName:
     def test_update_account_name_success(self):
         # Arrange
-        account = Account(
-            account_id="acc-1",
+        repo = FakeRepository()
+        account = create_account(
+            repo,
             name="Old Name",
             currency="USD",
             initial_balance=Decimal(100),
         )
-        repo = FakeRepository(accounts=[account])
+        repo.committed = False
 
         # Act
         updated_account = update_account_name(
-            repo, account_id="acc-1", new_name="New Name"
+            repo,
+            account_id=account.account_id,
+            new_name="New Name",
         )
 
         # Assert
@@ -212,23 +217,28 @@ class TestUpdateAccountName:
 
     def test_update_account_name_duplicate_name_raises_error(self):
         # Arrange
-        account1 = Account(
-            account_id="acc-1",
+        repo = FakeRepository()
+        account1 = create_account(
+            repo,
             name="Account 1",
             currency="USD",
             initial_balance=Decimal(100),
         )
-        account2 = Account(
-            account_id="acc-2",
+        create_account(
+            repo,
             name="Account 2",
             currency="USD",
             initial_balance=Decimal(100),
         )
-        repo = FakeRepository(accounts=[account1, account2])
+        repo.committed = False
 
         # Act & Assert
         with pytest.raises(DuplicateAccountNameError) as exc_info:
-            update_account_name(repo, account_id="acc-1", new_name="Account 2")
+            update_account_name(
+                repo,
+                account_id=account1.account_id,
+                new_name="Account 2",
+            )
 
         assert "already exists" in str(exc_info.value)
         assert repo.committed is False
@@ -249,16 +259,17 @@ class TestUpdateAccountName:
 class TestDeleteAccount:
     def test_delete_account_success(self):
         # Arrange
-        account = Account(
-            account_id="acc-1",
+        repo = FakeRepository()
+        account = create_account(
+            repo,
             name="Test Account",
             currency="USD",
             initial_balance=Decimal(100),
         )
-        repo = FakeRepository(accounts=[account])
+        repo.committed = False
 
         # Act
-        delete_account(repo, account_id="acc-1")
+        delete_account(repo, account_id=account.account_id)
 
         # Assert
         assert repo.committed is True
@@ -267,22 +278,26 @@ class TestDeleteAccount:
     def test_delete_account_with_postings_succeeds(self):
         """Service allows deletion when account has postings (cascade is ORM concern)."""
         # Arrange
-        account = Account(
-            account_id="acc-1",
+        repo = FakeRepository()
+        account = create_account(
+            repo,
             name="Test Account",
             currency="USD",
             initial_balance=Decimal(100),
         )
-        account.record_posting(
-            amount=Decimal("100.00"),
+        category = create_category(repo, name="Food")
+        create_posting(
+            repo,
+            account_id=account.account_id,
+            amount=Decimal(100),
             posting_date=JAN_01,
-            category_id="FOOD",
             posting_type=PostingType.EXPENSE,
+            category_id=category.category_id,
         )
-        repo = FakeRepository(accounts=[account])
+        repo.committed = False
 
         # Act
-        delete_account(repo, account_id="acc-1")
+        delete_account(repo, account_id=account.account_id)
 
         # Assert
         assert repo.committed is True
@@ -302,22 +317,26 @@ class TestDeleteAccount:
 
     def test_delete_account_with_outgoing_transfer_raises_error(self):
         # Arrange
-        source = Account("acc-1", "Source", "USD", Decimal(100))
-        dest = Account("acc-2", "Dest", "USD", Decimal(0))
-        transfer = Transfer(
-            transfer_id="t-1",
-            source_account_id="acc-1",
-            dest_account_id="acc-2",
+        repo = FakeRepository()
+        source = create_account(
+            repo, name="Source", currency="USD", initial_balance=Decimal(100)
+        )
+        dest = create_account(
+            repo, name="Dest", currency="USD", initial_balance=Decimal(0)
+        )
+        create_transfer(
+            repo,
+            source_account_id=source.account_id,
+            dest_account_id=dest.account_id,
             debit_amount=Decimal(50),
             credit_amount=Decimal(50),
-            transfer_date=date(2025, 1, 1),
+            transfer_date=JAN_01,
         )
-        repo = FakeRepository(accounts=[source, dest])
-        repo.transfers = [transfer]
+        repo.committed = False
 
         # Act & Assert
         with pytest.raises(AccountHasTransfersError) as exc_info:
-            delete_account(repo, account_id="acc-1")
+            delete_account(repo, account_id=source.account_id)
 
         assert "Cannot delete" in str(exc_info.value)
         assert "1 transfer" in str(exc_info.value)
@@ -326,63 +345,74 @@ class TestDeleteAccount:
 
     def test_delete_account_with_incoming_transfer_raises_error(self):
         # Arrange
-        source = Account("acc-1", "Source", "USD", Decimal(100))
-        dest = Account("acc-2", "Dest", "USD", Decimal(0))
-        transfer = Transfer(
-            transfer_id="t-1",
-            source_account_id="acc-1",
-            dest_account_id="acc-2",
+        repo = FakeRepository()
+        source = create_account(
+            repo, name="Source", currency="USD", initial_balance=Decimal(100)
+        )
+        dest = create_account(
+            repo, name="Dest", currency="USD", initial_balance=Decimal(0)
+        )
+        create_transfer(
+            repo,
+            source_account_id=source.account_id,
+            dest_account_id=dest.account_id,
             debit_amount=Decimal(50),
             credit_amount=Decimal(50),
-            transfer_date=date(2025, 1, 1),
+            transfer_date=JAN_01,
         )
-        repo = FakeRepository(accounts=[source, dest])
-        repo.transfers = [transfer]
+        repo.committed = False
 
         # Act & Assert
         with pytest.raises(AccountHasTransfersError) as exc_info:
-            delete_account(repo, account_id="acc-2")
+            delete_account(repo, account_id=dest.account_id)
 
         assert "Cannot delete" in str(exc_info.value)
         assert repo.committed is False
 
     def test_delete_account_with_multiple_transfers_reports_count(self):
         # Arrange
-        account = Account("acc-1", "Test", "USD", Decimal(100))
-        other1 = Account("acc-2", "Other1", "USD", Decimal(0))
-        other2 = Account("acc-3", "Other2", "USD", Decimal(0))
-        transfers = [
-            Transfer(
-                "t-1",
-                "acc-1",
-                "acc-2",
-                Decimal(10),
-                Decimal(10),
-                date(2025, 1, 1),
-            ),
-            Transfer(
-                "t-2",
-                "acc-3",
-                "acc-1",
-                Decimal(20),
-                Decimal(20),
-                date(2025, 1, 2),
-            ),
-            Transfer(
-                "t-3",
-                "acc-1",
-                "acc-3",
-                Decimal(5),
-                Decimal(5),
-                date(2025, 1, 3),
-            ),
-        ]
-        repo = FakeRepository(accounts=[account, other1, other2])
-        repo.transfers = transfers
+        repo = FakeRepository()
+        account = create_account(
+            repo, name="Test", currency="USD", initial_balance=Decimal(100)
+        )
+        other1 = create_account(
+            repo, name="Other1", currency="USD", initial_balance=Decimal(0)
+        )
+        other2 = create_account(
+            repo,
+            name="Other2",
+            currency="USD",
+            initial_balance=Decimal(100),
+        )
+        create_transfer(
+            repo,
+            source_account_id=account.account_id,
+            dest_account_id=other1.account_id,
+            debit_amount=Decimal(10),
+            credit_amount=Decimal(10),
+            transfer_date=JAN_01,
+        )
+        create_transfer(
+            repo,
+            source_account_id=other2.account_id,
+            dest_account_id=account.account_id,
+            debit_amount=Decimal(20),
+            credit_amount=Decimal(20),
+            transfer_date=JAN_01,
+        )
+        create_transfer(
+            repo,
+            source_account_id=account.account_id,
+            dest_account_id=other2.account_id,
+            debit_amount=Decimal(5),
+            credit_amount=Decimal(5),
+            transfer_date=JAN_01,
+        )
+        repo.committed = False
 
         # Act & Assert
         with pytest.raises(AccountHasTransfersError) as exc_info:
-            delete_account(repo, account_id="acc-1")
+            delete_account(repo, account_id=account.account_id)
 
         assert "3 transfer" in str(exc_info.value)
 
@@ -390,51 +420,53 @@ class TestDeleteAccount:
 class TestCreatePosting:
     def test_create_posting_success_expense(self):
         # Arrange
-        account = Account(
-            account_id="acc-1",
+        repo = FakeRepository()
+        account = create_account(
+            repo,
             name="Test Account",
             currency="EUR",
             initial_balance=Decimal(100),
         )
-        category = Category(category_id="cat-1", name="Food")
-        repo = FakeRepository(accounts=[account])
-        repo.add_category(category)
+        category = create_category(repo, name="Food")
+        repo.committed = False
 
         # Act
         posting = create_posting(
             repo,
-            account_id="acc-1",
+            account_id=account.account_id,
             amount=Decimal(50),
             posting_date=date(2023, 1, 1),
             posting_type=PostingType.EXPENSE,
-            category_id="cat-1",
+            category_id=category.category_id,
         )
 
         # Assert
-        assert isinstance(posting, Posting)
-        assert posting.account_id == "acc-1"
+        assert posting.posting_id is not None
+        assert posting.account_id == account.account_id
         assert posting.posting_date == date(2023, 1, 1)
-        assert posting.category_id == "cat-1"
+        assert posting.category_id == category.category_id
         assert posting.posting_type == PostingType.EXPENSE
-        assert posting.amount == Decimal("-50")  # Negative for expense
-        assert account.balance == Decimal(50)  # 100 - 50
-        assert len(account._postings) == 1
+        assert posting.amount == Decimal("-50")
+        assert account.balance == Decimal(50)
+        postings = list_postings(repo, account_id=account.account_id)
+        assert len(postings) == 1
         assert repo.committed is True
 
     def test_create_posting_success_income_no_category(self):
         # Arrange
-        account = Account(
-            account_id="acc-1",
+        repo = FakeRepository()
+        account = create_account(
+            repo,
             name="Test Account",
             currency="EUR",
             initial_balance=Decimal(100),
         )
-        repo = FakeRepository(accounts=[account])
+        repo.committed = False
 
         # Act
         posting = create_posting(
             repo,
-            account_id="acc-1",
+            account_id=account.account_id,
             amount=Decimal(75),
             posting_date=date(2023, 1, 1),
             posting_type=PostingType.INCOME,
@@ -442,12 +474,12 @@ class TestCreatePosting:
         )
 
         # Assert
-        assert isinstance(posting, Posting)
-        assert posting.account_id == "acc-1"
+        assert posting.posting_id is not None
+        assert posting.account_id == account.account_id
         assert posting.category_id is None
         assert posting.posting_type == PostingType.INCOME
-        assert posting.amount == Decimal("75")  # Positive for income
-        assert account.balance == Decimal(175)  # 100 + 75
+        assert posting.amount == Decimal("75")
+        assert account.balance == Decimal(175)
         assert repo.committed is True
 
     def test_create_posting_account_not_found(self):
@@ -470,13 +502,14 @@ class TestCreatePosting:
 
     def test_create_posting_category_not_found(self):
         # Arrange
-        account = Account(
-            account_id="acc-1",
+        repo = FakeRepository()
+        account = create_account(
+            repo,
             name="Test Account",
             currency="EUR",
             initial_balance=Decimal(100),
         )
-        repo = FakeRepository(accounts=[account])
+        repo.committed = False
 
         # Act & Assert
         with pytest.raises(
@@ -484,7 +517,7 @@ class TestCreatePosting:
         ):
             create_posting(
                 repo,
-                account_id="acc-1",
+                account_id=account.account_id,
                 amount=Decimal(50),
                 posting_date=date(2023, 1, 1),
                 posting_type=PostingType.EXPENSE,
@@ -495,27 +528,28 @@ class TestCreatePosting:
 
     def test_create_posting_insufficient_funds(self):
         # Arrange
-        account = Account(
-            account_id="acc-1",
+        repo = FakeRepository()
+        account = create_account(
+            repo,
             name="Test Account",
             currency="EUR",
-            initial_balance=Decimal(10),  # Low balance
+            initial_balance=Decimal(10),
         )
-        category = Category(category_id="cat-1", name="Food")
-        repo = FakeRepository(accounts=[account])
-        repo.add_category(category)
+        category = create_category(repo, name="Food")
+        repo.committed = False
 
         # Act & Assert
         with pytest.raises(
-            InsufficientFundsError, match="Insufficient funds in account 'Test Account'"
+            InsufficientFundsError,
+            match="Insufficient funds in account 'Test Account'",
         ):
             create_posting(
                 repo,
-                account_id="acc-1",
-                amount=Decimal(50),  # Amount larger than balance
+                account_id=account.account_id,
+                amount=Decimal(50),
                 posting_date=date(2023, 1, 1),
                 posting_type=PostingType.EXPENSE,
-                category_id="cat-1",
+                category_id=category.category_id,
             )
 
         assert repo.committed is False
@@ -524,26 +558,27 @@ class TestCreatePosting:
 class TestGetPosting:
     def test_get_posting_success(self):
         # Arrange
-        account = Account(
-            account_id="acc-1",
+        repo = FakeRepository()
+        account = create_account(
+            repo,
             name="Test Account",
             currency="EUR",
             initial_balance=Decimal(100),
         )
-        account.record_posting(
+        created = create_posting(
+            repo,
+            account_id=account.account_id,
             amount=Decimal(50),
             posting_date=JAN_01,
-            category_id="cat-1",
             posting_type=PostingType.INCOME,
+            category_id=None,
         )
-        repo = FakeRepository(accounts=[account])
-        posting_id = account._postings[0].posting_id
 
         # Act
-        posting = get_posting(repo, posting_id=posting_id)
+        posting = get_posting(repo, posting_id=created.posting_id)
 
         # Assert
-        assert posting == account._postings[0]
+        assert posting == created
         assert posting.amount == Decimal(50)
 
     def test_get_posting_not_found_raises_error(self):
@@ -570,15 +605,30 @@ class TestListPostings:
 
     def test_list_postings_all(self):
         # Arrange
-        a1 = Account("a1", "A1", "EUR", Decimal(100))
-        a2 = Account("a2", "A2", "EUR", Decimal(100))
-        a1.record_posting(
-            Decimal(10), JAN_01, category_id="c1", posting_type=PostingType.EXPENSE
+        repo = FakeRepository()
+        a1 = create_account(
+            repo, name="A1", currency="EUR", initial_balance=Decimal(100)
         )
-        a2.record_posting(
-            Decimal(20), JAN_01, category_id="c1", posting_type=PostingType.EXPENSE
+        a2 = create_account(
+            repo, name="A2", currency="EUR", initial_balance=Decimal(100)
         )
-        repo = FakeRepository(accounts=[a1, a2])
+        category = create_category(repo, name="c1")
+        create_posting(
+            repo,
+            account_id=a1.account_id,
+            amount=Decimal(10),
+            posting_date=JAN_01,
+            posting_type=PostingType.EXPENSE,
+            category_id=category.category_id,
+        )
+        create_posting(
+            repo,
+            account_id=a2.account_id,
+            amount=Decimal(20),
+            posting_date=JAN_01,
+            posting_type=PostingType.EXPENSE,
+            category_id=category.category_id,
+        )
 
         # Act
         postings = list_postings(repo)
@@ -588,18 +638,33 @@ class TestListPostings:
 
     def test_list_postings_filtered_by_account(self):
         # Arrange
-        a1 = Account("a1", "A1", "EUR", Decimal(100))
-        a2 = Account("a2", "A2", "EUR", Decimal(100))
-        p1 = a1.record_posting(
-            Decimal(10), JAN_01, category_id="c1", posting_type=PostingType.EXPENSE
+        repo = FakeRepository()
+        a1 = create_account(
+            repo, name="A1", currency="EUR", initial_balance=Decimal(100)
         )
-        _p2 = a2.record_posting(
-            Decimal(20), JAN_01, category_id="c1", posting_type=PostingType.EXPENSE
+        a2 = create_account(
+            repo, name="A2", currency="EUR", initial_balance=Decimal(100)
         )
-        repo = FakeRepository(accounts=[a1, a2])
+        category = create_category(repo, name="c1")
+        p1 = create_posting(
+            repo,
+            account_id=a1.account_id,
+            amount=Decimal(10),
+            posting_date=JAN_01,
+            posting_type=PostingType.EXPENSE,
+            category_id=category.category_id,
+        )
+        create_posting(
+            repo,
+            account_id=a2.account_id,
+            amount=Decimal(20),
+            posting_date=JAN_01,
+            posting_type=PostingType.EXPENSE,
+            category_id=category.category_id,
+        )
 
         # Act
-        postings = list_postings(repo, account_id="a1")
+        postings = list_postings(repo, account_id=a1.account_id)
 
         # Assert
         assert len(postings) == 1
@@ -609,15 +674,20 @@ class TestListPostings:
 class TestTransferServices:
     def test_create_transfer_success(self):
         # Arrange
-        source = Account("src", "Source", "USD", Decimal(100))
-        dest = Account("dst", "Dest", "USD", Decimal(0))
-        repo = FakeRepository(accounts=[source, dest])
+        repo = FakeRepository()
+        source = create_account(
+            repo, name="Source", currency="USD", initial_balance=Decimal(100)
+        )
+        dest = create_account(
+            repo, name="Dest", currency="USD", initial_balance=Decimal(0)
+        )
+        repo.committed = False
 
         # Act
         transfer = create_transfer(
             repo,
-            source_account_id="src",
-            dest_account_id="dst",
+            source_account_id=source.account_id,
+            dest_account_id=dest.account_id,
             debit_amount=Decimal(10),
             credit_amount=Decimal(10),
             transfer_date=JAN_01,
@@ -625,8 +695,8 @@ class TestTransferServices:
         )
 
         # Assert
-        assert transfer.source_account_id == "src"
-        assert transfer.dest_account_id == "dst"
+        assert transfer.source_account_id == source.account_id
+        assert transfer.dest_account_id == dest.account_id
         assert transfer.debit_amount == Decimal(10)
         assert transfer.description == "Test Transfer"
         assert len(repo.transfers) == 1
@@ -634,15 +704,18 @@ class TestTransferServices:
 
     def test_create_transfer_source_not_found(self):
         # Arrange
-        dest = Account("dst", "Dest", "USD", Decimal(0))
-        repo = FakeRepository(accounts=[dest])
+        repo = FakeRepository()
+        dest = create_account(
+            repo, name="Dest", currency="USD", initial_balance=Decimal(0)
+        )
+        repo.committed = False
 
         # Act & Assert
         with pytest.raises(AccountNotFoundError) as exc:
             create_transfer(
                 repo,
-                source_account_id="src",
-                dest_account_id="dst",
+                source_account_id="non-existent",
+                dest_account_id=dest.account_id,
                 debit_amount=Decimal(10),
                 credit_amount=Decimal(10),
                 transfer_date=JAN_01,
@@ -651,15 +724,18 @@ class TestTransferServices:
 
     def test_create_transfer_dest_not_found(self):
         # Arrange
-        source = Account("src", "Source", "USD", Decimal(100))
-        repo = FakeRepository(accounts=[source])
+        repo = FakeRepository()
+        source = create_account(
+            repo, name="Source", currency="USD", initial_balance=Decimal(100)
+        )
+        repo.committed = False
 
         # Act & Assert
         with pytest.raises(AccountNotFoundError) as exc:
             create_transfer(
                 repo,
-                source_account_id="src",
-                dest_account_id="dst",
+                source_account_id=source.account_id,
+                dest_account_id="non-existent",
                 debit_amount=Decimal(10),
                 credit_amount=Decimal(10),
                 transfer_date=JAN_01,
@@ -668,16 +744,21 @@ class TestTransferServices:
 
     def test_create_transfer_insufficient_funds(self):
         # Arrange
-        source = Account("src", "Source", "USD", Decimal(5))
-        dest = Account("dst", "Dest", "USD", Decimal(0))
-        repo = FakeRepository(accounts=[source, dest])
+        repo = FakeRepository()
+        source = create_account(
+            repo, name="Source", currency="USD", initial_balance=Decimal(5)
+        )
+        dest = create_account(
+            repo, name="Dest", currency="USD", initial_balance=Decimal(0)
+        )
+        repo.committed = False
 
         # Act & Assert
         with pytest.raises(InsufficientFundsError):
             create_transfer(
                 repo,
-                source_account_id="src",
-                dest_account_id="dst",
+                source_account_id=source.account_id,
+                dest_account_id=dest.account_id,
                 debit_amount=Decimal(10),
                 credit_amount=Decimal(10),
                 transfer_date=JAN_01,
@@ -685,13 +766,17 @@ class TestTransferServices:
 
     def test_get_transfer_success(self):
         # Arrange
-        source = Account("src", "Source", "USD", Decimal(100))
-        dest = Account("dst", "Dest", "USD", Decimal(0))
-        repo = FakeRepository(accounts=[source, dest])
+        repo = FakeRepository()
+        source = create_account(
+            repo, name="Source", currency="USD", initial_balance=Decimal(100)
+        )
+        dest = create_account(
+            repo, name="Dest", currency="USD", initial_balance=Decimal(0)
+        )
         transfer = create_transfer(
             repo,
-            source_account_id="src",
-            dest_account_id="dst",
+            source_account_id=source.account_id,
+            dest_account_id=dest.account_id,
             debit_amount=Decimal(10),
             credit_amount=Decimal(10),
             transfer_date=JAN_01,
@@ -713,21 +798,25 @@ class TestTransferServices:
 
     def test_list_transfers(self):
         # Arrange
-        source = Account("src", "Source", "USD", Decimal(100))
-        dest = Account("dst", "Dest", "USD", Decimal(0))
-        repo = FakeRepository(accounts=[source, dest])
+        repo = FakeRepository()
+        source = create_account(
+            repo, name="Source", currency="USD", initial_balance=Decimal(100)
+        )
+        dest = create_account(
+            repo, name="Dest", currency="USD", initial_balance=Decimal(0)
+        )
         t1 = create_transfer(
             repo,
-            source_account_id="src",
-            dest_account_id="dst",
+            source_account_id=source.account_id,
+            dest_account_id=dest.account_id,
             debit_amount=Decimal(10),
             credit_amount=Decimal(10),
             transfer_date=JAN_01,
         )
         t2 = create_transfer(
             repo,
-            source_account_id="src",
-            dest_account_id="dst",
+            source_account_id=source.account_id,
+            dest_account_id=dest.account_id,
             debit_amount=Decimal(20),
             credit_amount=Decimal(20),
             transfer_date=JAN_01,
