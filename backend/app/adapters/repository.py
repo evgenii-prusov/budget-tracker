@@ -21,8 +21,8 @@ class SqlAlchemyRepository(AbstractRepository):
     def get_by_name(self, name: str) -> Account | None:
         return self.session.query(Account).filter_by(name=name).first()
 
-    def list_all(self) -> list[Account]:
-        return self.session.query(Account).all()
+    def list_all(self, skip: int = 0, limit: int = 100) -> list[Account]:
+        return self.session.query(Account).offset(skip).limit(limit).all()
 
     def delete(self, account: Account) -> None:
         self.session.delete(account)
@@ -47,17 +47,19 @@ class SqlAlchemyRepository(AbstractRepository):
             .all()
         )
 
-    def list_transfers(self) -> list[Transfer]:
-        return self.session.query(Transfer).all()
+    def list_transfers(self, skip: int = 0, limit: int = 100) -> list[Transfer]:
+        return self.session.query(Transfer).offset(skip).limit(limit).all()
 
     def get_posting(self, posting_id: str) -> Posting | None:
         return self.session.query(Posting).filter_by(posting_id=posting_id).one_or_none()
 
-    def list_postings(self, account_id: str | None = None) -> list[Posting]:
+    def list_postings(
+        self, account_id: str | None = None, skip: int = 0, limit: int = 100
+    ) -> list[Posting]:
         query = self.session.query(Posting)
         if account_id is not None:
             query = query.filter_by(account_id=account_id)
-        return query.all()
+        return query.offset(skip).limit(limit).all()
 
     # Category methods
     def add_category(self, category: Category):
@@ -71,8 +73,8 @@ class SqlAlchemyRepository(AbstractRepository):
     def get_category_by_name(self, name: str) -> Category | None:
         return self.session.query(Category).filter_by(name=name).first()
 
-    def list_categories(self) -> list[Category]:
-        return self.session.query(Category).all()
+    def list_categories(self, skip: int = 0, limit: int = 100) -> list[Category]:
+        return self.session.query(Category).offset(skip).limit(limit).all()
 
     def delete_category(self, category: Category) -> None:
         self.session.delete(category)

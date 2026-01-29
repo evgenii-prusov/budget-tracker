@@ -4,6 +4,7 @@ from fastapi import APIRouter
 from fastapi import Depends
 from fastapi import HTTPException
 from fastapi import status
+from fastapi import Query
 
 from app.api.dependencies import get_unit_of_work
 from app.api.schemas import TransferCreate
@@ -52,8 +53,10 @@ def create_transfer_endpoint(
 @router.get("/", response_model=list[TransferResponse])
 def list_transfers_endpoint(
     uow: UoWDep,
+    skip: int = Query(0, ge=0),
+    limit: int = Query(50, ge=1, le=100),
 ):
-    return list_transfers(uow)
+    return list_transfers(uow, skip=skip, limit=limit)
 
 
 @router.get("/{transfer_id}", response_model=TransferResponse)

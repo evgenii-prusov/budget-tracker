@@ -4,6 +4,7 @@ from fastapi import APIRouter
 from fastapi import Depends
 from fastapi import HTTPException
 from fastapi import status
+from fastapi import Query
 
 from app.api.dependencies import get_unit_of_work
 from app.api.schemas import PostingCreate
@@ -31,8 +32,10 @@ UoWDep = Annotated[AbstractUnitOfWork, Depends(get_unit_of_work)]
 def list_postings_endpoint(
     uow: UoWDep,
     account_id: str | None = None,
+    skip: int = Query(0, ge=0),
+    limit: int = Query(50, ge=1, le=100),
 ):
-    return list_postings(uow, account_id=account_id)
+    return list_postings(uow, account_id=account_id, skip=skip, limit=limit)
 
 
 @router.post("/", response_model=PostingResponse, status_code=status.HTTP_201_CREATED)

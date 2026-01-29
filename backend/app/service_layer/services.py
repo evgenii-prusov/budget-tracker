@@ -153,10 +153,14 @@ def get_posting(uow: AbstractUnitOfWork, *, posting_id: str) -> Posting:
 
 
 def list_postings(
-    uow: AbstractUnitOfWork, *, account_id: str | None = None
+    uow: AbstractUnitOfWork,
+    *,
+    account_id: str | None = None,
+    skip: int = 0,
+    limit: int = 100,
 ) -> list[Posting]:
     with uow:
-        return uow.repo.list_postings(account_id=account_id)
+        return uow.repo.list_postings(account_id=account_id, skip=skip, limit=limit)
 
 
 # Category Services
@@ -185,9 +189,11 @@ def create_category(
         return new_category
 
 
-def list_categories(uow: AbstractUnitOfWork) -> list[Category]:
+def list_categories(
+    uow: AbstractUnitOfWork, skip: int = 0, limit: int = 100
+) -> list[Category]:
     with uow:
-        return uow.repo.list_categories()
+        return uow.repo.list_categories(skip=skip, limit=limit)
 
 
 def update_category_name(
@@ -281,6 +287,8 @@ def get_transfer(uow: AbstractUnitOfWork, *, transfer_id: str) -> Transfer:
         return transfer
 
 
-def list_transfers(uow: AbstractUnitOfWork) -> list[Transfer]:
+def list_transfers(
+    uow: AbstractUnitOfWork, skip: int = 0, limit: int = 100
+) -> list[Transfer]:
     with uow:
-        return uow.repo.list_transfers()
+        return uow.repo.list_transfers(skip=skip, limit=limit)

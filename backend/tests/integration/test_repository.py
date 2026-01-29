@@ -152,3 +152,20 @@ def test_list_postings_filtered_by_account(session):
 
     assert len(postings) == 1
     assert postings[0].account_id == "a1"
+
+
+def test_repository_pagination(session):
+    repo = repository.SqlAlchemyRepository(session)
+    for i in range(10):
+        repo.add(Account(f"id-{i}", f"Acc {i}", "USD", Decimal(0)))
+    session.commit()
+
+    # Test limit
+    page1 = repo.list_all(limit=3)
+    assert len(page1) == 3
+    assert page1[0].name == "Acc 0"
+
+    # Test offset
+    page2 = repo.list_all(skip=3, limit=3)
+    assert len(page2) == 3
+    assert page2[0].name == "Acc 3"

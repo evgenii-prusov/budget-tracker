@@ -2,6 +2,7 @@ from typing import Annotated
 from fastapi import APIRouter
 from fastapi import Depends
 from fastapi import HTTPException
+from fastapi import Query
 
 from app.domain.exceptions import DuplicateAccountNameError
 from app.domain.exceptions import InvalidInitialBalanceError
@@ -24,8 +25,12 @@ UoWDep = Annotated[AbstractUnitOfWork, Depends(get_unit_of_work)]
 
 
 @router.get("/accounts", response_model=list[AccountResponse])
-def list_accounts(uow: UoWDep):
-    return uow.repo.list_all()
+def list_accounts(
+    uow: UoWDep,
+    skip: int = Query(0, ge=0),
+    limit: int = Query(50, ge=1, le=100),
+):
+    return uow.repo.list_all(skip=skip, limit=limit)
 
 
 @router.get("/accounts/{account_id}", response_model=AccountResponse)

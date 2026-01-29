@@ -2,6 +2,7 @@ from typing import Annotated
 from fastapi import APIRouter
 from fastapi import Depends
 from fastapi import HTTPException
+from fastapi import Query
 
 from app.domain.exceptions import DuplicateCategoryNameError
 from app.domain.exceptions import CategoryNotFoundError
@@ -22,8 +23,12 @@ UoWDep = Annotated[AbstractUnitOfWork, Depends(get_unit_of_work)]
 
 
 @router.get("/categories", response_model=list[CategoryResponse])
-def list_categories_endpoint(uow: UoWDep):
-    return list_categories(uow)
+def list_categories_endpoint(
+    uow: UoWDep,
+    skip: int = Query(0, ge=0),
+    limit: int = Query(50, ge=1, le=100),
+):
+    return list_categories(uow, skip=skip, limit=limit)
 
 
 @router.get("/categories/{category_id}", response_model=CategoryResponse)
