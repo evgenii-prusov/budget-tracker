@@ -22,7 +22,7 @@ class Database:
         if self.engine:
             return
 
-        logger.info(f"Initializing database with URL: {DATABASE_URL}")
+        logger.info("Initializing database with URL: %s", DATABASE_URL)
         self.engine = create_engine(DATABASE_URL)
         self.session_factory = sessionmaker(bind=self.engine)
 

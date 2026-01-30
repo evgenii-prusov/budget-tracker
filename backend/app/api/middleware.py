@@ -1,24 +1,34 @@
 import time
-from fastapi import Request
-from starlette.middleware.base import BaseHTTPMiddleware
 from app.core.logging_config import get_logger
 
 logger = get_logger(__name__)
 
 
-class LoggingMiddleware(BaseHTTPMiddleware):
-    async def dispatch(self, request: Request, call_next):
+class LoggingMiddleware:
+    def __init__(self, app):
+        self.app = app
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+
         start_time = time.perf_counter()
+        method = scope.get("method", "UNKNOWN")
+        path = scope.get("path", "")
+        query_string = scope.get("query_string", b"").decode()
+        url = f"{path}?{query_string}" if query_string else path
+        status_code = {"value": 500}
 
-        # Log request
-        method = request.method
-        url = request.url.path
+        async def send_wrapper(message):
+            if message["type"] == "http.response.start":
+                status_code["value"] = message["status"]
+            await send(message)
 
-        response = await call_next(request)
-
-        process_time = time.perf_counter() - start_time
-        status_code = response.status_code
-
-        logger.info("%s %s - %s - %.4fs", method, url, status_code, process_time)
-
-        return response
+        try:
+            await self.app(scope, receive, send_wrapper)
+        finally:
+            process_time = time.perf_counter() - start_time
+            logger.info(
+                "%s %s - %s - %.4fs", method, url, status_code["value"], process_time
+            )

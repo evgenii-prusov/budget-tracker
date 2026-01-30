@@ -1,5 +1,14 @@
 import logging
+import os
 import sys
+
+
+def _resolve_log_level() -> int:
+    level_name = os.getenv("LOG_LEVEL", "INFO").upper()
+    level = logging.getLevelName(level_name)
+    if isinstance(level, int):
+        return level
+    raise ValueError(f"Invalid LOG_LEVEL: {level_name}")
 
 
 def setup_logging() -> None:
@@ -12,7 +21,7 @@ def setup_logging() -> None:
 
     # Configure the root logger
     logging.basicConfig(
-        level=logging.INFO,
+        level=_resolve_log_level(),
         format=log_format,
         handlers=[logging.StreamHandler(sys.stdout)],
     )

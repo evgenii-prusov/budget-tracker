@@ -9,12 +9,11 @@ from app.core.logging_config import setup_logging
 from app.api.middleware import LoggingMiddleware
 from app.core.db import db
 
-setup_logging()
-
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup: Initialize database
+    setup_logging()
     db.init()
     yield
     # Shutdown: Dispose database connection
