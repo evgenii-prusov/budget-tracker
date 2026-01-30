@@ -20,7 +20,26 @@ Personal finance application for tracking income, expenses, and transfers.
 git clone ...  # TODO: Add repo URL
 cd budget-tracker
 make install
-make run
+make run-all
+```
+
+To run backend only:
+
+```bash
+make run-backend
+```
+
+To run frontend only:
+
+```bash
+make run-frontend
+```
+
+To start/stop both in the background:
+
+```bash
+make start
+make stop
 ```
 
 To run tests:
@@ -35,4 +54,20 @@ See [docs/](./docs/) for full documentation.
 
 ## Tech Stack
 
-Python 3.12, FastAPI, SQLAlchemy, pytest, Ruff, uv
+Python 3.12, FastAPI, SQLAlchemy, React, TypeScript, Tailwind, pytest, Ruff, uv
+
+## Docker (optional)
+
+Pros:
+- Consistent dev environment across machines (Python/Node/tooling versions).
+- One command to run backend + frontend + any future services.
+- Easier onboarding for contributors.
+
+Cons:
+- Slower local dev feedback loops vs native (especially on macOS).
+- Extra maintenance: Dockerfiles, compose files, volumes, cache strategy.
+- SQLite-in-container needs careful volume mapping to persist data.
+
+Recommendation:
+- If you expect more contributors or additional services (DB, cache, workers), it’s a good time to add Docker Compose.
+- If it’s mostly solo dev and fast iteration matters, keep native for now and add Docker later.

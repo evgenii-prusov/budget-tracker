@@ -24,3 +24,6 @@ coverage.xml
 
 # Node
 node_modules/
+
+# Local dev run artifacts
+.run/

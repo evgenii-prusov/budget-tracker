@@ -4,130 +4,70 @@
 
 ## Project Overview
 
-Budget Tracker is a personal finance application for tracking income, expenses, and transfers across multiple accounts and currencies.
+Budget Tracker is a personal finance application for tracking income, expenses, transfers, and
+balances across multiple accounts and currencies.
 
 ## Tech Stack
 
-- **Backend:** Python 3.14+, Django 5.x, Django Ninja (API)
-- **Database:** PostgreSQL 16
-- **Cache/Queue:** Redis, Celery
-- **Storage:** MinIO (S3-compatible)
-- **OCR:** Tesseract (pytesseract)
-- **Frontend:** Django Templates + HTMX + Tailwind CSS
-- **Infrastructure:** Docker Compose (dev), Kubernetes + Helm (prod)
+- **Backend:** Python 3.12, FastAPI
+- **Persistence:** SQLAlchemy + SQLite (default)
+- **Frontend:** React + TypeScript + Tailwind (Vite)
+- **Tooling:** pytest, Ruff, uv
 
 ## Project Structure
 
 ```plaintext
-src/
-├── config/              # Django project settings
-│   ├── settings/        # Split settings (base, local, test, production)
-│   ├── urls.py
-│   ├── celery.py
-│   └── api.py           # Django Ninja API setup
-├── apps/
-│   ├── users/           # Custom user model, auth
-│   ├── accounts/        # Financial accounts (bank, cash, etc.)
-│   ├── categories/      # Transaction categories
-│   ├── transactions/    # Income, expenses, transfers
-│   ├── invoices/        # Receipt uploads + OCR
-│   └── budgets/         # Budget tracking
-├── core/                # Shared utilities
-│   ├── models.py        # Base models (TimestampedModel, UserScopedModel)
-│   ├── storage.py       # MinIO/S3 integration
-│   └── exceptions.py    # Custom exceptions
-└── templates/           # Django templates
+backend/
+  app/
+    api/routers/        # FastAPI endpoints
+    domain/             # Core models/exceptions
+    service_layer/      # Business logic
+    adapters/           # ORM + repository
+  tests/                # pytest suite
+frontend/
+  src/                  # React app
 ```
 
-## Key Patterns
+## Key Domain Rules
 
-### Multi-Tenancy
-
-All data is scoped to a user. Every model inherits from `UserScopedModel` which has a `user` foreign key. All queries must filter by `user=request.user`.
-
-```python
-class UserScopedModel(TimestampedModel):
-    user = models.ForeignKey("users.User", on_delete=models.CASCADE)
-    
-    class Meta:
-        abstract = True
-```
-
-### API Style (Django Ninja)
-
-We use Django Ninja with Pydantic schemas:
-
-```python
-from ninja import Router, Schema
-
-router = Router()
-
-class TransactionOut(Schema):
-    id: int
-    amount: Decimal
-    # ...
-
-@router.get("/", response=list[TransactionOut])
-def list_transactions(request):
-    return request.user.transactions.all()
-```
-
-### Transaction Types
-
-- `income`: Money coming in → adds to account balance
-- `expense`: Money going out → subtracts from account balance  
-- `transfer`: Money between accounts → subtracts from source, adds to destination
-
-### Multi-Currency
-
-- Each account has a fixed currency
-- Transfers between currencies require exchange rate
-- Reports convert to user's default currency
-
-## Coding Standards
-
-- **Type hints:** Required on all functions
-- **Docstrings:** Required on all public functions/classes
-- **Testing:** pytest, aim for >80% coverage
-- **Linting:** ruff (replaces flake8, isort, black)
-- **Type checking:** mypy with strict mode
+- **Posting types:** `INCOME` or `EXPENSE`.
+- **Amounts:** Always `Decimal` in the domain. Expenses are stored as negative amounts.
+- **Balances:**
+  `balance = initial_balance + sum(postings) - outgoing_transfers + incoming_transfers`
+- **Currencies:** Each account has a fixed currency.
 
 ## Common Commands
 
 ```bash
-# Development
-uv sync                              # Install dependencies
-uv run python src/manage.py runserver   # Run dev server
-uv run pytest                        # Run tests
-uv run ruff check src/               # Lint
-uv run mypy src/                     # Type check
+# Install dependencies (backend + frontend)
+make install
 
-# Docker
-docker compose -f docker/docker-compose.yml up   # Start all services
+# Run backend + frontend together (foreground, Ctrl+C to stop)
+make run-all
 
-# Migrations
-uv run python src/manage.py makemigrations
-uv run python src/manage.py migrate
+# Run backend or frontend only
+make run-backend
+make run-frontend
+
+# Start/stop both in background
+make start
+make stop
+
+# Tests
+make test
 ```
 
-## Key Documentation
+## Frontend Notes
 
-- `docs/SPECIFICATION.md` - Full product specification
-- `docs/architecture/DATA_MODEL.md` - Database design
-- `docs/architecture/API.md` - API design
+- Dev server runs on `http://localhost:5173`.
+- Backend runs on `http://localhost:8000`.
+- Vite proxy forwards `/api/*` to backend during dev.
+
+## Configuration Notes
+
+- `DATABASE_URL` controls the SQLAlchemy connection string (defaults to SQLite).
+- `LOG_LEVEL` sets logging verbosity (default `INFO`).
 
 ## Current Status
 
-Phase: MVP Development
-Focus: Core transaction management + multi-currency support
-
-## Frontend Status
-
-The `frontend/` directory is currently a placeholder and does not contain an active UI implementation. Plan any UI work as new scope and document the approach before starting.
-
-## Important Notes
-
-1. **Always filter by user:** Never return data without filtering by the authenticated user
-2. **Decimal for money:** Always use `Decimal`, never `float` for monetary values
-3. **UTC timestamps:** Store all times in UTC, convert for display
-4. **Soft deletes:** Use `is_active` flag instead of hard deletes where possible
+- MVP: Accounts, Categories, Postings, Transfers (backend + UI)
