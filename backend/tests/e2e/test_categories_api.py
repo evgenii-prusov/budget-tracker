@@ -150,3 +150,16 @@ def test_delete_category_in_use_returns_409(client: TestClient):
     # Assert
     assert response.status_code == 409
     assert "has postings" in response.json()["detail"]
+
+
+def test_list_categories_pagination(client: TestClient):
+    client.post("/categories", json={"name": "Alpha"})
+    client.post("/categories", json={"name": "Beta"})
+    client.post("/categories", json={"name": "Gamma"})
+
+    response = client.get("/categories?skip=1&limit=1")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data) == 1
+    assert data[0]["name"] == "Beta"

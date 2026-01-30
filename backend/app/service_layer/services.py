@@ -31,6 +31,13 @@ def get_account(uow: AbstractUnitOfWork, *, account_id: str) -> Account:
         return account
 
 
+def list_accounts(
+    uow: AbstractUnitOfWork, *, skip: int = 0, limit: int = 50
+) -> list[Account]:
+    with uow:
+        return uow.repo.list_all(skip=skip, limit=limit)
+
+
 def update_account_name(
     uow: AbstractUnitOfWork, *, account_id: str, new_name: str
 ) -> Account:
@@ -165,7 +172,7 @@ def list_postings(
     *,
     account_id: str | None = None,
     skip: int = 0,
-    limit: int = 100,
+    limit: int = 50,
 ) -> list[Posting]:
     with uow:
         return uow.repo.list_postings(account_id=account_id, skip=skip, limit=limit)
@@ -198,7 +205,7 @@ def create_category(
 
 
 def list_categories(
-    uow: AbstractUnitOfWork, skip: int = 0, limit: int = 100
+    uow: AbstractUnitOfWork, skip: int = 0, limit: int = 50
 ) -> list[Category]:
     with uow:
         return uow.repo.list_categories(skip=skip, limit=limit)
@@ -296,7 +303,7 @@ def get_transfer(uow: AbstractUnitOfWork, *, transfer_id: str) -> Transfer:
 
 
 def list_transfers(
-    uow: AbstractUnitOfWork, skip: int = 0, limit: int = 100
+    uow: AbstractUnitOfWork, skip: int = 0, limit: int = 50
 ) -> list[Transfer]:
     with uow:
         return uow.repo.list_transfers(skip=skip, limit=limit)

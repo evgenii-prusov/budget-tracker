@@ -20,7 +20,7 @@ class AbstractRepository(abc.ABC):
         raise NotImplementedError()
 
     @abc.abstractmethod
-    def list_all(self, skip: int = 0, limit: int = 100) -> list[Account]:
+    def list_all(self, skip: int = 0, limit: int = 50) -> list[Account]:
         raise NotImplementedError()
 
     @abc.abstractmethod
@@ -40,7 +40,7 @@ class AbstractRepository(abc.ABC):
         raise NotImplementedError()
 
     @abc.abstractmethod
-    def list_transfers(self, skip: int = 0, limit: int = 100) -> list[Transfer]:
+    def list_transfers(self, skip: int = 0, limit: int = 50) -> list[Transfer]:
         raise NotImplementedError()
 
     @abc.abstractmethod
@@ -49,7 +49,7 @@ class AbstractRepository(abc.ABC):
 
     @abc.abstractmethod
     def list_postings(
-        self, account_id: str | None = None, skip: int = 0, limit: int = 100
+        self, account_id: str | None = None, skip: int = 0, limit: int = 50
     ) -> list[Posting]:
         raise NotImplementedError()
 
@@ -71,7 +71,7 @@ class AbstractRepository(abc.ABC):
         raise NotImplementedError()
 
     @abc.abstractmethod
-    def list_categories(self, skip: int = 0, limit: int = 100) -> list[Category]:
+    def list_categories(self, skip: int = 0, limit: int = 50) -> list[Category]:
         raise NotImplementedError()
 
     @abc.abstractmethod

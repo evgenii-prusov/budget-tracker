@@ -5,6 +5,7 @@ from app.domain.model import Account
 from app.domain.model import Transfer
 from app.domain.model import Category
 from app.domain.model import Posting
+from app.adapters.orm import accounts, categories, postings, transfers
 from app.service_layer.abstract_repository import AbstractRepository
 
 
@@ -21,8 +22,14 @@ class SqlAlchemyRepository(AbstractRepository):
     def get_by_name(self, name: str) -> Account | None:
         return self.session.query(Account).filter_by(name=name).first()
 
-    def list_all(self, skip: int = 0, limit: int = 100) -> list[Account]:
-        return self.session.query(Account).offset(skip).limit(limit).all()
+    def list_all(self, skip: int = 0, limit: int = 50) -> list[Account]:
+        return (
+            self.session.query(Account)
+            .order_by(accounts.c.name, accounts.c.account_id)
+            .offset(skip)
+            .limit(limit)
+            .all()
+        )
 
     def delete(self, account: Account) -> None:
         self.session.delete(account)
@@ -47,19 +54,30 @@ class SqlAlchemyRepository(AbstractRepository):
             .all()
         )
 
-    def list_transfers(self, skip: int = 0, limit: int = 100) -> list[Transfer]:
-        return self.session.query(Transfer).offset(skip).limit(limit).all()
+    def list_transfers(self, skip: int = 0, limit: int = 50) -> list[Transfer]:
+        return (
+            self.session.query(Transfer)
+            .order_by(transfers.c.transfer_date, transfers.c.transfer_id)
+            .offset(skip)
+            .limit(limit)
+            .all()
+        )
 
     def get_posting(self, posting_id: str) -> Posting | None:
         return self.session.query(Posting).filter_by(posting_id=posting_id).one_or_none()
 
     def list_postings(
-        self, account_id: str | None = None, skip: int = 0, limit: int = 100
+        self, account_id: str | None = None, skip: int = 0, limit: int = 50
     ) -> list[Posting]:
         query = self.session.query(Posting)
         if account_id is not None:
             query = query.filter_by(account_id=account_id)
-        return query.offset(skip).limit(limit).all()
+        return (
+            query.order_by(postings.c.posting_date, postings.c.posting_id)
+            .offset(skip)
+            .limit(limit)
+            .all()
+        )
 
     def count_postings_for_account(self, account_id: str) -> int:
         from app.domain.model import Posting
@@ -78,8 +96,14 @@ class SqlAlchemyRepository(AbstractRepository):
     def get_category_by_name(self, name: str) -> Category | None:
         return self.session.query(Category).filter_by(name=name).first()
 
-    def list_categories(self, skip: int = 0, limit: int = 100) -> list[Category]:
-        return self.session.query(Category).offset(skip).limit(limit).all()
+    def list_categories(self, skip: int = 0, limit: int = 50) -> list[Category]:
+        return (
+            self.session.query(Category)
+            .order_by(categories.c.name, categories.c.category_id)
+            .offset(skip)
+            .limit(limit)
+            .all()
+        )
 
     def delete_category(self, category: Category) -> None:
         self.session.delete(category)

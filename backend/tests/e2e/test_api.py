@@ -62,6 +62,28 @@ def test_get_accounts_empty_database(client):
     assert data == []
 
 
+def test_get_accounts_pagination(client):
+    client.post(
+        "/accounts",
+        json={"name": "Account A", "currency": "EUR", "initial_balance": "10"},
+    )
+    client.post(
+        "/accounts",
+        json={"name": "Account B", "currency": "EUR", "initial_balance": "20"},
+    )
+    client.post(
+        "/accounts",
+        json={"name": "Account C", "currency": "EUR", "initial_balance": "30"},
+    )
+
+    response = client.get("/accounts?skip=1&limit=1")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data) == 1
+    assert data[0]["name"] == "Account B"
+
+
 def test_create_account_duplicate_name(client):
     # 1. Arrange: Create an account via API
     client.post(

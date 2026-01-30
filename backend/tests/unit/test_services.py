@@ -51,7 +51,7 @@ class FakeRepository(AbstractRepository):
     def get_by_name(self, name: str) -> Account | None:
         return next((acc for acc in self.accounts if acc.name == name), None)
 
-    def list_all(self, skip: int = 0, limit: int = 100) -> list[Account]:
+    def list_all(self, skip: int = 0, limit: int = 50) -> list[Account]:
         return list(self.accounts)[skip : skip + limit]
 
     def add_transfer(self, transfer: Transfer):
@@ -70,7 +70,7 @@ class FakeRepository(AbstractRepository):
             if t.source_account_id == account_id or t.dest_account_id == account_id
         ]
 
-    def list_transfers(self, skip: int = 0, limit: int = 100) -> list[Transfer]:
+    def list_transfers(self, skip: int = 0, limit: int = 50) -> list[Transfer]:
         return list(self.transfers)[skip : skip + limit]
 
     def delete(self, account: Account) -> None:
@@ -88,7 +88,7 @@ class FakeRepository(AbstractRepository):
     def get_category_by_name(self, name: str) -> Category | None:
         return next((c for c in self.categories if c.name == name), None)
 
-    def list_categories(self, skip: int = 0, limit: int = 100) -> list[Category]:
+    def list_categories(self, skip: int = 0, limit: int = 50) -> list[Category]:
         return list(self.categories)[skip : skip + limit]
 
     def delete_category(self, category: Category) -> None:
@@ -110,7 +110,7 @@ class FakeRepository(AbstractRepository):
         return None
 
     def list_postings(
-        self, account_id: str | None = None, skip: int = 0, limit: int = 100
+        self, account_id: str | None = None, skip: int = 0, limit: int = 50
     ) -> list[Posting]:
         all_postings = []
         for acc in self.accounts:

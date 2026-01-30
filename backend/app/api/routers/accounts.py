@@ -18,6 +18,7 @@ from app.api.schemas import AccountUpdate
 from app.service_layer.services import create_account
 from app.service_layer.services import delete_account
 from app.service_layer.services import get_account
+from app.service_layer.services import list_accounts as list_accounts_service
 from app.service_layer.services import update_account_name
 
 
@@ -31,7 +32,7 @@ def list_accounts(
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=100),
 ):
-    return uow.repo.list_all(skip=skip, limit=limit)
+    return list_accounts_service(uow=uow, skip=skip, limit=limit)
 
 
 @router.get("/accounts/{account_id}", response_model=AccountResponse)

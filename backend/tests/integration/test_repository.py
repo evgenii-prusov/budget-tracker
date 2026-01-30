@@ -2,7 +2,7 @@ from sqlalchemy import text
 from decimal import Decimal
 from datetime import date
 from app.adapters import repository
-from app.domain.model import Account, PostingType
+from app.domain.model import Account, PostingType, Category, Transfer
 from tests.constants import JAN_01
 
 
@@ -75,10 +75,10 @@ def test_repository_retrieve_all_accounts(session):
     accounts = repo.list_all()
     assert accounts == [
         Account(
-            account_id="1", name="rub", currency="RUB", initial_balance=Decimal(100)
+            account_id="2", name="eur", currency="EUR", initial_balance=Decimal(200)
         ),
         Account(
-            account_id="2", name="eur", currency="EUR", initial_balance=Decimal(200)
+            account_id="1", name="rub", currency="RUB", initial_balance=Decimal(100)
         ),
     ]
 
@@ -169,6 +169,81 @@ def test_repository_pagination(session):
     page2 = repo.list_all(skip=3, limit=3)
     assert len(page2) == 3
     assert page2[0].name == "Acc 3"
+
+
+def test_list_postings_pagination_orders_by_date(session):
+    repo = repository.SqlAlchemyRepository(session)
+    account = Account("a1", "Test", "EUR", Decimal(100))
+    repo.add(account)
+    account.record_posting(
+        Decimal(10), date(2025, 1, 1), category_id=None, posting_type=PostingType.EXPENSE
+    )
+    account.record_posting(
+        Decimal(20), date(2025, 1, 2), category_id=None, posting_type=PostingType.EXPENSE
+    )
+    account.record_posting(
+        Decimal(30), date(2025, 1, 3), category_id=None, posting_type=PostingType.EXPENSE
+    )
+    session.commit()
+
+    page = repo.list_postings(skip=1, limit=1)
+    assert len(page) == 1
+    assert page[0].posting_date == date(2025, 1, 2)
+
+
+def test_list_categories_pagination(session):
+    repo = repository.SqlAlchemyRepository(session)
+    repo.add_category(Category("c1", "Alpha"))
+    repo.add_category(Category("c2", "Beta"))
+    repo.add_category(Category("c3", "Gamma"))
+    session.commit()
+
+    page = repo.list_categories(skip=1, limit=1)
+    assert len(page) == 1
+    assert page[0].name == "Beta"
+
+
+def test_list_transfers_pagination_orders_by_date(session):
+    repo = repository.SqlAlchemyRepository(session)
+    acc1 = Account("a1", "Source", "EUR", Decimal(100))
+    acc2 = Account("a2", "Dest", "EUR", Decimal(0))
+    repo.add(acc1)
+    repo.add(acc2)
+    repo.add_transfer(
+        Transfer(
+            "t1",
+            acc1.account_id,
+            acc2.account_id,
+            Decimal(10),
+            Decimal(10),
+            date(2025, 1, 1),
+        )
+    )
+    repo.add_transfer(
+        Transfer(
+            "t2",
+            acc1.account_id,
+            acc2.account_id,
+            Decimal(20),
+            Decimal(20),
+            date(2025, 1, 2),
+        )
+    )
+    repo.add_transfer(
+        Transfer(
+            "t3",
+            acc1.account_id,
+            acc2.account_id,
+            Decimal(30),
+            Decimal(30),
+            date(2025, 1, 3),
+        )
+    )
+    session.commit()
+
+    page = repo.list_transfers(skip=1, limit=1)
+    assert len(page) == 1
+    assert page[0].transfer_date == date(2025, 1, 2)
 
 
 def test_count_postings_for_account(session):

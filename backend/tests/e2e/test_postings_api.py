@@ -200,6 +200,45 @@ def test_list_postings_endpoint(client, test_data):
     assert len(data) == 2
 
 
+def test_list_postings_pagination(client, test_data):
+    account_id = test_data["account_id"]
+
+    client.post(
+        "/postings/",
+        json={
+            "account_id": account_id,
+            "amount": "10.00",
+            "posting_date": JAN_01.isoformat(),
+            "posting_type": "EXPENSE",
+        },
+    )
+    client.post(
+        "/postings/",
+        json={
+            "account_id": account_id,
+            "amount": "20.00",
+            "posting_date": JAN_02.isoformat(),
+            "posting_type": "EXPENSE",
+        },
+    )
+    client.post(
+        "/postings/",
+        json={
+            "account_id": account_id,
+            "amount": "30.00",
+            "posting_date": JAN_03.isoformat(),
+            "posting_type": "EXPENSE",
+        },
+    )
+
+    response = client.get("/postings/?skip=1&limit=1")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data) == 1
+    assert data[0]["posting_date"] == JAN_02.isoformat()
+
+
 def test_list_postings_endpoint_filtered(client, test_data):
     account_id = test_data["account_id"]
 
