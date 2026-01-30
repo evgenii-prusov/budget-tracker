@@ -30,6 +30,22 @@ export default function AccountsPage() {
 
   const deleteMutation = useMutation({
     mutationFn: deleteAccount,
+    onMutate: async (accountId) => {
+      setPageError(null);
+      await qc.cancelQueries({ queryKey: ['accounts'] });
+      const previous = qc.getQueryData<AccountWithBalance[]>(['accounts']);
+      qc.setQueryData(['accounts'], (old: AccountWithBalance[] | undefined) =>
+        old ? old.filter((acc) => acc.account_id !== accountId) : old,
+      );
+      return { previous };
+    },
+    onError: (err, _accountId, context) => {
+      if (context?.previous) {
+        qc.setQueryData(['accounts'], context.previous);
+      }
+      const msg = err instanceof Error ? err.message : 'Could not delete account';
+      setPageError(msg);
+    },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['accounts'] });
       setPageError(null);
@@ -55,14 +71,8 @@ export default function AccountsPage() {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    setPageError(null);
-    try {
-      await deleteMutation.mutateAsync(id);
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Could not delete account';
-      setPageError(msg);
-    }
+  const handleDelete = (id: string) => {
+    deleteMutation.mutate(id);
   };
 
   return (
