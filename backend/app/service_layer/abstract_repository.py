@@ -36,6 +36,10 @@ class AbstractRepository(abc.ABC):
         raise NotImplementedError()
 
     @abc.abstractmethod
+    def delete_transfer(self, transfer: Transfer) -> None:
+        raise NotImplementedError()
+
+    @abc.abstractmethod
     def list_transfers_for_account(self, account_id: str) -> list[Transfer]:
         raise NotImplementedError()
 
@@ -49,6 +53,10 @@ class AbstractRepository(abc.ABC):
 
     @abc.abstractmethod
     def get_posting(self, posting_id: str) -> Posting | None:
+        raise NotImplementedError()
+
+    @abc.abstractmethod
+    def delete_posting(self, posting: Posting) -> None:
         raise NotImplementedError()
 
     @abc.abstractmethod

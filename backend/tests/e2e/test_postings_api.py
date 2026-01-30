@@ -168,6 +168,32 @@ def test_get_posting_not_found(client):
     assert "Posting with id 'non-existent-id' not found" in response.json()["detail"]
 
 
+def test_delete_posting_success(client, test_data):
+    account_id = test_data["account_id"]
+
+    posting_data = {
+        "account_id": account_id,
+        "amount": "12.34",
+        "posting_date": JAN_01.isoformat(),
+        "posting_type": "INCOME",
+    }
+    create_response = client.post("/postings/", json=posting_data)
+    assert create_response.status_code == 201
+    posting_id = create_response.json()["posting_id"]
+
+    delete_response = client.delete(f"/postings/{posting_id}")
+    assert delete_response.status_code == 204
+
+    get_response = client.get(f"/postings/{posting_id}")
+    assert get_response.status_code == 404
+
+
+def test_delete_posting_not_found(client):
+    response = client.delete("/postings/non-existent-id")
+    assert response.status_code == 404
+    assert "Posting with id 'non-existent-id' not found" in response.json()["detail"]
+
+
 def test_list_postings_endpoint(client, test_data):
     account_id = test_data["account_id"]
 

@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useOutletContext } from 'react-router-dom';
-import { createTransfer, listTransfers } from '../lib/api';
+import { createTransfer, deleteTransfer, listTransfers } from '../lib/api';
 import type { AccountWithBalance } from '../lib/aggregates';
-import { ArrowsLeftRight, ArrowUpRight } from '@phosphor-icons/react';
+import { ArrowsLeftRight, ArrowUpRight, Trash } from '@phosphor-icons/react';
 
 type OutletCtx = { accounts: AccountWithBalance[] };
 
@@ -11,6 +11,7 @@ export default function TransfersPage() {
   const { accounts } = useOutletContext<OutletCtx>();
   const { data: transfers } = useQuery({ queryKey: ['transfers'], queryFn: listTransfers });
   const qc = useQueryClient();
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const formatAmount = (value: string) =>
     Number(value).toLocaleString(undefined, {
       minimumFractionDigits: 0,
@@ -22,6 +23,19 @@ export default function TransfersPage() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['transfers'] });
       qc.invalidateQueries({ queryKey: ['accounts'] });
+    },
+  });
+  const deleteMutation = useMutation({
+    mutationFn: deleteTransfer,
+    onMutate: (transferId) => {
+      setDeletingId(transferId);
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['transfers'] });
+      qc.invalidateQueries({ queryKey: ['accounts'] });
+    },
+    onSettled: () => {
+      setDeletingId(null);
     },
   });
 
@@ -52,13 +66,27 @@ export default function TransfersPage() {
                   <div className="text-[11px] text-slate-400">{t.transfer_date}</div>
                   {t.description && <div className="text-slate-300">{t.description}</div>}
                 </div>
-                <div className="text-right">
-                  <div className="text-red-300">
-                    - {formatAmount(t.debit_amount)} {from?.currency ?? ''}
+                <div className="flex items-center gap-3">
+                  <div className="text-right">
+                    <div className="text-red-300">
+                      - {formatAmount(t.debit_amount)} {from?.currency ?? ''}
+                    </div>
+                    <div className="text-emerald-300">
+                      + {formatAmount(t.credit_amount)} {to?.currency ?? ''}
+                    </div>
                   </div>
-                  <div className="text-emerald-300">
-                    + {formatAmount(t.credit_amount)} {to?.currency ?? ''}
-                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!window.confirm('Delete this transfer?')) return;
+                      void deleteMutation.mutateAsync(t.transfer_id);
+                    }}
+                    disabled={deleteMutation.isPending && deletingId === t.transfer_id}
+                    className="inline-flex items-center justify-center rounded-lg bg-red-500/20 text-red-200 hover:bg-red-500/30 p-2 disabled:opacity-60"
+                    title="Delete"
+                  >
+                    <Trash size={16} />
+                  </button>
                 </div>
               </li>
             );
@@ -68,6 +96,9 @@ export default function TransfersPage() {
           )}
         </ul>
       </div>
+      {deleteMutation.error instanceof Error && (
+        <p className="text-sm text-red-200">{deleteMutation.error.message}</p>
+      )}
     </div>
   );
 }

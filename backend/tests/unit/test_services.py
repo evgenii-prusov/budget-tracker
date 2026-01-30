@@ -23,10 +23,12 @@ from app.service_layer.services import create_account
 from app.service_layer.services import delete_account
 from app.service_layer.services import create_category
 from app.service_layer.services import create_posting
+from app.service_layer.services import delete_posting
 from app.service_layer.services import get_posting
 from app.service_layer.services import list_postings
 from app.service_layer.services import update_account_name
 from app.service_layer.services import create_transfer
+from app.service_layer.services import delete_transfer
 from app.service_layer.services import get_transfer
 from app.service_layer.services import list_transfers
 from tests.constants import JAN_01
@@ -62,6 +64,15 @@ class FakeRepository(AbstractRepository):
             (t for t in self.transfers if t.transfer_id == transfer_id),
             None,
         )
+
+    def delete_transfer(self, transfer: Transfer) -> None:
+        if transfer in self.transfers:
+            self.transfers.remove(transfer)
+        for acc in self.accounts:
+            if transfer in acc._outgoing_transfers:
+                acc._outgoing_transfers.remove(transfer)
+            if transfer in acc._incoming_transfers:
+                acc._incoming_transfers.remove(transfer)
 
     def list_transfers_for_account(self, account_id: str) -> list[Transfer]:
         return [
@@ -111,6 +122,12 @@ class FakeRepository(AbstractRepository):
                 if p.posting_id == posting_id:
                     return p
         return None
+
+    def delete_posting(self, posting: Posting) -> None:
+        for acc in self.accounts:
+            if posting in acc._postings:
+                acc._postings.remove(posting)
+                break
 
     def list_postings(
         self, account_id: str | None = None, skip: int = 0, limit: int = 50
@@ -704,6 +721,43 @@ class TestGetPosting:
         assert "Posting with id 'non-existent' not found" in str(exc_info.value)
 
 
+class TestDeletePosting:
+    def test_delete_posting_success(self):
+        # Arrange
+        uow = FakeUnitOfWork()
+        account = create_account(
+            uow,
+            name="Test Account",
+            currency="EUR",
+            initial_balance=Decimal(100),
+        )
+        posting = create_posting(
+            uow,
+            account_id=account.account_id,
+            amount=Decimal(50),
+            posting_date=JAN_01,
+            posting_type=PostingType.INCOME,
+            category_id=None,
+        )
+        uow.committed = False
+
+        # Act
+        delete_posting(uow, posting_id=posting.posting_id)
+
+        # Assert
+        assert uow.repo.get_posting(posting.posting_id) is None
+        assert account.balance == Decimal(100)
+        assert uow.committed is True
+
+    def test_delete_posting_not_found(self):
+        # Arrange
+        uow = FakeUnitOfWork()
+
+        # Act & Assert
+        with pytest.raises(PostingNotFoundError):
+            delete_posting(uow, posting_id="non-existent")
+
+
 class TestListPostings:
     def test_list_postings_empty(self):
         # Arrange
@@ -983,3 +1037,45 @@ class TestTransferServices:
         assert len(transfers) == 2
         assert t1 in transfers
         assert t2 in transfers
+
+    def test_delete_transfer_success(self):
+        # Arrange
+        uow = FakeUnitOfWork()
+        source = create_account(
+            uow,
+            name="Source",
+            currency="USD",
+            initial_balance=Decimal(100),
+        )
+        dest = create_account(
+            uow,
+            name="Dest",
+            currency="USD",
+            initial_balance=Decimal(0),
+        )
+        transfer = create_transfer(
+            uow,
+            source_account_id=source.account_id,
+            dest_account_id=dest.account_id,
+            debit_amount=Decimal(10),
+            credit_amount=Decimal(10),
+            transfer_date=JAN_01,
+        )
+        uow.committed = False
+
+        # Act
+        delete_transfer(uow, transfer_id=transfer.transfer_id)
+
+        # Assert
+        assert uow.repo.get_transfer(transfer.transfer_id) is None
+        assert source.balance == Decimal(100)
+        assert dest.balance == Decimal(0)
+        assert uow.committed is True
+
+    def test_delete_transfer_not_found(self):
+        # Arrange
+        uow = FakeUnitOfWork()
+
+        # Act & Assert
+        with pytest.raises(TransferNotFoundError):
+            delete_transfer(uow, transfer_id="non-existent")

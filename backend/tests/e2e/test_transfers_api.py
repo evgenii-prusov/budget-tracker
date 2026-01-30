@@ -93,3 +93,39 @@ def test_list_transfers_pagination(client):
     data = response.json()
     assert len(data) == 1
     assert data[0]["transfer_date"] == "2025-01-02"
+
+
+def test_delete_transfer_success(client):
+    acc1 = client.post(
+        "/accounts",
+        json={"name": "Source Delete", "currency": "EUR", "initial_balance": "100"},
+    ).json()
+    acc2 = client.post(
+        "/accounts",
+        json={"name": "Dest Delete", "currency": "EUR", "initial_balance": "0"},
+    ).json()
+
+    transfer_response = client.post(
+        "/transfers/",
+        json={
+            "source_account_id": acc1["account_id"],
+            "dest_account_id": acc2["account_id"],
+            "debit_amount": "10.00",
+            "credit_amount": "10.00",
+            "transfer_date": "2025-01-01",
+        },
+    )
+    assert transfer_response.status_code == 201
+    transfer_id = transfer_response.json()["transfer_id"]
+
+    delete_response = client.delete(f"/transfers/{transfer_id}")
+    assert delete_response.status_code == 204
+
+    get_response = client.get(f"/transfers/{transfer_id}")
+    assert get_response.status_code == 404
+
+
+def test_delete_transfer_not_found(client):
+    response = client.delete("/transfers/non-existent-id")
+    assert response.status_code == 404
+    assert "Transfer with id 'non-existent-id' not found" in response.json()["detail"]

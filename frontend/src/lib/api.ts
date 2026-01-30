@@ -97,6 +97,8 @@ export const createPosting = (payload: {
   posting_type: PostingType;
   category_id?: string | null;
 }) => request<Posting>('/postings/', { method: 'POST', json: payload });
+export const deletePosting = (posting_id: string) =>
+  request<void>(`/postings/${posting_id}`, { method: 'DELETE' });
 
 // Transfers
 export const listTransfers = () => request<Transfer[]>('/transfers/');
@@ -108,3 +110,5 @@ export const createTransfer = (payload: {
   transfer_date: string;
   description?: string | null;
 }) => request<Transfer>('/transfers/', { method: 'POST', json: payload });
+export const deleteTransfer = (transfer_id: string) =>
+  request<void>(`/transfers/${transfer_id}`, { method: 'DELETE' });

@@ -184,6 +184,16 @@ def list_postings(
         return uow.repo.list_postings(account_id=account_id, skip=skip, limit=limit)
 
 
+def delete_posting(uow: AbstractUnitOfWork, *, posting_id: str) -> None:
+    with uow:
+        posting = uow.repo.get_posting(posting_id)
+        if posting is None:
+            raise PostingNotFoundError(f"Posting with id '{posting_id}' not found")
+        uow.repo.delete_posting(posting)
+        uow.commit()
+        logger.info("Deleted posting id: %s", posting_id)
+
+
 # Category Services
 
 
@@ -313,3 +323,13 @@ def list_transfers(
 ) -> list[Transfer]:
     with uow:
         return uow.repo.list_transfers(skip=skip, limit=limit)
+
+
+def delete_transfer(uow: AbstractUnitOfWork, *, transfer_id: str) -> None:
+    with uow:
+        transfer = uow.repo.get_transfer(transfer_id)
+        if transfer is None:
+            raise TransferNotFoundError(f"Transfer with id '{transfer_id}' not found")
+        uow.repo.delete_transfer(transfer)
+        uow.commit()
+        logger.info("Deleted transfer id: %s", transfer_id)

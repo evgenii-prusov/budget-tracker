@@ -14,6 +14,7 @@ from app.domain.exceptions import InsufficientFundsError
 from app.domain.exceptions import TransferNotFoundError
 from app.service_layer.unit_of_work import AbstractUnitOfWork
 from app.service_layer.services import create_transfer
+from app.service_layer.services import delete_transfer
 from app.service_layer.services import get_transfer
 from app.service_layer.services import list_transfers
 
@@ -68,3 +69,15 @@ def get_transfer_endpoint(
         return get_transfer(uow, transfer_id=transfer_id)
     except TransferNotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+
+
+@router.delete("/{transfer_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_transfer_endpoint(
+    transfer_id: str,
+    uow: UoWDep,
+):
+    try:
+        delete_transfer(uow, transfer_id=transfer_id)
+    except TransferNotFoundError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+    return None

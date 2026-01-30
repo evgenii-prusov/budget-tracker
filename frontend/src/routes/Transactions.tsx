@@ -1,10 +1,10 @@
 import { useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useOutletContext } from 'react-router-dom';
-import { createPosting, listCategories, listPostings } from '../lib/api';
+import { createPosting, deletePosting, listCategories, listPostings } from '../lib/api';
 import type { AccountWithBalance } from '../lib/aggregates';
 import type { PostingType } from '../lib/types';
-import { ArrowUpRight, ArrowDownRight } from '@phosphor-icons/react';
+import { Trash } from '@phosphor-icons/react';
 
 type OutletCtx = { accounts: AccountWithBalance[] };
 
@@ -18,12 +18,26 @@ export default function TransactionsPage() {
   });
   const { data: categories } = useQuery({ queryKey: ['categories'], queryFn: listCategories });
   const qc = useQueryClient();
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const mutation = useMutation({
     mutationFn: createPosting,
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['postings'] });
       qc.invalidateQueries({ queryKey: ['accounts'] });
+    },
+  });
+  const deleteMutation = useMutation({
+    mutationFn: deletePosting,
+    onMutate: (postingId) => {
+      setDeletingId(postingId);
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['postings'] });
+      qc.invalidateQueries({ queryKey: ['accounts'] });
+    },
+    onSettled: () => {
+      setDeletingId(null);
     },
   });
 
@@ -66,6 +80,7 @@ export default function TransactionsPage() {
               <th className="text-left px-4 py-3">Account</th>
               <th className="text-left px-4 py-3">Category</th>
               <th className="text-right px-4 py-3">Amount</th>
+              <th className="text-right px-4 py-3">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -90,12 +105,26 @@ export default function TransactionsPage() {
                       {account?.currency ?? ''}
                     </span>
                   </td>
+                  <td className="px-4 py-3 text-right">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (!window.confirm('Delete this posting?')) return;
+                        void deleteMutation.mutateAsync(p.posting_id);
+                      }}
+                      disabled={deleteMutation.isPending && deletingId === p.posting_id}
+                      className="inline-flex items-center justify-center rounded-lg bg-red-500/20 text-red-200 hover:bg-red-500/30 p-2 disabled:opacity-60"
+                      title="Delete"
+                    >
+                      <Trash size={16} />
+                    </button>
+                  </td>
                 </tr>
               );
             })}
             {sorted.length === 0 && (
               <tr>
-                <td colSpan={4} className="px-4 py-6 text-center text-slate-400">
+                <td colSpan={5} className="px-4 py-6 text-center text-slate-400">
                   No postings yet.
                 </td>
               </tr>
@@ -103,6 +132,9 @@ export default function TransactionsPage() {
           </tbody>
         </table>
       </div>
+      {deleteMutation.error instanceof Error && (
+        <p className="text-sm text-red-200">{deleteMutation.error.message}</p>
+      )}
     </div>
   );
 }
