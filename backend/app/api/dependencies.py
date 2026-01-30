@@ -1,15 +1,15 @@
 from typing import Annotated
 from fastapi import Depends
+from fastapi import Request
 from sqlalchemy.orm import Session
 
 from app.service_layer.unit_of_work import AbstractUnitOfWork
 from app.adapters.unit_of_work import SqlAlchemyUnitOfWork
-from app.core.db import db
 
 
-def get_db_session():
+def get_db_session(request: Request):
     """Yield a database session tied to the configured engine."""
-    session = db.get_session()
+    session = request.app.state.db.get_session()
     try:
         yield session
     finally:

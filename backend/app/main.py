@@ -7,17 +7,18 @@ from app.api.routers import postings
 from app.api.routers import transfers
 from app.core.logging_config import setup_logging
 from app.api.middleware import LoggingMiddleware
-from app.core.db import db
+from app.core.db import Database
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup: Initialize database
     setup_logging()
-    db.init()
+    app.state.db = Database()
+    app.state.db.init()
     yield
     # Shutdown: Dispose database connection
-    db.dispose()
+    app.state.db.dispose()
 
 
 app = FastAPI(lifespan=lifespan)

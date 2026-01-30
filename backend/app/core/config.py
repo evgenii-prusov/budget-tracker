@@ -1,4 +1,12 @@
 import os
+from sqlalchemy.engine.url import make_url
+from sqlalchemy.exc import ArgumentError
 
-# Database configuration
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///budget.db")
+
+def get_database_url() -> str:
+    database_url = os.getenv("DATABASE_URL", "sqlite:///budget.db")
+    try:
+        make_url(database_url)
+    except ArgumentError as exc:
+        raise ValueError(f"Invalid DATABASE_URL: {database_url}") from exc
+    return database_url
