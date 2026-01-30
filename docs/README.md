@@ -121,6 +121,10 @@ uv run python src/manage.py migrate
 Phase: MVP Development
 Focus: Core transaction management + multi-currency support
 
+## Frontend Status
+
+The `frontend/` directory is currently a placeholder and does not contain an active UI implementation. Plan any UI work as new scope and document the approach before starting.
+
 ## Important Notes
 
 1. **Always filter by user:** Never return data without filtering by the authenticated user

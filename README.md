@@ -3,7 +3,7 @@
 Personal finance application for tracking income, expenses, and transfers.
 
 <!-- [![CI](https://github.com/evgenii-prusov/budget-tracker/actions/workflows/ci.yml/badge.svg)](...) -->
-[![Python](https://img.shields.io/badge/python-3.14+-blue.svg)](...)
+[![Python](https://img.shields.io/badge/python-3.12+-blue.svg)](...)
 
 ## Features
 
@@ -16,12 +16,18 @@ Personal finance application for tracking income, expenses, and transfers.
 
 ## Quick Start
 
+```bash
 git clone ...  # TODO: Add repo URL
 cd budget-tracker
-uv sync
-docker compose up -d
-uv run python src/manage.py migrate
-uv run python src/manage.py runserver
+make install
+make run
+```
+
+To run tests:
+
+```bash
+make test
+```
 
 ## Documentation
 
@@ -29,4 +35,4 @@ See [docs/](./docs/) for full documentation.
 
 ## Tech Stack
 
-Python, Django, PostgreSQL, Redis, Kubernetes
+Python 3.12, FastAPI, SQLAlchemy, pytest, Ruff, uv
