@@ -83,8 +83,8 @@ def test_repository_retrieve_all_accounts(session):
     ]
 
 
-def test_repository_delete_account_cascades_postings(session):
-    """Verify ORM cascade configuration: deleting account also deletes postings."""
+def test_repository_delete_account_does_not_cascade_postings(session):
+    """Deleting account should not cascade-delete postings."""
     # Arrange: Create account with posting via ORM
     account = Account("acc-1", "Test", "USD", Decimal(100))
     account.record_posting(
@@ -108,11 +108,11 @@ def test_repository_delete_account_cascades_postings(session):
     repo.delete(loaded_account)
     session.commit()
 
-    # Assert: Both account AND posting are gone (raw SQL verification)
+    # Assert: Account is gone, postings remain
     account_count = session.execute(text("SELECT COUNT(*) FROM account")).scalar()
     posting_count = session.execute(text("SELECT COUNT(*) FROM posting")).scalar()
     assert account_count == 0
-    assert posting_count == 0  # Cascade delete worked
+    assert posting_count == 1
 
 
 def test_list_postings_empty(session):
@@ -262,4 +262,39 @@ def test_count_postings_for_account(session):
     assert count == 3
 
     count_empty = repo.count_postings_for_account("non-existent")
+    assert count_empty == 0
+
+
+def test_count_transfers_for_account(session):
+    repo = repository.SqlAlchemyRepository(session)
+    acc1 = Account("a1", "Source", "EUR", Decimal(100))
+    acc2 = Account("a2", "Dest", "EUR", Decimal(0))
+    repo.add(acc1)
+    repo.add(acc2)
+    repo.add_transfer(
+        Transfer(
+            "t1",
+            acc1.account_id,
+            acc2.account_id,
+            Decimal(10),
+            Decimal(10),
+            date(2025, 1, 1),
+        )
+    )
+    repo.add_transfer(
+        Transfer(
+            "t2",
+            acc2.account_id,
+            acc1.account_id,
+            Decimal(5),
+            Decimal(5),
+            date(2025, 1, 2),
+        )
+    )
+    session.commit()
+
+    count = repo.count_transfers_for_account("a1")
+    assert count == 2
+
+    count_empty = repo.count_transfers_for_account("missing")
     assert count_empty == 0

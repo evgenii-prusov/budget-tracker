@@ -57,7 +57,8 @@ def start_mappers():
             "_postings": relationship(
                 model.Posting,
                 backref="account",
-                cascade="all, delete-orphan",
+                cascade="save-update, merge",
+                passive_deletes=True,
             ),
             "_outgoing_transfers": relationship(
                 model.Transfer,

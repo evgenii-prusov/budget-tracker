@@ -70,6 +70,9 @@ class FakeRepository(AbstractRepository):
             if t.source_account_id == account_id or t.dest_account_id == account_id
         ]
 
+    def count_transfers_for_account(self, account_id: str) -> int:
+        return len(self.list_transfers_for_account(account_id))
+
     def list_transfers(self, skip: int = 0, limit: int = 50) -> list[Transfer]:
         return list(self.transfers)[skip : skip + limit]
 
@@ -480,6 +483,48 @@ class TestDeleteAccount:
             delete_account(uow, account_id=account.account_id)
 
         assert "3 transfer" in str(exc_info.value)
+
+    def test_delete_account_with_postings_and_transfers_reports_both(self):
+        # Arrange
+        uow = FakeUnitOfWork()
+        account = create_account(
+            uow,
+            name="Combo",
+            currency="USD",
+            initial_balance=Decimal(100),
+        )
+        other = create_account(
+            uow,
+            name="Other",
+            currency="USD",
+            initial_balance=Decimal(0),
+        )
+        category = create_category(uow, name="Food")
+        create_posting(
+            uow,
+            account_id=account.account_id,
+            amount=Decimal(10),
+            posting_date=JAN_01,
+            posting_type=PostingType.EXPENSE,
+            category_id=category.category_id,
+        )
+        create_transfer(
+            uow,
+            source_account_id=account.account_id,
+            dest_account_id=other.account_id,
+            debit_amount=Decimal(5),
+            credit_amount=Decimal(5),
+            transfer_date=JAN_01,
+        )
+        uow.committed = False
+
+        # Act & Assert
+        with pytest.raises(AccountHasPostingsError) as exc_info:
+            delete_account(uow, account_id=account.account_id)
+
+        assert "posting" in str(exc_info.value)
+        assert "transfer" in str(exc_info.value)
+        assert uow.committed is False
 
 
 class TestCreatePosting:

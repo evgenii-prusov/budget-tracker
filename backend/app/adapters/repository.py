@@ -54,6 +54,18 @@ class SqlAlchemyRepository(AbstractRepository):
             .all()
         )
 
+    def count_transfers_for_account(self, account_id: str) -> int:
+        return (
+            self.session.query(Transfer)
+            .filter(
+                or_(
+                    Transfer.source_account_id == account_id,  # type: ignore[operator]
+                    Transfer.dest_account_id == account_id,  # type: ignore[operator]
+                )
+            )
+            .count()
+        )
+
     def list_transfers(self, skip: int = 0, limit: int = 50) -> list[Transfer]:
         return (
             self.session.query(Transfer)

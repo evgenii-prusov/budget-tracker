@@ -40,6 +40,10 @@ class AbstractRepository(abc.ABC):
         raise NotImplementedError()
 
     @abc.abstractmethod
+    def count_transfers_for_account(self, account_id: str) -> int:
+        raise NotImplementedError()
+
+    @abc.abstractmethod
     def list_transfers(self, skip: int = 0, limit: int = 50) -> list[Transfer]:
         raise NotImplementedError()
 

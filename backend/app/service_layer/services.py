@@ -102,19 +102,25 @@ def delete_account(uow: AbstractUnitOfWork, *, account_id: str) -> None:
         if account is None:
             raise AccountNotFoundError(f"Account with id '{account_id}' not found")
 
-        # Check if account has transfers
-        transfers = uow.repo.list_transfers_for_account(account_id)
-        if transfers:
-            raise AccountHasTransfersError(
-                f"Cannot delete account '{account.name}': "
-                f"has {len(transfers)} transfer(s)"
-            )
-
         # Check if account has postings
         posting_count = uow.repo.count_postings_for_account(account_id)
+        transfer_count = uow.repo.count_transfers_for_account(account_id)
+
+        if posting_count > 0 and transfer_count > 0:
+            raise AccountHasPostingsError(
+                f"Cannot delete account '{account.name}': "
+                f"has {posting_count} posting(s) and {transfer_count} transfer(s)"
+            )
+
         if posting_count > 0:
             raise AccountHasPostingsError(
                 f"Cannot delete account '{account.name}': has {posting_count} posting(s)"
+            )
+
+        if transfer_count > 0:
+            raise AccountHasTransfersError(
+                f"Cannot delete account '{account.name}': "
+                f"has {transfer_count} transfer(s)"
             )
 
         uow.repo.delete(account)

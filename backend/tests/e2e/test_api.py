@@ -318,6 +318,45 @@ def test_delete_account_destination_of_transfer_returns_409(client):
     assert "Cannot delete" in response.json()["detail"]
 
 
+def test_delete_account_with_postings_and_transfers_returns_409(client):
+    acc1 = client.post(
+        "/accounts",
+        json={"name": "EUR_Combo", "currency": "EUR", "initial_balance": "35"},
+    ).json()
+    acc2 = client.post(
+        "/accounts",
+        json={"name": "RUB_Combo", "currency": "RUB", "initial_balance": "0"},
+    ).json()
+    cat = client.post("/categories/", json={"name": "Combo"}).json()
+    client.post(
+        "/postings/",
+        json={
+            "account_id": acc1["account_id"],
+            "amount": "100",
+            "posting_date": "2025-01-01",
+            "category_id": cat["category_id"],
+            "posting_type": "INCOME",
+        },
+    )
+    client.post(
+        "/transfers/",
+        json={
+            "source_account_id": acc1["account_id"],
+            "dest_account_id": acc2["account_id"],
+            "debit_amount": "10",
+            "credit_amount": "1000",
+            "transfer_date": "2025-01-01",
+        },
+    )
+
+    response = client.delete(f"/accounts/{acc1['account_id']}")
+
+    assert response.status_code == 409
+    detail = response.json()["detail"]
+    assert "posting" in detail
+    assert "transfer" in detail
+
+
 def test_delete_then_recreate_same_name(client):
     """After deleting an account, can create new account with same name."""
     # 1. Arrange: Create and delete an account via API
