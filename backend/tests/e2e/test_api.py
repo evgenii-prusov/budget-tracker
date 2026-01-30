@@ -130,6 +130,22 @@ def test_create_account_negative_initial_balance(client):
     assert "-100" in data["detail"]
 
 
+def test_create_account_invalid_currency_returns_400(client):
+    response = client.post(
+        "/accounts",
+        json={
+            "name": "Bad Currency",
+            "currency": "BITCOIN",
+            "initial_balance": "10",
+        },
+    )
+
+    assert response.status_code == 400
+    data = response.json()
+    assert "Invalid currency" in data["detail"]
+    assert "BITCOIN" in data["detail"]
+
+
 @pytest.mark.parametrize(
     "initial_balance, expected_balance",
     [

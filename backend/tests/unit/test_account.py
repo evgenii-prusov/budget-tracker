@@ -18,6 +18,30 @@ def test_create_account_with_invalid_currency_raises_error():
         )
 
 
+@pytest.mark.parametrize(
+    "currency",
+    ["eur", "", "US", "123"],
+)
+def test_create_account_with_invalid_currency_variants(currency):
+    with pytest.raises(InvalidCurrencyError, match=f"Invalid currency: {currency}"):
+        Account(
+            account_id="acc1",
+            name="Test Account",
+            currency=currency,
+            initial_balance=Decimal(100),
+        )
+
+
+def test_create_account_with_valid_currency_succeeds():
+    account = Account(
+        account_id="acc1",
+        name="Test Account",
+        currency="EUR",
+        initial_balance=Decimal(100),
+    )
+    assert account.currency == "EUR"
+
+
 def test_account_balance_is_sum_of_init_balance_and_postings(
     acc_eur: Account,
 ):
