@@ -9,7 +9,7 @@ help:
 	@echo "make test-verbose  - Run tests with verbose output"
 	@echo "make coverage      - Run tests with coverage report"
 	@echo "make coverage-html - Run tests with HTML coverage report"
-	@echo "make quality       - Run pre-commit checks on all files"
+	@echo "make quality       - Run prek checks on all files"
 	@echo "make format        - Format code with ruff"
 	@echo "make lint          - Lint and auto-fix with ruff"
 	@echo "make sync          - Sync with remote master branch"
@@ -35,7 +35,7 @@ coverage-html:
 	@echo "Coverage report generated at backend/htmlcov/index.html"
 
 quality:
-	cd backend && uv run pre-commit run --all-files
+	cd backend && uv run prek run --all-files
 
 format:
 	cd backend && uv run ruff format

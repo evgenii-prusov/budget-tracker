@@ -13,7 +13,7 @@ git checkout -b features/[feature-name]
 // manual
 Edit the necessary files to implement your feature
 
-4. Run quality checks (pre-commit, linting, formatting)
+4. Run quality checks (prek, linting, formatting)
 // turbo
 make quality
 
@@ -25,7 +25,7 @@ make test
 // turbo
 make coverage-html
 
-7. Stage and commit changes (pre-commit hooks run automatically)
+7. Stage and commit changes (prek hooks run automatically)
 // turbo
 git add .
 git commit -m "feat: [describe your changes]"
