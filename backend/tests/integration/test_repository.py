@@ -1,3 +1,4 @@
+import pytest
 from sqlalchemy import text
 from decimal import Decimal
 from datetime import date
@@ -77,9 +78,10 @@ def test_repository_retrieve_all_accounts(session):
     ]
 
 
-def test_repository_delete_account_does_not_cascade_postings(session):
-    """Deleting account should not cascade-delete postings."""
-    # Arrange: Create account with posting via ORM
+def test_repository_delete_account_with_postings_raises_integrity_error(session):
+    """Deleting an account that still has postings raises IntegrityError (FK constraint)."""
+    from sqlalchemy.exc import IntegrityError
+
     account = Account("acc-1", "Test", "USD", Decimal(100))
     account.record_posting(
         Decimal(10),
@@ -90,23 +92,12 @@ def test_repository_delete_account_does_not_cascade_postings(session):
     session.add(account)
     session.commit()
 
-    # Verify both exist in database (raw SQL, bypasses ORM cache)
-    account_count = session.execute(text("SELECT COUNT(*) FROM account")).scalar()
-    posting_count = session.execute(text("SELECT COUNT(*) FROM posting")).scalar()
-    assert account_count == 1
-    assert posting_count == 1
-
-    # Act: Delete via repository
     repo = repository.SqlAlchemyRepository(session)
     loaded_account = repo.get("acc-1")
     repo.delete(loaded_account)
-    session.commit()
 
-    # Assert: Account is gone, postings remain
-    account_count = session.execute(text("SELECT COUNT(*) FROM account")).scalar()
-    posting_count = session.execute(text("SELECT COUNT(*) FROM posting")).scalar()
-    assert account_count == 0
-    assert posting_count == 1
+    with pytest.raises(IntegrityError):
+        session.commit()
 
 
 def test_list_postings_empty(session):

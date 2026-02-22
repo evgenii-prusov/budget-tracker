@@ -4,7 +4,9 @@ from sqlalchemy.exc import ArgumentError
 
 
 def get_database_url() -> str:
-    database_url = os.getenv("DATABASE_URL", "sqlite:///budget.db")
+    database_url = os.getenv("DATABASE_URL")
+    if not database_url:
+        raise ValueError("DATABASE_URL environment variable is required")
     try:
         make_url(database_url)
     except ArgumentError as exc:

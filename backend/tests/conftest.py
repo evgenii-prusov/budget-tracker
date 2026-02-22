@@ -1,7 +1,7 @@
 import pytest
 from decimal import Decimal
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import Session
 
 from app.adapters.orm import metadata
 from app.adapters.orm import start_mappers
@@ -15,6 +15,40 @@ from fastapi.testclient import TestClient
 from tests.constants import JAN_01, JAN_02, JAN_03
 
 
+@pytest.fixture(scope="session")
+def postgres_engine():
+    """Spin up a throwaway Postgres container for the test session."""
+    from testcontainers.postgres import PostgresContainer
+
+    with PostgresContainer("postgres:17") as pg:
+        engine = create_engine(pg.get_connection_url())
+        metadata.create_all(engine)
+
+        mapper_registry.dispose()
+        start_mappers()
+
+        yield engine
+
+
+@pytest.fixture
+def session(postgres_engine):
+    """Postgres-backed session wrapped in a transaction that rolls back after each test.
+
+    Uses the "join session to external transaction" pattern so that commits
+    inside the application code are converted to savepoints, and the whole
+    transaction is rolled back at cleanup.
+    """
+    connection = postgres_engine.connect()
+    transaction = connection.begin()
+    session = Session(bind=connection, join_transaction_mode="create_savepoint")
+
+    yield session
+
+    session.close()
+    transaction.rollback()
+    connection.close()
+
+
 @pytest.fixture
 def client(session):
     """Test client with database session already configured."""
@@ -25,37 +59,6 @@ def client(session):
     app.dependency_overrides[get_db_session] = override_get_db_session
     yield TestClient(app)
     app.dependency_overrides.clear()
-
-
-@pytest.fixture
-def session():
-    """Create an in-memory SQLite database session for testing."""
-    # Create in-memory SQLite database
-    from sqlalchemy.pool import StaticPool
-
-    engine = create_engine(
-        "sqlite:///:memory:",
-        connect_args={"check_same_thread": False},
-        poolclass=StaticPool,
-    )
-
-    # Create all tables from metadata
-    metadata.create_all(engine)
-
-    # Set up ORM mappers
-    mapper_registry.dispose()
-    start_mappers()
-
-    # Create session
-    Session = sessionmaker(bind=engine)
-    session = Session()
-
-    yield session
-
-    # Cleanup
-    session.close()
-    engine.dispose()
-    mapper_registry.dispose()
 
 
 @pytest.fixture
@@ -89,7 +92,6 @@ def posting_3() -> Posting:
 @pytest.fixture
 def test_data(client):
     """Creates a test account and category via API and returns their IDs."""
-    # Create account
     acc_response = client.post(
         "/accounts/",
         json={
@@ -101,7 +103,6 @@ def test_data(client):
     assert acc_response.status_code == 201
     account_id = acc_response.json()["account_id"]
 
-    # Create category
     cat_response = client.post("/categories/", json={"name": "Test Category"})
     assert cat_response.status_code == 201
     category_id = cat_response.json()["category_id"]
