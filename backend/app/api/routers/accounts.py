@@ -57,9 +57,7 @@ def create_account_endpoint(account: AccountCreate, uow: UoWDep):
 
 
 @router.patch("/accounts/{account_id}", response_model=AccountResponse)
-def update_account_name_endpoint(
-    account_id: str, account_update: AccountUpdate, uow: UoWDep
-):
+def update_account_name_endpoint(account_id: str, account_update: AccountUpdate, uow: UoWDep):
     try:
         updated_account = update_account_name(
             uow=uow, account_id=account_id, new_name=account_update.name

@@ -197,10 +197,7 @@ class Account:
         return self.initial_balance + posting_sum - outgoing_sum + incoming_sum
 
     def __repr__(self) -> str:
-        return (
-            f"Account({self.account_id!r}, {self.name!r}, "
-            f"{self.currency!r}, {self.balance})"
-        )
+        return f"Account({self.account_id!r}, {self.name!r}, {self.currency!r}, {self.balance})"
 
     def __eq__(self, other):
         if not isinstance(other, Account):

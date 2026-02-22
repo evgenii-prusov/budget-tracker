@@ -11,9 +11,7 @@ from tests.constants import JAN_01
 class TestCreateTransfer:
     """Tests for create_transfer() function."""
 
-    def test_transfer_with_different_currencies(
-        self, acc_eur: Account, acc_rub: Account
-    ):
+    def test_transfer_with_different_currencies(self, acc_eur: Account, acc_rub: Account):
         # Arrange & Act: Transfer between EUR and RUB accounts
         transfer = create_transfer(
             acc_eur,
@@ -42,9 +40,7 @@ class TestCreateTransfer:
         # Assert: Description is stored
         assert transfer.description == "D1"
 
-    def test_transfer_raises_insufficient_funds(
-        self, acc_eur: Account, acc_rub: Account
-    ):
+    def test_transfer_raises_insufficient_funds(self, acc_eur: Account, acc_rub: Account):
         # Arrange & Act: Attempt transfer exceeding balance
         with pytest.raises(InsufficientFundsError):
             create_transfer(
@@ -94,9 +90,7 @@ class TestCreateTransfer:
         assert f"got {expected_type}" in error_msg
         assert "Use Decimal(str(value)) to convert" in error_msg
 
-    def test_transfer_succeeds_with_valid_decimal_amounts(
-        self, acc_eur: Account, acc_rub: Account
-    ):
+    def test_transfer_succeeds_with_valid_decimal_amounts(self, acc_eur: Account, acc_rub: Account):
         # Arrange & Act: Transfer with valid Decimal amounts
         create_transfer(
             acc_eur,
@@ -124,9 +118,7 @@ class TestRecordPosting:
         posting = acc_eur._postings[-1]
         assert posting.category_id == "cat_1"
 
-    def test_record_posting_raises_insufficient_funds_when_balance_negative(
-        self, acc_eur: Account
-    ):
+    def test_record_posting_raises_insufficient_funds_when_balance_negative(self, acc_eur: Account):
         # Arrange & Act: Attempt to record expense exceeding balance
         with pytest.raises(InsufficientFundsError):
             acc_eur.record_posting(

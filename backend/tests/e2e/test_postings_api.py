@@ -88,10 +88,7 @@ def test_create_posting_account_not_found(client, test_data):
 
     response = client.post("/postings/", json=posting_data)
     assert response.status_code == 400
-    assert (
-        "Account with id 'non-existent-account-id' not found"
-        in response.json()["detail"]
-    )
+    assert "Account with id 'non-existent-account-id' not found" in response.json()["detail"]
 
 
 def test_create_posting_category_not_found(client, test_data):
@@ -107,10 +104,7 @@ def test_create_posting_category_not_found(client, test_data):
 
     response = client.post("/postings/", json=posting_data)
     assert response.status_code == 400
-    assert (
-        "Category with id 'non-existent-category-id' not found"
-        in response.json()["detail"]
-    )
+    assert "Category with id 'non-existent-category-id' not found" in response.json()["detail"]
 
 
 def test_create_posting_insufficient_funds(client, test_data):
@@ -127,10 +121,7 @@ def test_create_posting_insufficient_funds(client, test_data):
     response = client.post("/postings/", json=posting_data)
 
     assert response.status_code == 422
-    assert (
-        "Insufficient funds in account 'Test Posting Account'"
-        in response.json()["detail"]
-    )
+    assert "Insufficient funds in account 'Test Posting Account'" in response.json()["detail"]
 
 
 def test_get_posting_success(client, test_data):

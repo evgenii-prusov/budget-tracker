@@ -38,9 +38,7 @@ transfers = Table(
     "transfer",
     metadata,
     Column("transfer_id", String, primary_key=True),
-    Column(
-        "source_account_id", String, ForeignKey("account.account_id"), nullable=False
-    ),
+    Column("source_account_id", String, ForeignKey("account.account_id"), nullable=False),
     Column("dest_account_id", String, ForeignKey("account.account_id"), nullable=False),
     Column("debit_amount", Numeric, nullable=False),
     Column("credit_amount", Numeric, nullable=False),

@@ -53,9 +53,7 @@ def create_category_endpoint(category: CategoryCreate, uow: UoWDep):
 
 
 @router.patch("/categories/{category_id}", response_model=CategoryResponse)
-def update_category_endpoint(
-    category_id: str, category_update: CategoryUpdate, uow: UoWDep
-):
+def update_category_endpoint(category_id: str, category_update: CategoryUpdate, uow: UoWDep):
     try:
         updated_category = update_category_name(
             uow=uow,

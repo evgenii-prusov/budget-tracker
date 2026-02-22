@@ -21,7 +21,7 @@ dev = [
 ]
 
 [tool.ruff]
-line-length = 89
+line-length = 100
 
 [tool.ruff.lint]
 extend-select = ["E501"]

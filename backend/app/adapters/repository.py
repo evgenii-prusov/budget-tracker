@@ -38,9 +38,7 @@ class SqlAlchemyRepository(AbstractRepository):
         self.session.add(transfer)
 
     def get_transfer(self, transfer_id: str) -> Transfer | None:
-        return (
-            self.session.query(Transfer).filter_by(transfer_id=transfer_id).one_or_none()
-        )
+        return self.session.query(Transfer).filter_by(transfer_id=transfer_id).one_or_none()
 
     def list_transfers_for_account(self, account_id: str) -> list[Transfer]:
         return (
@@ -101,9 +99,7 @@ class SqlAlchemyRepository(AbstractRepository):
         self.session.add(category)
 
     def get_category(self, category_id: str) -> Category | None:
-        return (
-            self.session.query(Category).filter_by(category_id=category_id).one_or_none()
-        )
+        return self.session.query(Category).filter_by(category_id=category_id).one_or_none()
 
     def get_category_by_name(self, name: str) -> Category | None:
         return self.session.query(Category).filter_by(name=name).first()

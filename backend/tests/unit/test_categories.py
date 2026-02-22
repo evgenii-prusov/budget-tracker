@@ -68,9 +68,7 @@ class TestUpdateCategory:
         category = create_category(uow, name="Groceries")
 
         # Act
-        updated = update_category_name(
-            uow, category_id=category.category_id, new_name="Food"
-        )
+        updated = update_category_name(uow, category_id=category.category_id, new_name="Food")
 
         # Assert
         assert updated.name == "Food"

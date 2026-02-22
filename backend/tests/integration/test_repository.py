@@ -13,9 +13,7 @@ def test_repository_save_an_account(session, acc_eur, acc_rub):
     session.commit()
 
     rows = set(
-        session.execute(
-            text("SELECT account_id, name, currency, initial_balance FROM account")
-        )
+        session.execute(text("SELECT account_id, name, currency, initial_balance FROM account"))
     )
     assert rows == {
         (acc_eur.account_id, acc_eur.name, acc_eur.currency, acc_eur.initial_balance),
@@ -74,12 +72,8 @@ def test_repository_retrieve_all_accounts(session):
     repo = repository.SqlAlchemyRepository(session)
     accounts = repo.list_all()
     assert accounts == [
-        Account(
-            account_id="2", name="eur", currency="EUR", initial_balance=Decimal(200)
-        ),
-        Account(
-            account_id="1", name="rub", currency="RUB", initial_balance=Decimal(100)
-        ),
+        Account(account_id="2", name="eur", currency="EUR", initial_balance=Decimal(200)),
+        Account(account_id="1", name="rub", currency="RUB", initial_balance=Decimal(100)),
     ]
 
 
@@ -124,9 +118,7 @@ def test_list_postings_returns_all(session):
     repo = repository.SqlAlchemyRepository(session)
     account = Account("a1", "Test", "EUR", Decimal(100))
     repo.add(account)
-    account.record_posting(
-        Decimal(10), JAN_01, category_id=None, posting_type=PostingType.EXPENSE
-    )
+    account.record_posting(Decimal(10), JAN_01, category_id=None, posting_type=PostingType.EXPENSE)
     session.commit()
 
     postings = repo.list_postings()
@@ -140,12 +132,8 @@ def test_list_postings_filtered_by_account(session):
     a2 = Account("a2", "Test2", "EUR", Decimal(100))
     repo.add(a1)
     repo.add(a2)
-    a1.record_posting(
-        Decimal(10), JAN_01, category_id=None, posting_type=PostingType.EXPENSE
-    )
-    a2.record_posting(
-        Decimal(20), JAN_01, category_id=None, posting_type=PostingType.EXPENSE
-    )
+    a1.record_posting(Decimal(10), JAN_01, category_id=None, posting_type=PostingType.EXPENSE)
+    a2.record_posting(Decimal(20), JAN_01, category_id=None, posting_type=PostingType.EXPENSE)
     session.commit()
 
     postings = repo.list_postings(account_id="a1")
@@ -176,13 +164,22 @@ def test_list_postings_pagination_orders_by_date(session):
     account = Account("a1", "Test", "EUR", Decimal(100))
     repo.add(account)
     account.record_posting(
-        Decimal(10), date(2025, 1, 1), category_id=None, posting_type=PostingType.EXPENSE
+        Decimal(10),
+        date(2025, 1, 1),
+        category_id=None,
+        posting_type=PostingType.EXPENSE,
     )
     account.record_posting(
-        Decimal(20), date(2025, 1, 2), category_id=None, posting_type=PostingType.EXPENSE
+        Decimal(20),
+        date(2025, 1, 2),
+        category_id=None,
+        posting_type=PostingType.EXPENSE,
     )
     account.record_posting(
-        Decimal(30), date(2025, 1, 3), category_id=None, posting_type=PostingType.EXPENSE
+        Decimal(30),
+        date(2025, 1, 3),
+        category_id=None,
+        posting_type=PostingType.EXPENSE,
     )
     session.commit()
 

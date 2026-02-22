@@ -29,6 +29,4 @@ class LoggingMiddleware:
             await self.app(scope, receive, send_wrapper)
         finally:
             process_time = time.perf_counter() - start_time
-            logger.info(
-                "%s %s - %s - %.4fs", method, url, status_code["value"], process_time
-            )
+            logger.info("%s %s - %s - %.4fs", method, url, status_code["value"], process_time)

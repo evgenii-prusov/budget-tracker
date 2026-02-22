@@ -15,9 +15,7 @@ def setup_logging() -> None:
     """Sets up the logging configuration for the application."""
 
     # Define the logging format
-    log_format = (
-        "%(asctime)s - %(name)s - %(levelname)s - %(message)s (%(filename)s:%(lineno)d)"
-    )
+    log_format = "%(asctime)s - %(name)s - %(levelname)s - %(message)s (%(filename)s:%(lineno)d)"
 
     # Configure the root logger
     logging.basicConfig(
