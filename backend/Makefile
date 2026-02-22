@@ -1,4 +1,7 @@
-.PHONY: help run test test-verbose coverage coverage-html quality format lint install clean db-up db-down db-migrate db-revision
+-include .env
+export
+
+.PHONY: help run test test-verbose coverage coverage-html quality format lint install clean db-up db-down db-migrate db-revision db-seed
 
 help:
 	@echo "Budget Tracker Backend - Available Commands"
@@ -17,6 +20,7 @@ help:
 	@echo "make db-down       - Stop Postgres"
 	@echo "make db-migrate    - Run Alembic migrations"
 	@echo "make db-revision   - Create new migration (msg=\"description\")"
+	@echo "make db-seed       - Seed database with sample data"
 
 install:
 	uv sync
@@ -65,3 +69,6 @@ db-migrate:
 
 db-revision:
 	uv run alembic revision --autogenerate -m "$(msg)"
+
+db-seed:
+	uv run python -m scripts.seed
