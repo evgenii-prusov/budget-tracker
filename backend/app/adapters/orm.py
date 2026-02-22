@@ -10,40 +10,40 @@ metadata = mapper_registry.metadata
 accounts = Table(
     "account",
     metadata,
-    Column("account_id", String, primary_key=True),
-    Column("name", String, nullable=False, unique=True),
-    Column("currency", String, nullable=False),
-    Column("initial_balance", Numeric, nullable=False),
+    Column("account_id", String(36), primary_key=True),
+    Column("name", String(255), nullable=False, unique=True),
+    Column("currency", String(3), nullable=False),
+    Column("initial_balance", Numeric(precision=15, scale=2), nullable=False),
 )
 
 categories = Table(
     "category",
     metadata,
-    Column("category_id", String, primary_key=True),
-    Column("name", String, nullable=False, unique=True),
+    Column("category_id", String(36), primary_key=True),
+    Column("name", String(255), nullable=False, unique=True),
 )
 
 postings = Table(
     "posting",
     metadata,
-    Column("posting_id", String, primary_key=True),
-    Column("account_id", String, ForeignKey("account.account_id"), nullable=False),
-    Column("amount", Numeric, nullable=False),
+    Column("posting_id", String(36), primary_key=True),
+    Column("account_id", String(36), ForeignKey("account.account_id"), nullable=False),
+    Column("amount", Numeric(precision=15, scale=2), nullable=False),
     Column("posting_date", Date, nullable=False),
-    Column("category_id", String, ForeignKey("category.category_id"), nullable=True),
-    Column("posting_type", String, nullable=False),
+    Column("category_id", String(36), ForeignKey("category.category_id"), nullable=True),
+    Column("posting_type", String(20), nullable=False),
 )
 
 transfers = Table(
     "transfer",
     metadata,
-    Column("transfer_id", String, primary_key=True),
-    Column("source_account_id", String, ForeignKey("account.account_id"), nullable=False),
-    Column("dest_account_id", String, ForeignKey("account.account_id"), nullable=False),
-    Column("debit_amount", Numeric, nullable=False),
-    Column("credit_amount", Numeric, nullable=False),
+    Column("transfer_id", String(36), primary_key=True),
+    Column("source_account_id", String(36), ForeignKey("account.account_id"), nullable=False),
+    Column("dest_account_id", String(36), ForeignKey("account.account_id"), nullable=False),
+    Column("debit_amount", Numeric(precision=15, scale=2), nullable=False),
+    Column("credit_amount", Numeric(precision=15, scale=2), nullable=False),
     Column("transfer_date", Date, nullable=False),
-    Column("description", String, nullable=True),
+    Column("description", String(500), nullable=True),
 )
 
 

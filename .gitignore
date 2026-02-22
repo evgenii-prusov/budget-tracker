@@ -9,8 +9,8 @@ wheels/
 # Virtual environments
 .venv
 
-# Test database
-budget.db
+# Environment
+.env
 
 # Coverage reports
 .coverage

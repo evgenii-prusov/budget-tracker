@@ -151,7 +151,7 @@ def test_create_account_invalid_currency_returns_400(client):
     [
         ("100.50", "100.50"),  # Two decimal places
         ("0.01", "0.01"),  # Small decimal
-        ("123.456789", "123.456789"),  # High precision
+        ("123.456789", "123.46"),  # Rounded to 2 decimal places by Numeric(15,2)
         (100, "100"),  # Integer input
         (100.50, "100.50"),  # Float input
     ],
@@ -174,15 +174,15 @@ def test_create_account_precision_and_types(client, initial_balance, expected_ba
 
 def test_decimal_precision_persistence_flow(client):
     """
-    Verify that high precision is preserved through a full save-load cycle.
+    Verify that decimal precision (2 places) is preserved through a full save-load cycle.
     """
-    # Arrange & Act: Create an account with precise decimal value
+    # Arrange & Act: Create an account with a decimal value
     create_response = client.post(
         "/accounts",
         json={
             "name": "Precision Flow Test",
             "currency": "EUR",
-            "initial_balance": "999.99999",
+            "initial_balance": "999.99",
         },
     )
     assert create_response.status_code == 201
@@ -196,7 +196,7 @@ def test_decimal_precision_persistence_flow(client):
     accounts = get_response.json()
     saved_account = next((a for a in accounts if a["account_id"] == created_id), None)
     assert saved_account is not None, f"Account {created_id} not found"
-    assert Decimal(saved_account["initial_balance"]) == Decimal("999.99999")
+    assert Decimal(saved_account["initial_balance"]) == Decimal("999.99")
 
 
 def test_delete_account_success(client):

@@ -3,7 +3,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm.exc import UnmappedClassError
 from sqlalchemy.orm.util import class_mapper
 
-from app.adapters.orm import start_mappers, metadata
+from app.adapters.orm import start_mappers
 from app.domain.model import Account
 from app.core.config import get_database_url
 from app.core.logging_config import get_logger
@@ -27,9 +27,6 @@ class Database:
         self.session_factory = sessionmaker(bind=self.engine)
 
         self._ensure_mappers_started()
-
-        # Create tables (temporary solution until migrations are added)
-        metadata.create_all(self.engine)
 
     def _ensure_mappers_started(self) -> None:
         """Initialize ORM mappers if they are not already configured."""

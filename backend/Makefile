@@ -1,4 +1,4 @@
-.PHONY: help run test test-verbose coverage coverage-html quality format lint install clean
+.PHONY: help run test test-verbose coverage coverage-html quality format lint install clean db-up db-down db-migrate db-revision
 
 help:
 	@echo "Budget Tracker Backend - Available Commands"
@@ -13,6 +13,10 @@ help:
 	@echo "make format        - Format code with ruff"
 	@echo "make lint          - Lint and auto-fix with ruff"
 	@echo "make clean         - Remove generated files"
+	@echo "make db-up         - Start Postgres via Docker Compose"
+	@echo "make db-down       - Stop Postgres"
+	@echo "make db-migrate    - Run Alembic migrations"
+	@echo "make db-revision   - Create new migration (msg=\"description\")"
 
 install:
 	uv sync
@@ -49,3 +53,15 @@ clean:
 	rm -rf .ruff_cache
 	find . -type d -name __pycache__ -exec rm -rf {} +
 	find . -type f -name "*.pyc" -delete
+
+db-up:
+	docker compose -f ../docker-compose.yml up -d postgres
+
+db-down:
+	docker compose -f ../docker-compose.yml down
+
+db-migrate:
+	uv run alembic upgrade head
+
+db-revision:
+	uv run alembic revision --autogenerate -m "$(msg)"
