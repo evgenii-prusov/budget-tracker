@@ -157,8 +157,7 @@ def get_posting(uow: AbstractUnitOfWork, *, posting_id: str) -> Posting:
         if account is None:
             raise PostingNotFoundError(f"Posting with id '{posting_id}' not found")
         posting = account.get_posting(posting_id)
-        if posting is None:
-            raise PostingNotFoundError(f"Posting with id '{posting_id}' not found")
+        assert posting is not None
         return posting
 
 
@@ -177,7 +176,7 @@ def list_postings(
             return account.postings[skip : skip + limit]
         else:
             all_postings: list[Posting] = []
-            for account in uow.accounts.list_all(skip=0, limit=10000):
+            for account in uow.accounts.list_all():
                 all_postings.extend(account.postings)
             return all_postings[skip : skip + limit]
 
