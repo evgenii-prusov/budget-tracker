@@ -1,7 +1,7 @@
 -include .env
 export
 
-.PHONY: help run test test-verbose coverage coverage-html quality format lint install clean db-up db-down db-migrate db-revision db-seed
+.PHONY: help run test test-verbose coverage coverage-html quality format lint typecheck install clean db-up db-down db-migrate db-revision db-seed
 
 help:
 	@echo "Budget Tracker Backend - Available Commands"
@@ -15,6 +15,7 @@ help:
 	@echo "make quality       - Run prek checks on all files"
 	@echo "make format        - Format code with ruff"
 	@echo "make lint          - Lint and auto-fix with ruff"
+	@echo "make typecheck     - Run ty type checker"
 	@echo "make clean         - Remove generated files"
 	@echo "make db-up         - Start Postgres via Docker Compose"
 	@echo "make db-down       - Stop Postgres"
@@ -49,6 +50,9 @@ format:
 
 lint:
 	uv run ruff check --fix
+
+typecheck:
+	uv run ty check
 
 clean:
 	rm -rf .pytest_cache
