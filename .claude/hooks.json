@@ -1,0 +1,11 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "command": "make lint format",
+        "timeout": 30000
+      }
+    ]
+  }
+}
