@@ -51,7 +51,7 @@ class Category:
     def __eq__(self, other):
         if not isinstance(other, Category):
             return False
-        return self.name == other.name
+        return self.category_id == other.category_id
 
     def __hash__(self):
         return hash(self.category_id)
