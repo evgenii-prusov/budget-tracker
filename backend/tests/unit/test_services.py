@@ -4,7 +4,6 @@ from datetime import date
 
 from app.domain.model import Account
 from app.domain.model import Transfer
-from app.domain.model import Posting
 from app.domain.model import PostingType
 from app.domain.model import Category
 from app.domain.exceptions import DuplicateAccountNameError
@@ -17,11 +16,16 @@ from app.domain.exceptions import InsufficientFundsError
 from app.domain.exceptions import PostingNotFoundError
 from app.domain.exceptions import TransferNotFoundError
 
-from app.service_layer.abstract_repository import AbstractRepository
+from collections.abc import Callable
+
+from app.service_layer.abstract_account_repository import AbstractAccountRepository
+from app.service_layer.abstract_transfer_repository import AbstractTransferRepository
+from app.service_layer.abstract_category_repository import AbstractCategoryRepository
 from app.service_layer.unit_of_work import AbstractUnitOfWork
 from app.service_layer.services import create_account
 from app.service_layer.services import delete_account
 from app.service_layer.services import create_category
+from app.service_layer.services import get_category
 from app.service_layer.services import create_posting
 from app.service_layer.services import get_posting
 from app.service_layer.services import list_postings
@@ -32,109 +36,90 @@ from app.service_layer.services import list_transfers
 from tests.constants import JAN_01
 
 
-class FakeRepository(AbstractRepository):
-    def __init__(self, accounts: list[Account] | None = None):
-        self.accounts = accounts or []
-        self.transfers: list[Transfer] = []
-        self.categories: list[Category] = []
+class FakeAccountRepository(AbstractAccountRepository):
+    def __init__(self):
+        self._accounts: list[Account] = []
 
-    def add(self, account: Account):
-        self.accounts.append(account)
+    def add(self, account: Account) -> None:
+        self._accounts.append(account)
 
     def get(self, account_id: str) -> Account | None:
-        try:
-            account = next(acc for acc in self.accounts if acc.account_id == account_id)
-        except StopIteration:
-            return None
-        return account
+        return next((a for a in self._accounts if a.account_id == account_id), None)
 
     def get_by_name(self, name: str) -> Account | None:
-        return next((acc for acc in self.accounts if acc.name == name), None)
+        return next((a for a in self._accounts if a.name == name), None)
 
-    def list_all(self, skip: int = 0, limit: int = 50) -> list[Account]:
-        return list(self.accounts)[skip : skip + limit]
-
-    def add_transfer(self, transfer: Transfer):
-        self.transfers.append(transfer)
-
-    def get_transfer(self, transfer_id: str) -> Transfer | None:
-        return next(
-            (t for t in self.transfers if t.transfer_id == transfer_id),
-            None,
-        )
-
-    def list_transfers_for_account(self, account_id: str) -> list[Transfer]:
-        return [
-            t
-            for t in self.transfers
-            if t.source_account_id == account_id or t.dest_account_id == account_id
-        ]
-
-    def count_transfers_for_account(self, account_id: str) -> int:
-        return len(self.list_transfers_for_account(account_id))
-
-    def list_transfers(self, skip: int = 0, limit: int = 50) -> list[Transfer]:
-        return list(self.transfers)[skip : skip + limit]
-
-    def delete(self, account: Account) -> None:
-        self.accounts.remove(account)
-
-    def add_category(self, category: Category):
-        self.categories.append(category)
-
-    def get_category(self, category_id: str) -> Category | None:
-        return next(
-            (c for c in self.categories if c.category_id == category_id),
-            None,
-        )
-
-    def get_category_by_name(self, name: str) -> Category | None:
-        return next((c for c in self.categories if c.name == name), None)
-
-    def list_categories(self, skip: int = 0, limit: int = 50) -> list[Category]:
-        return list(self.categories)[skip : skip + limit]
-
-    def delete_category(self, category: Category) -> None:
-        self.categories.remove(category)
-
-    def count_postings_for_category(self, category_id: str) -> int:
-        count = 0
-        for acc in self.accounts:
-            for p in acc._postings:
-                if p.category_id == category_id:
-                    count += 1
-        return count
-
-    def get_posting(self, posting_id: str) -> Posting | None:
-        for acc in self.accounts:
-            for p in acc._postings:
-                if p.posting_id == posting_id:
-                    return p
+    def get_by_posting_id(self, posting_id: str) -> Account | None:
+        for acc in self._accounts:
+            if acc.get_posting(posting_id) is not None:
+                return acc
         return None
 
-    def list_postings(
-        self, account_id: str | None = None, skip: int = 0, limit: int = 50
-    ) -> list[Posting]:
-        all_postings = []
-        for acc in self.accounts:
-            if account_id is None or acc.account_id == account_id:
-                all_postings.extend(acc._postings)
-        return all_postings[skip : skip + limit]
+    def list_all(self, skip: int = 0, limit: int = 50) -> list[Account]:
+        return list(self._accounts)[skip : skip + limit]
 
-    def count_postings_for_account(self, account_id: str) -> int:
-        count = 0
-        for acc in self.accounts:
-            if acc.account_id == account_id:
-                count += len(acc._postings)
-        return count
+    def delete(self, account: Account) -> None:
+        self._accounts.remove(account)
+
+
+class FakeTransferRepository(AbstractTransferRepository):
+    def __init__(self):
+        self._transfers: list[Transfer] = []
+
+    def add(self, transfer: Transfer) -> None:
+        self._transfers.append(transfer)
+
+    def get(self, transfer_id: str) -> Transfer | None:
+        return next((t for t in self._transfers if t.transfer_id == transfer_id), None)
+
+    def list_all(self, skip: int = 0, limit: int = 50) -> list[Transfer]:
+        return list(self._transfers)[skip : skip + limit]
+
+
+class FakeCategoryRepository(AbstractCategoryRepository):
+    def __init__(self, count_postings_fn: Callable[[str], int] | None = None):
+        self._categories: list[Category] = []
+        self._count_postings_fn = count_postings_fn or (lambda _: 0)
+
+    def add(self, category: Category) -> None:
+        self._categories.append(category)
+
+    def get(self, category_id: str) -> Category | None:
+        return next((c for c in self._categories if c.category_id == category_id), None)
+
+    def get_by_name(self, name: str) -> Category | None:
+        return next((c for c in self._categories if c.name == name), None)
+
+    def list_all(self, skip: int = 0, limit: int = 50) -> list[Category]:
+        return list(self._categories)[skip : skip + limit]
+
+    def delete(self, category: Category) -> None:
+        self._categories.remove(category)
+
+    def count_postings(self, category_id: str) -> int:
+        return self._count_postings_fn(category_id)
 
 
 class FakeUnitOfWork(AbstractUnitOfWork):
-    repo: FakeRepository
+    accounts: FakeAccountRepository
+    transfers: FakeTransferRepository
+    categories: FakeCategoryRepository
 
-    def __init__(self, accounts: list[Account] | None = None):
-        self.repo = FakeRepository(accounts)
+    def __init__(self):
+        self.accounts = FakeAccountRepository()
+        self.transfers = FakeTransferRepository()
         self.committed = False
+
+        # Wire up category's count_postings to scan accounts
+        def _count_postings_fn(category_id: str) -> int:
+            count = 0
+            for acc in self.accounts._accounts:
+                for p in acc.postings:
+                    if p.category_id == category_id:
+                        count += 1
+            return count
+
+        self.categories = FakeCategoryRepository(_count_postings_fn)
 
     def commit(self):
         self.committed = True
@@ -145,42 +130,31 @@ class FakeUnitOfWork(AbstractUnitOfWork):
 
 class TestCreateAccount:
     def test_create_account_success(self):
-        # Arrange
         uow = FakeUnitOfWork()
-
-        # Act
         account = create_account(
             uow,
             name="Test Account",
             currency="USD",
             initial_balance=Decimal(100),
         )
-
-        # Assert
         assert account.name == "Test Account"
         assert account.currency == "USD"
         assert account.initial_balance == Decimal(100)
         assert uow.committed is True
-        assert len(uow.repo.accounts) == 1
+        assert len(uow.accounts._accounts) == 1
 
     def test_create_account_with_zero_balance(self):
-        # Arrange
         uow = FakeUnitOfWork()
-
-        # Act
         account = create_account(
             uow,
             name="Zero Balance",
             currency="EUR",
             initial_balance=Decimal(0),
         )
-
-        # Assert
         assert account.initial_balance == Decimal(0)
         assert uow.committed is True
 
     def test_create_account_duplicate_name_raises_error(self):
-        # Arrange
         uow = FakeUnitOfWork()
         create_account(
             uow,
@@ -190,7 +164,6 @@ class TestCreateAccount:
         )
         uow.committed = False
 
-        # Act & Assert
         with pytest.raises(DuplicateAccountNameError) as exc_info:
             create_account(
                 uow,
@@ -201,16 +174,11 @@ class TestCreateAccount:
 
         assert "already exists" in str(exc_info.value)
         assert "Existing Account" in str(exc_info.value)
-        assert uow.committed is False  # Should not commit on error
+        assert uow.committed is False
 
     def test_create_account_negative_balance_raises_error(self):
-        # Arrange
         uow = FakeUnitOfWork()
-
-        # Act & Assert
-        with pytest.raises(
-            InvalidInitialBalanceError,
-        ) as exc_info:
+        with pytest.raises(InvalidInitialBalanceError) as exc_info:
             create_account(
                 uow,
                 name="Negative Account",
@@ -220,13 +188,12 @@ class TestCreateAccount:
 
         assert "cannot be negative" in str(exc_info.value)
         assert "-100" in str(exc_info.value)
-        assert uow.committed is False  # Should not commit on error
-        assert len(uow.repo.accounts) == 0  # Should not add account
+        assert uow.committed is False
+        assert len(uow.accounts._accounts) == 0
 
 
 class TestUpdateAccountName:
     def test_update_account_name_success(self):
-        # Arrange
         uow = FakeUnitOfWork()
         account = create_account(
             uow,
@@ -236,19 +203,16 @@ class TestUpdateAccountName:
         )
         uow.committed = False
 
-        # Act
         updated_account = update_account_name(
             uow,
             account_id=account.account_id,
             new_name="New Name",
         )
 
-        # Assert
         assert updated_account.name == "New Name"
         assert uow.committed is True
 
     def test_update_account_name_duplicate_name_raises_error(self):
-        # Arrange
         uow = FakeUnitOfWork()
         account1 = create_account(
             uow,
@@ -264,7 +228,6 @@ class TestUpdateAccountName:
         )
         uow.committed = False
 
-        # Act & Assert
         with pytest.raises(DuplicateAccountNameError) as exc_info:
             update_account_name(
                 uow,
@@ -274,13 +237,10 @@ class TestUpdateAccountName:
 
         assert "already exists" in str(exc_info.value)
         assert uow.committed is False
-        assert account1.name == "Account 1"  # Should not change name
+        assert account1.name == "Account 1"
 
     def test_update_account_name_not_found_raises_error(self):
-        # Arrange
         uow = FakeUnitOfWork()
-
-        # Act & Assert
         with pytest.raises(AccountNotFoundError) as exc_info:
             update_account_name(
                 uow,
@@ -294,7 +254,6 @@ class TestUpdateAccountName:
 
 class TestDeleteAccount:
     def test_delete_account_success(self):
-        # Arrange
         uow = FakeUnitOfWork()
         account = create_account(
             uow,
@@ -304,16 +263,13 @@ class TestDeleteAccount:
         )
         uow.committed = False
 
-        # Act
         delete_account(uow, account_id=account.account_id)
 
-        # Assert
         assert uow.committed is True
-        assert len(uow.repo.accounts) == 0
+        assert len(uow.accounts._accounts) == 0
 
     def test_delete_account_with_postings_raises_error(self):
         """Service prevents deletion when account has postings."""
-        # Arrange
         uow = FakeUnitOfWork()
         account = create_account(
             uow,
@@ -332,20 +288,16 @@ class TestDeleteAccount:
         )
         uow.committed = False
 
-        # Act & Assert
         with pytest.raises(AccountHasPostingsError) as exc:
             delete_account(uow, account_id=account.account_id)
 
         assert "Cannot delete" in str(exc.value)
         assert "1 posting" in str(exc.value)
         assert uow.committed is False
-        assert len(uow.repo.accounts) == 1
+        assert len(uow.accounts._accounts) == 1
 
     def test_delete_account_not_found_raises_error(self):
-        # Arrange
         uow = FakeUnitOfWork()
-
-        # Act & Assert
         with pytest.raises(AccountNotFoundError) as exc_info:
             delete_account(uow, account_id="nonexistent-id")
 
@@ -353,10 +305,7 @@ class TestDeleteAccount:
         assert "nonexistent-id" in str(exc_info.value)
         assert uow.committed is False
 
-    def test_delete_account_with_outgoing_transfer_raises_error(
-        self,
-    ):
-        # Arrange
+    def test_delete_account_with_outgoing_transfer_raises_error(self):
         uow = FakeUnitOfWork()
         source = create_account(
             uow,
@@ -380,21 +329,15 @@ class TestDeleteAccount:
         )
         uow.committed = False
 
-        # Act & Assert
-        with pytest.raises(
-            AccountHasTransfersError,
-        ) as exc_info:
+        with pytest.raises(AccountHasTransfersError) as exc_info:
             delete_account(uow, account_id=source.account_id)
 
         assert "Cannot delete" in str(exc_info.value)
         assert "1 transfer" in str(exc_info.value)
         assert uow.committed is False
-        assert len(uow.repo.accounts) == 2  # Account not removed
+        assert len(uow.accounts._accounts) == 2
 
-    def test_delete_account_with_incoming_transfer_raises_error(
-        self,
-    ):
-        # Arrange
+    def test_delete_account_with_incoming_transfer_raises_error(self):
         uow = FakeUnitOfWork()
         source = create_account(
             uow,
@@ -418,19 +361,13 @@ class TestDeleteAccount:
         )
         uow.committed = False
 
-        # Act & Assert
-        with pytest.raises(
-            AccountHasTransfersError,
-        ) as exc_info:
+        with pytest.raises(AccountHasTransfersError) as exc_info:
             delete_account(uow, account_id=dest.account_id)
 
         assert "Cannot delete" in str(exc_info.value)
         assert uow.committed is False
 
-    def test_delete_account_with_multiple_transfers_reports_count(
-        self,
-    ):
-        # Arrange
+    def test_delete_account_with_multiple_transfers_reports_count(self):
         uow = FakeUnitOfWork()
         account = create_account(
             uow,
@@ -476,16 +413,12 @@ class TestDeleteAccount:
         )
         uow.committed = False
 
-        # Act & Assert
-        with pytest.raises(
-            AccountHasTransfersError,
-        ) as exc_info:
+        with pytest.raises(AccountHasTransfersError) as exc_info:
             delete_account(uow, account_id=account.account_id)
 
         assert "3 transfer" in str(exc_info.value)
 
     def test_delete_account_with_postings_and_transfers_reports_both(self):
-        # Arrange
         uow = FakeUnitOfWork()
         account = create_account(
             uow,
@@ -518,7 +451,6 @@ class TestDeleteAccount:
         )
         uow.committed = False
 
-        # Act & Assert
         with pytest.raises(AccountHasPostingsError) as exc_info:
             delete_account(uow, account_id=account.account_id)
 
@@ -529,7 +461,6 @@ class TestDeleteAccount:
 
 class TestCreatePosting:
     def test_create_posting_success_expense(self):
-        # Arrange
         uow = FakeUnitOfWork()
         account = create_account(
             uow,
@@ -540,7 +471,6 @@ class TestCreatePosting:
         category = create_category(uow, name="Food")
         uow.committed = False
 
-        # Act
         posting = create_posting(
             uow,
             account_id=account.account_id,
@@ -550,7 +480,6 @@ class TestCreatePosting:
             category_id=category.category_id,
         )
 
-        # Assert
         assert posting.posting_id is not None
         assert posting.account_id == account.account_id
         assert posting.posting_date == date(2023, 1, 1)
@@ -563,7 +492,6 @@ class TestCreatePosting:
         assert uow.committed is True
 
     def test_create_posting_success_income_no_category(self):
-        # Arrange
         uow = FakeUnitOfWork()
         account = create_account(
             uow,
@@ -573,7 +501,6 @@ class TestCreatePosting:
         )
         uow.committed = False
 
-        # Act
         posting = create_posting(
             uow,
             account_id=account.account_id,
@@ -583,7 +510,6 @@ class TestCreatePosting:
             category_id=None,
         )
 
-        # Assert
         assert posting.posting_id is not None
         assert posting.account_id == account.account_id
         assert posting.category_id is None
@@ -593,10 +519,7 @@ class TestCreatePosting:
         assert uow.committed is True
 
     def test_create_posting_account_not_found(self):
-        # Arrange
         uow = FakeUnitOfWork()
-
-        # Act & Assert
         with pytest.raises(
             AccountNotFoundError,
             match="Account with id 'non-existent-acc' not found",
@@ -612,7 +535,6 @@ class TestCreatePosting:
         assert uow.committed is False
 
     def test_create_posting_category_not_found(self):
-        # Arrange
         uow = FakeUnitOfWork()
         account = create_account(
             uow,
@@ -622,7 +544,6 @@ class TestCreatePosting:
         )
         uow.committed = False
 
-        # Act & Assert
         with pytest.raises(
             CategoryNotFoundError,
             match="Category with id 'non-existent-cat' not found",
@@ -639,7 +560,6 @@ class TestCreatePosting:
         assert uow.committed is False
 
     def test_create_posting_insufficient_funds(self):
-        # Arrange
         uow = FakeUnitOfWork()
         account = create_account(
             uow,
@@ -650,7 +570,6 @@ class TestCreatePosting:
         category = create_category(uow, name="Food")
         uow.committed = False
 
-        # Act & Assert
         with pytest.raises(
             InsufficientFundsError,
             match="Insufficient funds in account 'Test Account'",
@@ -669,7 +588,6 @@ class TestCreatePosting:
 
 class TestGetPosting:
     def test_get_posting_success(self):
-        # Arrange
         uow = FakeUnitOfWork()
         account = create_account(
             uow,
@@ -686,18 +604,13 @@ class TestGetPosting:
             category_id=None,
         )
 
-        # Act
         posting = get_posting(uow, posting_id=created.posting_id)
 
-        # Assert
         assert posting == created
         assert posting.amount == Decimal(50)
 
     def test_get_posting_not_found_raises_error(self):
-        # Arrange
         uow = FakeUnitOfWork()
-
-        # Act & Assert
         with pytest.raises(PostingNotFoundError) as exc_info:
             get_posting(uow, posting_id="non-existent")
 
@@ -706,17 +619,11 @@ class TestGetPosting:
 
 class TestListPostings:
     def test_list_postings_empty(self):
-        # Arrange
         uow = FakeUnitOfWork()
-
-        # Act
         postings = list_postings(uow)
-
-        # Assert
         assert postings == []
 
     def test_list_postings_all(self):
-        # Arrange
         uow = FakeUnitOfWork()
         a1 = create_account(
             uow,
@@ -748,14 +655,11 @@ class TestListPostings:
             category_id=category.category_id,
         )
 
-        # Act
         postings = list_postings(uow)
 
-        # Assert
         assert len(postings) == 2
 
     def test_list_postings_filtered_by_account(self):
-        # Arrange
         uow = FakeUnitOfWork()
         a1 = create_account(
             uow,
@@ -787,17 +691,14 @@ class TestListPostings:
             category_id=category.category_id,
         )
 
-        # Act
         postings = list_postings(uow, account_id=a1.account_id)
 
-        # Assert
         assert len(postings) == 1
         assert postings[0] == p1
 
 
 class TestTransferServices:
     def test_create_transfer_success(self):
-        # Arrange
         uow = FakeUnitOfWork()
         source = create_account(
             uow,
@@ -813,7 +714,6 @@ class TestTransferServices:
         )
         uow.committed = False
 
-        # Act
         transfer = create_transfer(
             uow,
             source_account_id=source.account_id,
@@ -824,16 +724,14 @@ class TestTransferServices:
             description="Test Transfer",
         )
 
-        # Assert
         assert transfer.source_account_id == source.account_id
         assert transfer.dest_account_id == dest.account_id
         assert transfer.debit_amount == Decimal(10)
         assert transfer.description == "Test Transfer"
-        assert len(uow.repo.transfers) == 1
+        assert len(uow.transfers._transfers) == 1
         assert uow.committed is True
 
     def test_create_transfer_source_not_found(self):
-        # Arrange
         uow = FakeUnitOfWork()
         dest = create_account(
             uow,
@@ -843,7 +741,6 @@ class TestTransferServices:
         )
         uow.committed = False
 
-        # Act & Assert
         with pytest.raises(AccountNotFoundError) as exc:
             create_transfer(
                 uow,
@@ -856,7 +753,6 @@ class TestTransferServices:
         assert "Source account" in str(exc.value)
 
     def test_create_transfer_dest_not_found(self):
-        # Arrange
         uow = FakeUnitOfWork()
         source = create_account(
             uow,
@@ -866,7 +762,6 @@ class TestTransferServices:
         )
         uow.committed = False
 
-        # Act & Assert
         with pytest.raises(AccountNotFoundError) as exc:
             create_transfer(
                 uow,
@@ -879,7 +774,6 @@ class TestTransferServices:
         assert "Destination account" in str(exc.value)
 
     def test_create_transfer_insufficient_funds(self):
-        # Arrange
         uow = FakeUnitOfWork()
         source = create_account(
             uow,
@@ -895,7 +789,6 @@ class TestTransferServices:
         )
         uow.committed = False
 
-        # Act & Assert
         with pytest.raises(InsufficientFundsError):
             create_transfer(
                 uow,
@@ -907,7 +800,6 @@ class TestTransferServices:
             )
 
     def test_get_transfer_success(self):
-        # Arrange
         uow = FakeUnitOfWork()
         source = create_account(
             uow,
@@ -930,22 +822,16 @@ class TestTransferServices:
             transfer_date=JAN_01,
         )
 
-        # Act
         retrieved = get_transfer(uow, transfer_id=transfer.transfer_id)
 
-        # Assert
         assert retrieved == transfer
 
     def test_get_transfer_not_found(self):
-        # Arrange
         uow = FakeUnitOfWork()
-
-        # Act & Assert
         with pytest.raises(TransferNotFoundError):
             get_transfer(uow, transfer_id="non-existent")
 
     def test_list_transfers(self):
-        # Arrange
         uow = FakeUnitOfWork()
         source = create_account(
             uow,
@@ -976,10 +862,23 @@ class TestTransferServices:
             transfer_date=JAN_01,
         )
 
-        # Act
         transfers = list_transfers(uow)
 
-        # Assert
         assert len(transfers) == 2
         assert t1 in transfers
         assert t2 in transfers
+
+
+class TestCategoryServices:
+    def test_get_category_success(self):
+        uow = FakeUnitOfWork()
+        created = create_category(uow, name="Food")
+
+        retrieved = get_category(uow, category_id=created.category_id)
+
+        assert retrieved == created
+
+    def test_get_category_not_found(self):
+        uow = FakeUnitOfWork()
+        with pytest.raises(CategoryNotFoundError):
+            get_category(uow, category_id="non-existent")

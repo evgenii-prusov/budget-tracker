@@ -2,24 +2,27 @@ import pytest
 from decimal import Decimal
 
 from app.domain.model import Account
-from app.domain.model import create_transfer
+from app.domain.model import Transfer
 from app.domain.model import InsufficientFundsError
 from app.domain.model import PostingType
 from tests.constants import JAN_01
 
 
 class TestCreateTransfer:
-    """Tests for create_transfer() function."""
+    """Tests for Account.record_outgoing_transfer / record_incoming_transfer."""
 
     def test_transfer_with_different_currencies(self, acc_eur: Account, acc_rub: Account):
         # Arrange & Act: Transfer between EUR and RUB accounts
-        transfer = create_transfer(
-            acc_eur,
-            acc_rub,
+        transfer = Transfer(
+            None,
+            acc_eur.account_id,
+            acc_rub.account_id,
+            Decimal(10),
+            Decimal(1000),
             JAN_01,
-            debit_amount=Decimal(10),
-            credit_amount=Decimal(1000),
         )
+        acc_eur.record_outgoing_transfer(transfer)
+        acc_rub.record_incoming_transfer(transfer)
 
         # Assert: Both balances updated correctly
         assert acc_eur.balance == Decimal(25)
@@ -28,28 +31,33 @@ class TestCreateTransfer:
 
     def test_transfer_stores_description(self, acc_eur: Account, acc_rub: Account):
         # Arrange & Act: Create transfer with description
-        transfer = create_transfer(
-            acc_eur,
-            acc_rub,
+        transfer = Transfer(
+            None,
+            acc_eur.account_id,
+            acc_rub.account_id,
+            Decimal(10),
+            Decimal(1000),
             JAN_01,
-            debit_amount=Decimal(10),
-            credit_amount=Decimal(1000),
             description="D1",
         )
+        acc_eur.record_outgoing_transfer(transfer)
+        acc_rub.record_incoming_transfer(transfer)
 
         # Assert: Description is stored
         assert transfer.description == "D1"
 
     def test_transfer_raises_insufficient_funds(self, acc_eur: Account, acc_rub: Account):
         # Arrange & Act: Attempt transfer exceeding balance
+        transfer = Transfer(
+            None,
+            acc_eur.account_id,
+            acc_rub.account_id,
+            Decimal(50),
+            Decimal(5000),
+            JAN_01,
+        )
         with pytest.raises(InsufficientFundsError):
-            create_transfer(
-                acc_eur,
-                acc_rub,
-                JAN_01,
-                debit_amount=Decimal(50),
-                credit_amount=Decimal(5000),
-            )
+            acc_eur.record_outgoing_transfer(transfer)
 
         # Assert: Balances unchanged after failed transfer
         assert acc_eur.balance == Decimal(35)
@@ -76,12 +84,13 @@ class TestCreateTransfer:
     ):
         # Arrange & Act: Attempt transfer with invalid type
         with pytest.raises(TypeError) as exc_info:
-            create_transfer(
-                acc_eur,
-                acc_rub,
+            Transfer(
+                None,
+                acc_eur.account_id,
+                acc_rub.account_id,
+                debit_amount,
+                credit_amount,
                 JAN_01,
-                debit_amount=debit_amount,
-                credit_amount=credit_amount,
             )
 
         # Assert: Verify error message content
@@ -92,13 +101,16 @@ class TestCreateTransfer:
 
     def test_transfer_succeeds_with_valid_decimal_amounts(self, acc_eur: Account, acc_rub: Account):
         # Arrange & Act: Transfer with valid Decimal amounts
-        create_transfer(
-            acc_eur,
-            acc_rub,
+        transfer = Transfer(
+            None,
+            acc_eur.account_id,
+            acc_rub.account_id,
+            Decimal(10),
+            Decimal(1000),
             JAN_01,
-            debit_amount=Decimal(10),
-            credit_amount=Decimal(1000),
         )
+        acc_eur.record_outgoing_transfer(transfer)
+        acc_rub.record_incoming_transfer(transfer)
 
         # Assert: Transfer succeeds with correct balances
         assert acc_eur.balance == Decimal(25)
