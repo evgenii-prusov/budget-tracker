@@ -1,4 +1,4 @@
-.PHONY: help run test test-verbose coverage coverage-html quality format lint sync install clean
+.PHONY: help run test test-verbose coverage coverage-html quality format lint typecheck sync install clean
 
 help:
 	@echo "Budget Tracker - Available Commands"
@@ -12,6 +12,7 @@ help:
 	@echo "make quality       - Run prek checks on all files"
 	@echo "make format        - Format code with ruff"
 	@echo "make lint          - Lint and auto-fix with ruff"
+	@echo "make typecheck     - Run ty type checker"
 	@echo "make sync          - Sync with remote master branch"
 	@echo "make clean         - Remove generated files"
 
@@ -42,6 +43,9 @@ format:
 
 lint:
 	cd backend && uv run ruff check --fix
+
+typecheck:
+	cd backend && uv run ty check
 
 sync:
 	git pull --rebase origin master
