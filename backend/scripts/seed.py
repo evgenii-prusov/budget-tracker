@@ -16,8 +16,8 @@ from app.core.db import Database
 from app.domain.model import (
     Account,
     Category,
+    Transfer,
     PostingType,
-    create_transfer,
 )
 
 ACCOUNTS = [
@@ -139,16 +139,20 @@ def main() -> None:
                 posting_type=posting_type,
             )
 
-        # Create transfers via domain function
+        # Create transfers via aggregate root methods
         for src, dst, debit, credit, t_date, desc in TRANSFERS:
-            create_transfer(
-                accounts[src],
-                accounts[dst],
-                t_date,
+            transfer = Transfer(
+                transfer_id=None,
+                source_account_id=accounts[src].account_id,
+                dest_account_id=accounts[dst].account_id,
                 debit_amount=debit,
                 credit_amount=credit,
+                transfer_date=t_date,
                 description=desc,
             )
+            accounts[src].record_outgoing_transfer(transfer)
+            accounts[dst].record_incoming_transfer(transfer)
+            session.add(transfer)
 
         session.commit()
 

@@ -51,7 +51,7 @@ class Category:
     def __eq__(self, other):
         if not isinstance(other, Category):
             return False
-        return self.category_id == other.category_id
+        return self.name == other.name
 
     def __hash__(self):
         return hash(self.category_id)
@@ -263,61 +263,40 @@ class Account:
         self._postings.append(posting)
         return posting
 
+    def record_outgoing_transfer(self, transfer: Transfer) -> None:
+        """Register an outgoing transfer and validate sufficient funds."""
+        self._outgoing_transfers.append(transfer)
+        if self.balance < 0:
+            self._outgoing_transfers.remove(transfer)
+            raise InsufficientFundsError(
+                f"Insufficient funds in account '{self.name}' (id={self.account_id}): "
+                f"transfer of {transfer.debit_amount} {self.currency} "
+                f"would result in negative balance"
+            )
 
-def create_transfer(
-    source: Account,
-    dest: Account,
-    transfer_date: date,
-    *,
-    debit_amount: Decimal,
-    credit_amount: Decimal,
-    description: str | None = None,
-) -> Transfer:
-    """Create a transfer between two accounts.
+    def record_incoming_transfer(self, transfer: Transfer) -> None:
+        """Register an incoming transfer."""
+        self._incoming_transfers.append(transfer)
 
-    Creates a single Transfer object linking two accounts. No posting
-    records are created for transfers.
+    @property
+    def postings(self) -> list[Posting]:
+        return list(self._postings)
 
-    Args:
-        source: Account to debit from
-        dest: Account to credit to
-        transfer_date: Date of transfer
-        debit_amount: Amount to deduct from source (must be positive)
-        credit_amount: Amount to add to destination (must be positive)
-        description: Optional transfer description
+    def get_posting(self, posting_id: str) -> Posting | None:
+        return next((p for p in self._postings if p.posting_id == posting_id), None)
 
-    Returns:
-        The created Transfer object
+    @property
+    def has_postings(self) -> bool:
+        return len(self._postings) > 0
 
-    Raises:
-        TypeError: If amounts are not Decimal
-        ValueError: If amounts are not positive
-        InsufficientFundsError: If source account would go negative
-    """
-    # Validation happens in Transfer.__init__
-    transfer_obj = Transfer(
-        transfer_id=None,
-        source_account_id=source.account_id,
-        dest_account_id=dest.account_id,
-        debit_amount=debit_amount,
-        credit_amount=credit_amount,
-        transfer_date=transfer_date,
-        description=description,
-    )
+    @property
+    def has_transfers(self) -> bool:
+        return len(self._outgoing_transfers) > 0 or len(self._incoming_transfers) > 0
 
-    # Add to collections for balance calculation
-    source._outgoing_transfers.append(transfer_obj)
-    dest._incoming_transfers.append(transfer_obj)
+    @property
+    def posting_count(self) -> int:
+        return len(self._postings)
 
-    # Check source account has sufficient funds
-    if source.balance < 0:
-        # Rollback
-        source._outgoing_transfers.remove(transfer_obj)
-        dest._incoming_transfers.remove(transfer_obj)
-        raise InsufficientFundsError(
-            f"Insufficient funds in account '{source.name}' (id={source.account_id}): "
-            f"transfer of {debit_amount} {source.currency} "
-            f"would result in negative balance"
-        )
-
-    return transfer_obj
+    @property
+    def transfer_count(self) -> int:
+        return len(self._outgoing_transfers) + len(self._incoming_transfers)

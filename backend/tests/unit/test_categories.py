@@ -24,7 +24,7 @@ class TestCreateCategory:
         # Assert
         assert category.name == "Groceries"
         assert uow.committed is True
-        assert len(uow.repo.categories) == 1
+        assert len(uow.categories._categories) == 1
 
     def test_create_category_duplicate_name_raises_error(self):
         # Arrange
@@ -35,7 +35,7 @@ class TestCreateCategory:
         with pytest.raises(DuplicateCategoryNameError):
             create_category(uow, name="Groceries")
 
-        assert len(uow.repo.categories) == 1
+        assert len(uow.categories._categories) == 1
 
 
 class TestListCategories:
@@ -133,7 +133,7 @@ class TestDeleteCategory:
 
         # Assert
         assert uow.committed is True
-        assert len(uow.repo.categories) == 0
+        assert len(uow.categories._categories) == 0
 
     def test_delete_category_not_found_raises_error(self):
         # Arrange
@@ -156,10 +156,10 @@ class TestDeleteCategory:
             category_id=c1.category_id,
             posting_type=PostingType.EXPENSE,
         )
-        uow.repo.add(account)
+        uow.accounts.add(account)
 
         # Act & Assert
         with pytest.raises(CategoryInUseError):
             delete_category(uow, category_id=c1.category_id)
 
-        assert len(uow.repo.categories) == 1
+        assert len(uow.categories._categories) == 1

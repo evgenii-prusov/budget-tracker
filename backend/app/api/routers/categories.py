@@ -13,6 +13,7 @@ from app.api.schemas import CategoryResponse
 from app.api.schemas import CategoryCreate
 from app.api.schemas import CategoryUpdate
 from app.service_layer.services import create_category
+from app.service_layer.services import get_category
 from app.service_layer.services import list_categories
 from app.service_layer.services import update_category_name
 from app.service_layer.services import delete_category
@@ -33,13 +34,10 @@ def list_categories_endpoint(
 
 @router.get("/categories/{category_id}", response_model=CategoryResponse)
 def get_category_endpoint(category_id: str, uow: UoWDep):
-    category = uow.repo.get_category(category_id)
-    if not category:
-        raise HTTPException(
-            status_code=404,
-            detail=f"Category with id '{category_id}' not found",
-        )
-    return category
+    try:
+        return get_category(uow=uow, category_id=category_id)
+    except CategoryNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
 
 
 @router.post("/categories", status_code=201, response_model=CategoryResponse)

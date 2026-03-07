@@ -16,7 +16,6 @@ from app.domain.model import Category
 from app.domain.model import Posting
 from app.domain.model import PostingType
 from app.domain.model import Transfer
-from app.domain.model import create_transfer as domain_create_transfer
 from app.service_layer.unit_of_work import AbstractUnitOfWork
 from app.core.logging_config import get_logger
 
@@ -25,7 +24,7 @@ logger = get_logger(__name__)
 
 def get_account(uow: AbstractUnitOfWork, *, account_id: str) -> Account:
     with uow:
-        account = uow.repo.get(account_id)
+        account = uow.accounts.get(account_id)
         if account is None:
             raise AccountNotFoundError(f"Account with id '{account_id}' not found")
         return account
@@ -33,16 +32,16 @@ def get_account(uow: AbstractUnitOfWork, *, account_id: str) -> Account:
 
 def list_accounts(uow: AbstractUnitOfWork, *, skip: int = 0, limit: int = 50) -> list[Account]:
     with uow:
-        return uow.repo.list_all(skip=skip, limit=limit)
+        return uow.accounts.list_all(skip=skip, limit=limit)
 
 
 def update_account_name(uow: AbstractUnitOfWork, *, account_id: str, new_name: str) -> Account:
     with uow:
-        account = uow.repo.get(account_id)
+        account = uow.accounts.get(account_id)
         if account is None:
             raise AccountNotFoundError(f"Account with id '{account_id}' not found")
 
-        existing_account = uow.repo.get_by_name(new_name)
+        existing_account = uow.accounts.get_by_name(new_name)
         if existing_account and existing_account.account_id != account_id:
             raise DuplicateAccountNameError(f"Account with name '{new_name}' already exists")
 
@@ -60,14 +59,12 @@ def create_account(
     initial_balance: Decimal,
 ) -> Account:
     with uow:
-        # Validate initial balance is non-negative
         if initial_balance < 0:
             raise InvalidInitialBalanceError(
                 f"Initial balance cannot be negative, got {initial_balance}"
             )
 
-        # Check for duplicate account name
-        existing_account = uow.repo.get_by_name(name)
+        existing_account = uow.accounts.get_by_name(name)
         if existing_account:
             raise DuplicateAccountNameError(f"Account with name '{name}' already exists")
 
@@ -77,7 +74,7 @@ def create_account(
             currency=currency,
             initial_balance=initial_balance,
         )
-        uow.repo.add(new_account)
+        uow.accounts.add(new_account)
         uow.commit()
         logger.info(
             "Created account: %s (currency: %s, initial_balance: %s)",
@@ -91,14 +88,12 @@ def create_account(
 
 def delete_account(uow: AbstractUnitOfWork, *, account_id: str) -> None:
     with uow:
-        # Check if account exists
-        account = uow.repo.get(account_id)
+        account = uow.accounts.get(account_id)
         if account is None:
             raise AccountNotFoundError(f"Account with id '{account_id}' not found")
 
-        # Check if account has postings
-        posting_count = uow.repo.count_postings_for_account(account_id)
-        transfer_count = uow.repo.count_transfers_for_account(account_id)
+        posting_count = account.posting_count
+        transfer_count = account.transfer_count
 
         if posting_count > 0 and transfer_count > 0:
             raise AccountHasPostingsError(
@@ -116,7 +111,7 @@ def delete_account(uow: AbstractUnitOfWork, *, account_id: str) -> None:
                 f"Cannot delete account '{account.name}': has {transfer_count} transfer(s)"
             )
 
-        uow.repo.delete(account)
+        uow.accounts.delete(account)
         uow.commit()
         logger.info("Deleted account id: %s", account_id)
 
@@ -131,12 +126,12 @@ def create_posting(
     category_id: str | None = None,
 ) -> Posting:
     with uow:
-        account = uow.repo.get(account_id)
+        account = uow.accounts.get(account_id)
         if not account:
             raise AccountNotFoundError(f"Account with id '{account_id}' not found")
 
         if category_id:
-            category = uow.repo.get_category(category_id)
+            category = uow.categories.get(category_id)
             if not category:
                 raise CategoryNotFoundError(f"Category with id '{category_id}' not found")
 
@@ -158,7 +153,10 @@ def create_posting(
 
 def get_posting(uow: AbstractUnitOfWork, *, posting_id: str) -> Posting:
     with uow:
-        posting = uow.repo.get_posting(posting_id)
+        account = uow.accounts.get_by_posting_id(posting_id)
+        if account is None:
+            raise PostingNotFoundError(f"Posting with id '{posting_id}' not found")
+        posting = account.get_posting(posting_id)
         if posting is None:
             raise PostingNotFoundError(f"Posting with id '{posting_id}' not found")
         return posting
@@ -172,7 +170,16 @@ def list_postings(
     limit: int = 50,
 ) -> list[Posting]:
     with uow:
-        return uow.repo.list_postings(account_id=account_id, skip=skip, limit=limit)
+        if account_id is not None:
+            account = uow.accounts.get(account_id)
+            if account is None:
+                return []
+            return account.postings[skip : skip + limit]
+        else:
+            all_postings: list[Posting] = []
+            for account in uow.accounts.list_all(skip=0, limit=10000):
+                all_postings.extend(account.postings)
+            return all_postings[skip : skip + limit]
 
 
 # Category Services
@@ -184,8 +191,7 @@ def create_category(
     name: str,
 ) -> Category:
     with uow:
-        # Check for duplicate name
-        existing_category = uow.repo.get_category_by_name(name)
+        existing_category = uow.categories.get_by_name(name)
         if existing_category:
             raise DuplicateCategoryNameError(f"Category with name '{name}' already exists")
 
@@ -193,24 +199,32 @@ def create_category(
             category_id=None,
             name=name,
         )
-        uow.repo.add_category(new_category)
+        uow.categories.add(new_category)
         uow.commit()
         logger.info("Created category: %s", name)
         return new_category
 
 
+def get_category(uow: AbstractUnitOfWork, *, category_id: str) -> Category:
+    with uow:
+        category = uow.categories.get(category_id)
+        if category is None:
+            raise CategoryNotFoundError(f"Category with id '{category_id}' not found")
+        return category
+
+
 def list_categories(uow: AbstractUnitOfWork, skip: int = 0, limit: int = 50) -> list[Category]:
     with uow:
-        return uow.repo.list_categories(skip=skip, limit=limit)
+        return uow.categories.list_all(skip=skip, limit=limit)
 
 
 def update_category_name(uow: AbstractUnitOfWork, *, category_id: str, new_name: str) -> Category:
     with uow:
-        category = uow.repo.get_category(category_id)
+        category = uow.categories.get(category_id)
         if category is None:
             raise CategoryNotFoundError(f"Category with id '{category_id}' not found")
 
-        existing_category = uow.repo.get_category_by_name(new_name)
+        existing_category = uow.categories.get_by_name(new_name)
         if existing_category and existing_category.category_id != category_id:
             raise DuplicateCategoryNameError(f"Category with name '{new_name}' already exists")
 
@@ -221,17 +235,16 @@ def update_category_name(uow: AbstractUnitOfWork, *, category_id: str, new_name:
 
 def delete_category(uow: AbstractUnitOfWork, *, category_id: str) -> None:
     with uow:
-        category = uow.repo.get_category(category_id)
+        category = uow.categories.get(category_id)
         if category is None:
             raise CategoryNotFoundError(f"Category with id '{category_id}' not found")
 
-        # Check usage
-        if uow.repo.count_postings_for_category(category_id) > 0:
+        if uow.categories.count_postings(category_id) > 0:
             raise CategoryInUseError(
                 f"Category '{category.name}' has postings and cannot be deleted"
             )
 
-        uow.repo.delete_category(category)
+        uow.categories.delete(category)
         uow.commit()
         logger.info("Deleted category id: %s", category_id)
 
@@ -250,24 +263,28 @@ def create_transfer(
     description: str | None = None,
 ) -> Transfer:
     with uow:
-        source_account = uow.repo.get(source_account_id)
+        source_account = uow.accounts.get(source_account_id)
         if not source_account:
             raise AccountNotFoundError(f"Source account with id '{source_account_id}' not found")
 
-        dest_account = uow.repo.get(dest_account_id)
+        dest_account = uow.accounts.get(dest_account_id)
         if not dest_account:
             raise AccountNotFoundError(f"Destination account with id '{dest_account_id}' not found")
 
-        transfer = domain_create_transfer(
-            source=source_account,
-            dest=dest_account,
-            transfer_date=transfer_date,
+        transfer = Transfer(
+            transfer_id=None,
+            source_account_id=source_account_id,
+            dest_account_id=dest_account_id,
             debit_amount=debit_amount,
             credit_amount=credit_amount,
+            transfer_date=transfer_date,
             description=description,
         )
 
-        uow.repo.add_transfer(transfer)
+        source_account.record_outgoing_transfer(transfer)
+        dest_account.record_incoming_transfer(transfer)
+        uow.transfers.add(transfer)
+
         uow.commit()
         logger.info(
             "Created transfer from %s to %s: %s (debit) / %s (credit)",
@@ -281,7 +298,7 @@ def create_transfer(
 
 def get_transfer(uow: AbstractUnitOfWork, *, transfer_id: str) -> Transfer:
     with uow:
-        transfer = uow.repo.get_transfer(transfer_id)
+        transfer = uow.transfers.get(transfer_id)
         if transfer is None:
             raise TransferNotFoundError(f"Transfer with id '{transfer_id}' not found")
         return transfer
@@ -289,4 +306,4 @@ def get_transfer(uow: AbstractUnitOfWork, *, transfer_id: str) -> Transfer:
 
 def list_transfers(uow: AbstractUnitOfWork, skip: int = 0, limit: int = 50) -> list[Transfer]:
     with uow:
-        return uow.repo.list_transfers(skip=skip, limit=limit)
+        return uow.transfers.list_all(skip=skip, limit=limit)
