@@ -76,10 +76,10 @@ def test_repository_retrieve_all_accounts(session):
 
 
 def test_list_all_balance_uses_eager_loading(session):
-    """list_all() must eager-load relationships so Account.balance doesn't trigger lazy loads.
+    """list_all() must eager-load relationships so Account.balance works on detached objects.
 
-    After expiring the session, accessing balance on a detached account would raise
-    a DetachedInstanceError if relationships were not eagerly loaded.
+    After expunging (truly detaching) all objects from the session, accessing balance
+    would raise DetachedInstanceError if relationships had not been eagerly loaded.
     """
     repo = SqlAlchemyAccountRepository(session)
     account = Account("bal-1", "Eager Test", "EUR", Decimal(100))
@@ -88,14 +88,18 @@ def test_list_all_balance_uses_eager_loading(session):
     session.commit()
 
     accounts = repo.list_all()
-    session.expire_all()  # simulate relationships not being available via lazy load
+    session.expunge_all()  # detach all objects; lazy loads would now raise DetachedInstanceError
 
     assert len(accounts) == 1
     assert accounts[0].balance == Decimal(130)
 
 
 def test_get_balance_uses_eager_loading(session):
-    """get() must eager-load relationships so Account.balance doesn't trigger lazy loads."""
+    """get() must eager-load relationships so Account.balance works on detached objects.
+
+    After expunging (truly detaching) the object from the session, accessing balance
+    would raise DetachedInstanceError if relationships had not been eagerly loaded.
+    """
     repo = SqlAlchemyAccountRepository(session)
     account = Account("bal-2", "Eager Get Test", "EUR", Decimal(50))
     repo.add(account)
@@ -104,7 +108,7 @@ def test_get_balance_uses_eager_loading(session):
 
     loaded = repo.get("bal-2")
     assert loaded is not None
-    session.expire_all()
+    session.expunge_all()  # detach all objects; lazy loads would now raise DetachedInstanceError
 
     assert loaded.balance == Decimal(70)
 

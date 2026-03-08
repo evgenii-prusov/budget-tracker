@@ -7,15 +7,27 @@ from app.service_layer.abstract_account_repository import AbstractAccountReposit
 
 
 def _select_account_with_balance_relations():
-    """Return a base SELECT for Account with balance-relevant relationships eagerly loaded.
+    """Return a base SELECT for Account with all balance-relevant relationships eagerly loaded.
 
     Eagerly loading _postings, _outgoing_transfers, and _incoming_transfers prevents
     N+1 lazy-load queries when Account.balance is accessed during serialization.
+    Used by read paths that return Account objects to the API (get, list_all).
     """
     return select(Account).options(
         selectinload(Account._postings),
         selectinload(Account._outgoing_transfers),
         selectinload(Account._incoming_transfers),
+    )
+
+
+def _select_account_with_postings_only():
+    """Return a base SELECT for Account with only _postings eagerly loaded.
+
+    Used by read paths that need access to postings but not transfers
+    (e.g. get_by_posting_id, which is only used to look up and return a single Posting).
+    """
+    return select(Account).options(
+        selectinload(Account._postings),
     )
 
 
@@ -36,17 +48,12 @@ class SqlAlchemyAccountRepository(AbstractAccountRepository):
         )
 
     def get_by_name(self, name: str) -> Account | None:
-        return (
-            self.session.execute(
-                _select_account_with_balance_relations().filter_by(name=name)
-            )
-            .scalars()
-            .first()
-        )
+        # Used only for duplicate-name checks; no relationship access required.
+        return self.session.execute(select(Account).filter_by(name=name)).scalars().first()
 
     def get_by_posting_id(self, posting_id: str) -> Account | None:
         stmt = (
-            _select_account_with_balance_relations()
+            _select_account_with_postings_only()
             .join(postings, accounts.c.account_id == postings.c.account_id)
             .where(postings.c.posting_id == posting_id)
         )
