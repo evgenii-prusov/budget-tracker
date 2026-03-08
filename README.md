@@ -23,14 +23,18 @@ Personal finance application for tracking income, expenses, and transfers.
 git clone ...  # TODO: Add repo URL
 cd budget-tracker
 make install
-make run
+make db-up       # start Postgres
+make db-migrate  # run migrations
+make run         # start dev server (stop with Ctrl+C; make db-down to stop Postgres)
 ```
 
 **Production (Docker)**
 
 ```bash
 export API_KEY=your-secret-key
-make docker-up          # starts Postgres + backend, runs migrations
+make docker-build   # build image (first time only)
+make docker-up      # start Postgres + backend, runs migrations
+make docker-down    # stop everything
 ```
 
 The API will be available at `http://localhost:8000`.  
