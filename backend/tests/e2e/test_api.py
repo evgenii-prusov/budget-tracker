@@ -17,6 +17,13 @@ def test_authorized_valid_token(client):
     assert response.status_code == 200
 
 
+def test_docs_accessible_without_auth(client_no_auth):
+    """Interactive docs must be reachable without authentication."""
+    assert client_no_auth.get("/docs").status_code == 200
+    assert client_no_auth.get("/redoc").status_code == 200
+    assert client_no_auth.get("/openapi.json").status_code == 200
+
+
 def test_get_account_success(client):
     # 1. Arrange: Create account via API
     create_response = client.post(
