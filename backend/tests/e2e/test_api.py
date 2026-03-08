@@ -459,3 +459,72 @@ def test_update_account_name_not_found(client):
     )
     assert response.status_code == 404
     assert "not found" in response.json()["detail"]
+
+
+def test_get_account_includes_balance(client):
+    """GET /accounts/{id} includes balance field equal to initial_balance when no postings."""
+    create_response = client.post(
+        "/accounts",
+        json={"name": "Balance Test", "currency": "EUR", "initial_balance": "100"},
+    )
+    assert create_response.status_code == 201
+    account_id = create_response.json()["account_id"]
+
+    response = client.get(f"/accounts/{account_id}")
+    assert response.status_code == 200
+    data = response.json()
+    assert "balance" in data
+    assert Decimal(data["balance"]) == Decimal("100")
+
+
+def test_account_balance_reflects_postings(client):
+    """Balance is reduced after creating an expense posting."""
+    # Create account with initial_balance=100
+    acc = client.post(
+        "/accounts",
+        json={"name": "Expense Test", "currency": "EUR", "initial_balance": "100"},
+    ).json()
+    account_id = acc["account_id"]
+
+    # Create category (required for posting)
+    cat = client.post("/categories/", json={"name": "Groceries"}).json()
+
+    # Create an expense posting of 30
+    client.post(
+        "/postings/",
+        json={
+            "account_id": account_id,
+            "amount": "30",
+            "posting_date": "2025-01-01",
+            "category_id": cat["category_id"],
+            "posting_type": "EXPENSE",
+        },
+    )
+
+    # GET account and verify balance = 100 - 30 = 70
+    response = client.get(f"/accounts/{account_id}")
+    assert response.status_code == 200
+    data = response.json()
+    assert Decimal(data["balance"]) == Decimal("70")
+
+
+def test_list_accounts_includes_balance(client):
+    """GET /accounts returns balance field for each account."""
+    client.post(
+        "/accounts",
+        json={"name": "Account One", "currency": "EUR", "initial_balance": "50"},
+    )
+    client.post(
+        "/accounts",
+        json={"name": "Account Two", "currency": "USD", "initial_balance": "200"},
+    )
+
+    response = client.get("/accounts")
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data) == 2
+    for account in data:
+        assert "balance" in account
+    balances = {a["name"]: Decimal(a["balance"]) for a in data}
+    assert balances["Account One"] == Decimal("50")
+    assert balances["Account Two"] == Decimal("200")

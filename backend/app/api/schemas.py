@@ -35,6 +35,7 @@ class AccountResponse(BaseModel):
     name: str
     currency: str
     initial_balance: Decimal = Decimal(0)
+    balance: Decimal = Decimal(0)
 
 
 class CategoryCreate(BaseModel):
