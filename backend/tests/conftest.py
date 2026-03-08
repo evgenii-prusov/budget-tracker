@@ -14,9 +14,7 @@ from app.domain.model import PostingType
 from app.main import app
 from app.api.dependencies import get_db_session
 from fastapi.testclient import TestClient
-from tests.constants import JAN_01, JAN_02, JAN_03
-
-TEST_API_KEY = "test-secret-key"
+from tests.constants import JAN_01, JAN_02, JAN_03, TEST_API_KEY
 
 
 @pytest.fixture(scope="session", autouse=True)

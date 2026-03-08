@@ -3,13 +3,11 @@ from fastapi import HTTPException
 from fastapi.security import HTTPAuthorizationCredentials
 
 from app.api.auth import verify_api_key
-
-# Matches TEST_API_KEY / the value set by the set_api_key autouse fixture in conftest.py
-_VALID_KEY = "test-secret-key"
+from tests.constants import TEST_API_KEY
 
 
 def test_verify_api_key_valid_token():
-    credentials = HTTPAuthorizationCredentials(scheme="Bearer", credentials=_VALID_KEY)
+    credentials = HTTPAuthorizationCredentials(scheme="Bearer", credentials=TEST_API_KEY)
     verify_api_key(credentials)  # should not raise
 
 
