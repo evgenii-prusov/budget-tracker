@@ -197,3 +197,27 @@ def test_account_is_savings_set_true():
         is_savings=True,
     )
     assert account.is_savings is True
+
+
+def test_record_posting_with_payee_and_description(acc_eur: Account):
+    posting = acc_eur.record_posting(
+        Decimal(5),
+        JAN_01,
+        category_id=None,
+        posting_type=PostingType.INCOME,
+        payee="Acme Corp",
+        description="January salary",
+    )
+    assert posting.payee == "Acme Corp"
+    assert posting.description == "January salary"
+
+
+def test_record_posting_payee_description_default_none(acc_eur: Account):
+    posting = acc_eur.record_posting(
+        Decimal(5),
+        JAN_01,
+        category_id=None,
+        posting_type=PostingType.INCOME,
+    )
+    assert posting.payee is None
+    assert posting.description is None

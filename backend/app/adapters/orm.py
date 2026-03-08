@@ -33,6 +33,8 @@ postings = Table(
     Column("posting_date", Date, nullable=False),
     Column("category_id", String(36), ForeignKey("category.category_id"), nullable=True),
     Column("posting_type", String(20), nullable=False),
+    Column("payee", String(255), nullable=True),
+    Column("description", String(500), nullable=True),
 )
 
 transfers = Table(
