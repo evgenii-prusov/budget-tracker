@@ -6,27 +6,27 @@ Derived from the [Product Manifesto](./PRODUCT_MANIFESTO.md) gap analysis.
 
 ## Phase 1: Independent Domain Enhancements (no dependencies, any order)
 
-### TODO 1: Add `is_savings` Flag to Account `[S]`
+### TODO 1: Add `is_savings` Flag to Account `[S]` (Completed)
 Add boolean `is_savings` field (default `False`) to Account. Full vertical slice: domain model, ORM, migration, API schemas, service layer, tests.
-- `backend/app/domain/model.py` — add `is_savings` param to `Account.__init__`
-- `backend/app/adapters/orm.py` — add `Boolean` column
-- `backend/app/api/schemas.py` — add to `AccountCreate`, `AccountResponse`
-- `backend/app/service_layer/services.py` — pass through `create_account`
-- New Alembic migration + tests at all levels
+- `backend/app/domain/model.py` — add `is_savings` param to `Account.__init__` [DONE]
+- `backend/app/adapters/orm.py` — add `Boolean` column [DONE]
+- `backend/app/api/schemas.py` — add to `AccountCreate`, `AccountResponse` [DONE]
+- `backend/app/service_layer/services.py` — pass through `create_account` [DONE]
+- New Alembic migration + tests at all levels [DONE]
 
-### TODO 2: Add `payee` and `description` Fields to Posting `[S]`
+### TODO 2: Add `payee` and `description` Fields to Posting `[S]` (Completed)
 Add optional `payee: str | None` and `description: str | None` to Posting. Thread through `Account.record_posting()`, service layer, API schemas.
-- `backend/app/domain/model.py` — add params to `Posting.__init__`, `Account.record_posting`
-- `backend/app/adapters/orm.py` — add columns to `posting` table
-- `backend/app/api/schemas.py` — add to `PostingCreate`, `PostingResponse`
-- `backend/app/service_layer/services.py` — pass through `create_posting`
-- New Alembic migration + tests at all levels
+- `backend/app/domain/model.py` — add params to `Posting.__init__`, `Account.record_posting` [DONE]
+- `backend/app/adapters/orm.py` — add columns to `posting` table [DONE]
+- `backend/app/api/schemas.py` — add to `PostingCreate`, `PostingResponse` [DONE]
+- `backend/app/service_layer/services.py` — pass through `create_posting` [DONE]
+- New Alembic migration + tests at all levels [DONE]
 
-### TODO 3: Expose Account Balance in API Response `[S]`
+### TODO 3: Expose Account Balance in API Response `[S]` (Completed)
 `Account.balance` property exists but `AccountResponse` omits it. Add `balance`/`current_balance` to the response schema.
-- `backend/app/api/schemas.py` — add `balance` to `AccountResponse`
-- `backend/app/api/routers/accounts.py` — adjust response construction if needed
-- e2e tests for accounts
+- `backend/app/api/schemas.py` — add `balance` to `AccountResponse` [DONE]
+- `backend/app/api/routers/accounts.py` — adjust response construction if needed [DONE]
+- e2e tests for accounts [DONE]
 
 ---
 
