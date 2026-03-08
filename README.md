@@ -13,6 +13,7 @@ Personal finance application for tracking income, expenses, and transfers.
 - Budget management
 - Spending reports
 - **AI Assistant Integration** - MCP server for Claude/AI assistants
+- **Telegram Bot** - Communication channel complimenting the app
 
 ## Quick Start
 
