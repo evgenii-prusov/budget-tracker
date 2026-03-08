@@ -1,12 +1,13 @@
-import os
-
 import pytest
 from fastapi import HTTPException
 from fastapi.security import HTTPAuthorizationCredentials
 
-os.environ["API_KEY"] = "test-secret"
+from app.api.auth import verify_api_key
 
-from app.api.auth import verify_api_key  # noqa: E402
+
+@pytest.fixture(autouse=True)
+def set_api_key(monkeypatch):
+    monkeypatch.setenv("API_KEY", "test-secret")
 
 
 def test_verify_api_key_valid_token():
