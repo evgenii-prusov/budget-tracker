@@ -39,7 +39,63 @@ make db-down
 Copy `.env.example` to `.env` and adjust if needed:
 ```
 DATABASE_URL=postgresql://budget:budget@localhost:5432/budget_tracker
+API_KEY=change-me
 ```
+
+## Production (Docker)
+
+The project ships a production Dockerfile and a `docker-compose.yml` that starts
+Postgres and the backend together.
+
+### Prerequisites
+
+- Docker and Docker Compose installed
+- An `API_KEY` value chosen for authenticating API requests
+
+### First-time setup
+
+```bash
+# From the repo root -- export your API key
+export API_KEY=your-secret-key
+
+# Build the backend image
+make docker-build
+
+# Start Postgres and the backend (runs migrations automatically)
+make docker-up
+```
+
+The backend will be available at `http://localhost:8000`.  
+Pass the API key in every request via the `X-API-Key` header.
+
+### Day-to-day commands
+
+```bash
+# Start services
+make docker-up
+
+# Stop services (data is preserved in the postgres volume)
+make docker-down
+
+# Tail logs
+make docker-logs
+
+# Rebuild after code changes
+make docker-build && make docker-up
+```
+
+### Passing configuration
+
+All runtime configuration is provided through environment variables.
+The `docker-compose.yml` reads them from the host shell:
+
+| Variable       | Required | Default | Description                                       |
+|----------------|----------|---------|---------------------------------------------------|
+| `API_KEY`      | Yes      | (none)  | Secret key for `X-API-Key` auth                   |
+| `LOG_LEVEL`    | No       | `INFO`  | Python log level (`DEBUG`, `INFO`, `WARNING`, etc.)|
+
+`DATABASE_URL` is set automatically inside `docker-compose.yml` — no extra
+configuration is needed for it when using Docker Compose.
 
 ## Testing
 
@@ -56,6 +112,7 @@ make coverage
 ## Environment Variables
 
 - `DATABASE_URL` **(required)**: PostgreSQL connection URL (e.g., `postgresql://budget:budget@localhost:5432/budget_tracker`)
+- `API_KEY` **(required)**: Secret key that clients must pass in the `X-API-Key` header
 - `LOG_LEVEL`: Python logging level (e.g., `DEBUG`, `INFO`, `WARNING`, `ERROR`). Default: `INFO`
 
 See the root `CLAUDE.md` for full documentation.
