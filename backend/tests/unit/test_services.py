@@ -5,6 +5,7 @@ from datetime import date
 from app.domain.model import Account
 from app.domain.model import Transfer
 from app.domain.model import PostingType
+from app.domain.model import CategoryType
 from app.domain.model import Category
 from app.domain.exceptions import DuplicateAccountNameError
 from app.domain.exceptions import InvalidInitialBalanceError
@@ -87,11 +88,24 @@ class FakeCategoryRepository(AbstractCategoryRepository):
     def get(self, category_id: str) -> Category | None:
         return next((c for c in self._categories if c.category_id == category_id), None)
 
-    def get_by_name(self, name: str) -> Category | None:
-        return next((c for c in self._categories if c.name == name), None)
+    def get_by_name(self, name: str, parent_id: str | None = None) -> Category | None:
+        return next(
+            (c for c in self._categories if c.name == name and c.parent_id == parent_id),
+            None,
+        )
 
     def list_all(self, skip: int = 0, limit: int = 50) -> list[Category]:
         return list(self._categories)[skip : skip + limit]
+
+    def list_parents(self, skip: int = 0, limit: int = 50) -> list[Category]:
+        parents = [c for c in self._categories if c.parent_id is None]
+        return parents[skip : skip + limit]
+
+    def list_children(self, parent_id: str) -> list[Category]:
+        return [c for c in self._categories if c.parent_id == parent_id]
+
+    def count_children(self, category_id: str) -> int:
+        return len([c for c in self._categories if c.parent_id == category_id])
 
     def delete(self, category: Category) -> None:
         self._categories.remove(category)
@@ -289,7 +303,10 @@ class TestDeleteAccount:
             currency="USD",
             initial_balance=Decimal(100),
         )
-        category = create_category(uow, name="Food")
+        parent = create_category(uow, name="Food", category_type=CategoryType.EXPENSE)
+        category = create_category(
+            uow, name="Groceries", category_type=CategoryType.EXPENSE, parent_id=parent.category_id
+        )
         create_posting(
             uow,
             account_id=account.account_id,
@@ -444,7 +461,10 @@ class TestDeleteAccount:
             currency="USD",
             initial_balance=Decimal(0),
         )
-        category = create_category(uow, name="Food")
+        parent = create_category(uow, name="Food", category_type=CategoryType.EXPENSE)
+        category = create_category(
+            uow, name="Groceries", category_type=CategoryType.EXPENSE, parent_id=parent.category_id
+        )
         create_posting(
             uow,
             account_id=account.account_id,
@@ -480,7 +500,10 @@ class TestCreatePosting:
             currency="EUR",
             initial_balance=Decimal(100),
         )
-        category = create_category(uow, name="Food")
+        parent = create_category(uow, name="Food", category_type=CategoryType.EXPENSE)
+        category = create_category(
+            uow, name="Groceries", category_type=CategoryType.EXPENSE, parent_id=parent.category_id
+        )
         uow.committed = False
 
         posting = create_posting(
@@ -579,7 +602,10 @@ class TestCreatePosting:
             currency="EUR",
             initial_balance=Decimal(10),
         )
-        category = create_category(uow, name="Food")
+        parent = create_category(uow, name="Food", category_type=CategoryType.EXPENSE)
+        category = create_category(
+            uow, name="Groceries", category_type=CategoryType.EXPENSE, parent_id=parent.category_id
+        )
         uow.committed = False
 
         with pytest.raises(
@@ -605,7 +631,10 @@ class TestCreatePosting:
             currency="EUR",
             initial_balance=Decimal(100),
         )
-        category = create_category(uow, name="Food")
+        parent = create_category(uow, name="Food", category_type=CategoryType.EXPENSE)
+        category = create_category(
+            uow, name="Groceries", category_type=CategoryType.EXPENSE, parent_id=parent.category_id
+        )
         uow.committed = False
 
         posting = create_posting(
@@ -675,7 +704,10 @@ class TestListPostings:
             currency="EUR",
             initial_balance=Decimal(100),
         )
-        category = create_category(uow, name="c1")
+        parent = create_category(uow, name="c1", category_type=CategoryType.EXPENSE)
+        category = create_category(
+            uow, name="c1-sub", category_type=CategoryType.EXPENSE, parent_id=parent.category_id
+        )
         create_posting(
             uow,
             account_id=a1.account_id,
@@ -711,7 +743,10 @@ class TestListPostings:
             currency="EUR",
             initial_balance=Decimal(100),
         )
-        category = create_category(uow, name="c1")
+        parent = create_category(uow, name="c1", category_type=CategoryType.EXPENSE)
+        category = create_category(
+            uow, name="c1-sub", category_type=CategoryType.EXPENSE, parent_id=parent.category_id
+        )
         p1 = create_posting(
             uow,
             account_id=a1.account_id,
@@ -910,7 +945,7 @@ class TestTransferServices:
 class TestCategoryServices:
     def test_get_category_success(self):
         uow = FakeUnitOfWork()
-        created = create_category(uow, name="Food")
+        created = create_category(uow, name="Food", category_type=CategoryType.EXPENSE)
 
         retrieved = get_category(uow, category_id=created.category_id)
 

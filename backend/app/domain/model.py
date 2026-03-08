@@ -31,6 +31,13 @@ class PostingType(StrEnum):
     INCOME = "INCOME"
 
 
+class CategoryType(StrEnum):
+    """Types for categories (income or expense)."""
+
+    INCOME = "INCOME"
+    EXPENSE = "EXPENSE"
+
+
 VALID_CURRENCIES = frozenset({"USD", "EUR", "GBP", "RUB", "CHF", "JPY", "CNY"})
 
 
@@ -41,9 +48,13 @@ class Category:
         self,
         category_id: str | None,
         name: str,
+        category_type: CategoryType,
+        parent_id: str | None = None,
     ):
         self.category_id = category_id or str(uuid4())
         self.name = name
+        self.category_type = category_type
+        self.parent_id = parent_id
 
     def __repr__(self) -> str:
         return f"Category({self.category_id!r}, {self.name!r})"

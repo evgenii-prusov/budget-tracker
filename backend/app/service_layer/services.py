@@ -4,15 +4,19 @@ from decimal import Decimal
 from app.domain.exceptions import AccountHasTransfersError
 from app.domain.exceptions import AccountHasPostingsError
 from app.domain.exceptions import AccountNotFoundError
+from app.domain.exceptions import CategoryHasChildrenError
+from app.domain.exceptions import CategoryHierarchyError
 from app.domain.exceptions import CategoryInUseError
 from app.domain.exceptions import CategoryNotFoundError
 from app.domain.exceptions import DuplicateAccountNameError
 from app.domain.exceptions import DuplicateCategoryNameError
 from app.domain.exceptions import InvalidInitialBalanceError
+from app.domain.exceptions import ParentCategoryPostingError
 from app.domain.exceptions import PostingNotFoundError
 from app.domain.exceptions import TransferNotFoundError
 from app.domain.model import Account
 from app.domain.model import Category
+from app.domain.model import CategoryType
 from app.domain.model import Posting
 from app.domain.model import PostingType
 from app.domain.model import Transfer
@@ -138,6 +142,16 @@ def create_posting(
             category = uow.categories.get(category_id)
             if not category:
                 raise CategoryNotFoundError(f"Category with id '{category_id}' not found")
+            if category.parent_id is None:
+                raise ParentCategoryPostingError(
+                    f"Cannot create posting with parent category '{category.name}'. "
+                    f"Use a subcategory instead."
+                )
+            if posting_type.value != category.category_type.value:
+                raise CategoryHierarchyError(
+                    f"Posting type '{posting_type}' does not match "
+                    f"category type '{category.category_type}'"
+                )
 
         posting = account.record_posting(
             amount=amount,
@@ -194,15 +208,33 @@ def create_category(
     uow: AbstractUnitOfWork,
     *,
     name: str,
+    category_type: CategoryType,
+    parent_id: str | None = None,
 ) -> Category:
     with uow:
-        existing_category = uow.categories.get_by_name(name)
+        if parent_id is not None:
+            parent = uow.categories.get(parent_id)
+            if parent is None:
+                raise CategoryNotFoundError(f"Parent category with id '{parent_id}' not found")
+            if parent.parent_id is not None:
+                raise CategoryHierarchyError(
+                    "Cannot create subcategory of a subcategory (max 2 levels)"
+                )
+            if parent.category_type != category_type:
+                raise CategoryHierarchyError(
+                    f"Subcategory type '{category_type}' must match "
+                    f"parent type '{parent.category_type}'"
+                )
+
+        existing_category = uow.categories.get_by_name(name, parent_id=parent_id)
         if existing_category:
             raise DuplicateCategoryNameError(f"Category with name '{name}' already exists")
 
         new_category = Category(
             category_id=None,
             name=name,
+            category_type=category_type,
+            parent_id=parent_id,
         )
         uow.categories.add(new_category)
         uow.commit()
@@ -229,7 +261,7 @@ def update_category_name(uow: AbstractUnitOfWork, *, category_id: str, new_name:
         if category is None:
             raise CategoryNotFoundError(f"Category with id '{category_id}' not found")
 
-        existing_category = uow.categories.get_by_name(new_name)
+        existing_category = uow.categories.get_by_name(new_name, parent_id=category.parent_id)
         if existing_category and existing_category.category_id != category_id:
             raise DuplicateCategoryNameError(f"Category with name '{new_name}' already exists")
 
@@ -244,6 +276,11 @@ def delete_category(uow: AbstractUnitOfWork, *, category_id: str) -> None:
         if category is None:
             raise CategoryNotFoundError(f"Category with id '{category_id}' not found")
 
+        if category.parent_id is None and uow.categories.count_children(category_id) > 0:
+            raise CategoryHasChildrenError(
+                f"Cannot delete parent category '{category.name}': has child categories"
+            )
+
         if uow.categories.count_postings(category_id) > 0:
             raise CategoryInUseError(
                 f"Category '{category.name}' has postings and cannot be deleted"
@@ -252,6 +289,18 @@ def delete_category(uow: AbstractUnitOfWork, *, category_id: str) -> None:
         uow.categories.delete(category)
         uow.commit()
         logger.info("Deleted category id: %s", category_id)
+
+
+def list_parent_categories(
+    uow: AbstractUnitOfWork, skip: int = 0, limit: int = 50
+) -> list[Category]:
+    with uow:
+        return uow.categories.list_parents(skip=skip, limit=limit)
+
+
+def list_subcategories(uow: AbstractUnitOfWork, *, parent_id: str) -> list[Category]:
+    with uow:
+        return uow.categories.list_children(parent_id)
 
 
 # Transfer Services

@@ -58,6 +58,24 @@ class CategoryInUseError(Exception):
     pass
 
 
+class CategoryHierarchyError(Exception):
+    """Raised when category hierarchy constraints are violated."""
+
+    pass
+
+
+class ParentCategoryPostingError(Exception):
+    """Raised when attempting to create a posting with a parent category (must use subcategory)."""
+
+    pass
+
+
+class CategoryHasChildrenError(Exception):
+    """Raised when attempting to delete a parent category that has children."""
+
+    pass
+
+
 class PostingNotFoundError(Exception):
     """Raised when a posting with the given ID does not exist."""
 
