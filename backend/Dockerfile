@@ -3,6 +3,9 @@ FROM python:3.12-slim
 # Copy uv binary from the official uv image
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 
+# Create a non-root user to run the application
+RUN addgroup --system app && adduser --system --ingroup app app
+
 WORKDIR /app
 
 # Install dependencies first — this layer is cached until lock file changes
@@ -16,6 +19,10 @@ ENV PATH="/app/.venv/bin:$PATH"
 COPY alembic/ alembic/
 COPY alembic.ini alembic.ini
 COPY app/ app/
+
+# Hand ownership to the app user and switch to it
+RUN chown -R app:app /app
+USER app
 
 EXPOSE 8000
 

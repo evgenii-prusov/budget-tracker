@@ -66,7 +66,7 @@ make docker-up
 ```
 
 The backend will be available at `http://localhost:8000`.  
-Pass the API key in every request via the `X-API-Key` header.
+Pass the API key in every request via the `Authorization: Bearer <token>` header.
 
 ### Day-to-day commands
 
@@ -91,7 +91,7 @@ The `docker-compose.yml` reads them from the host shell:
 
 | Variable       | Required | Default | Description                                       |
 |----------------|----------|---------|---------------------------------------------------|
-| `API_KEY`      | Yes      | (none)  | Secret key for `X-API-Key` auth                   |
+| `API_KEY`      | Yes      | (none)  | Secret key for `Authorization: Bearer` auth        |
 | `LOG_LEVEL`    | No       | `INFO`  | Python log level (`DEBUG`, `INFO`, `WARNING`, etc.)|
 
 `DATABASE_URL` is set automatically inside `docker-compose.yml` — no extra
@@ -112,7 +112,7 @@ make coverage
 ## Environment Variables
 
 - `DATABASE_URL` **(required)**: PostgreSQL connection URL (e.g., `postgresql://budget:budget@localhost:5432/budget_tracker`)
-- `API_KEY` **(required)**: Secret key that clients must pass in the `X-API-Key` header
+- `API_KEY` **(required)**: Secret key that clients must pass in the `Authorization: Bearer <token>` header
 - `LOG_LEVEL`: Python logging level (e.g., `DEBUG`, `INFO`, `WARNING`, `ERROR`). Default: `INFO`
 
 See the root `CLAUDE.md` for full documentation.
