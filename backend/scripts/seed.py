@@ -16,6 +16,7 @@ from app.core.db import Database
 from app.domain.model import (
     Account,
     Category,
+    CategoryType,
     Transfer,
     PostingType,
 )
@@ -28,15 +29,24 @@ ACCOUNTS = [
     ("Travel Fund", "GBP", Decimal("1500"), False),
 ]
 
-CATEGORIES = [
-    "Groceries",
-    "Rent",
-    "Salary",
-    "Dining Out",
-    "Transport",
-    "Utilities",
-    "Entertainment",
-    "Freelance",
+# (parent_name, category_type)
+PARENT_CATEGORIES = [
+    ("Food", CategoryType.EXPENSE),
+    ("Housing", CategoryType.EXPENSE),
+    ("Travel", CategoryType.EXPENSE),
+    ("Income", CategoryType.INCOME),
+]
+
+# (subcategory_name, category_type, parent_name)
+SUBCATEGORIES = [
+    ("Groceries", CategoryType.EXPENSE, "Food"),
+    ("Dining Out", CategoryType.EXPENSE, "Food"),
+    ("Rent", CategoryType.EXPENSE, "Housing"),
+    ("Utilities", CategoryType.EXPENSE, "Housing"),
+    ("Transport", CategoryType.EXPENSE, "Travel"),
+    ("Entertainment", CategoryType.EXPENSE, "Travel"),
+    ("Salary", CategoryType.INCOME, "Income"),
+    ("Freelance", CategoryType.INCOME, "Income"),
 ]
 
 # (account_name, amount, date, category_name, posting_type, payee, description)
@@ -336,10 +346,19 @@ def main() -> None:
             accounts[name] = acc
             session.add(acc)
 
-        # Create categories
+        # Create parent categories
         categories: dict[str, Category] = {}
-        for name in CATEGORIES:
-            cat = Category(None, name)
+        for name, cat_type in PARENT_CATEGORIES:
+            cat = Category(None, name, cat_type)
+            categories[name] = cat
+            session.add(cat)
+
+        session.flush()  # parents need IDs before children reference them
+
+        # Create subcategories
+        for name, cat_type, parent_name in SUBCATEGORIES:
+            parent = categories[parent_name]
+            cat = Category(None, name, cat_type, parent_id=parent.category_id)
             categories[name] = cat
             session.add(cat)
 
@@ -379,7 +398,7 @@ def main() -> None:
         print(f"Seeded {len(accounts)} accounts:")
         for acc in accounts.values():
             print(f"  {acc.name} ({acc.currency}, savings={acc.is_savings}): balance {acc.balance}")
-        print(f"Seeded {len(categories)} categories.")
+        print(f"Seeded {len(PARENT_CATEGORIES)} parent + {len(SUBCATEGORIES)} sub categories.")
         print(f"Seeded {len(POSTINGS)} postings.")
         print(f"Seeded {len(TRANSFERS)} transfers.")
         print("Done.")

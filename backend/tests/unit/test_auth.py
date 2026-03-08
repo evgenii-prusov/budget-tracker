@@ -28,4 +28,5 @@ def test_verify_api_key_401_has_www_authenticate_header():
     credentials = HTTPAuthorizationCredentials(scheme="Bearer", credentials="bad")
     with pytest.raises(HTTPException) as exc_info:
         verify_api_key(credentials)
+    assert exc_info.value.headers is not None
     assert exc_info.value.headers.get("WWW-Authenticate") == "Bearer"

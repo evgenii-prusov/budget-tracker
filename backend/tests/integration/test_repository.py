@@ -5,7 +5,7 @@ from datetime import date
 from app.adapters.account_repository import SqlAlchemyAccountRepository
 from app.adapters.transfer_repository import SqlAlchemyTransferRepository
 from app.adapters.category_repository import SqlAlchemyCategoryRepository
-from app.domain.model import Account, PostingType, Category, Transfer
+from app.domain.model import Account, CategoryType, PostingType, Category, Transfer
 from tests.constants import JAN_01
 
 
@@ -197,9 +197,9 @@ def test_repository_pagination(session):
 
 def test_list_categories_pagination(session):
     repo = SqlAlchemyCategoryRepository(session)
-    repo.add(Category("c1", "Alpha"))
-    repo.add(Category("c2", "Beta"))
-    repo.add(Category("c3", "Gamma"))
+    repo.add(Category("c1", "Alpha", CategoryType.EXPENSE))
+    repo.add(Category("c2", "Beta", CategoryType.EXPENSE))
+    repo.add(Category("c3", "Gamma", CategoryType.EXPENSE))
     session.commit()
 
     page = repo.list_all(skip=1, limit=1)
@@ -305,7 +305,7 @@ def test_category_count_postings(session):
     account_repo = SqlAlchemyAccountRepository(session)
     category_repo = SqlAlchemyCategoryRepository(session)
 
-    cat = Category("cat-1", "Food")
+    cat = Category("cat-1", "Food", CategoryType.EXPENSE)
     category_repo.add(cat)
     account = Account("a1", "Test", "EUR", Decimal(100))
     account_repo.add(account)

@@ -3,7 +3,7 @@ from datetime import date
 
 from pydantic import BaseModel, Field, ConfigDict
 
-from app.domain.model import PostingType
+from app.domain.model import CategoryType, PostingType
 
 
 class AccountCreate(BaseModel):
@@ -47,6 +47,8 @@ class CategoryCreate(BaseModel):
         max_length=100,
         description="Category name",
     )
+    category_type: CategoryType
+    parent_id: str | None = None
 
 
 class CategoryUpdate(BaseModel):
@@ -63,6 +65,18 @@ class CategoryResponse(BaseModel):
 
     category_id: str
     name: str
+    category_type: CategoryType
+    parent_id: str | None
+
+
+class CategoryWithChildrenResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    category_id: str
+    name: str
+    category_type: CategoryType
+    parent_id: str | None
+    children: list[CategoryResponse] = []
 
 
 class PostingCreate(BaseModel):

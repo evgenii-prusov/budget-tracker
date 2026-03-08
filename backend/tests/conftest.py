@@ -117,7 +117,11 @@ def posting_3() -> Posting:
 
 @pytest.fixture
 def test_data(client):
-    """Creates a test account and category via API and returns their IDs."""
+    """Creates a test account and category hierarchy via API and returns their IDs.
+
+    Creates a parent category and subcategory. The subcategory ID is returned
+    as 'category_id' since postings must reference subcategories.
+    """
     acc_response = client.post(
         "/accounts/",
         json={
@@ -129,8 +133,47 @@ def test_data(client):
     assert acc_response.status_code == 201
     account_id = acc_response.json()["account_id"]
 
-    cat_response = client.post("/categories/", json={"name": "Test Category"})
-    assert cat_response.status_code == 201
-    category_id = cat_response.json()["category_id"]
+    parent_response = client.post(
+        "/categories/",
+        json={"name": "Test Parent", "category_type": "EXPENSE"},
+    )
+    assert parent_response.status_code == 201
+    parent_id = parent_response.json()["category_id"]
 
-    return {"account_id": account_id, "category_id": category_id}
+    # Also create an INCOME parent + subcategory for income posting tests
+    income_parent_response = client.post(
+        "/categories/",
+        json={"name": "Income Parent", "category_type": "INCOME"},
+    )
+    assert income_parent_response.status_code == 201
+    income_parent_id = income_parent_response.json()["category_id"]
+
+    sub_response = client.post(
+        "/categories/",
+        json={
+            "name": "Test Subcategory",
+            "category_type": "EXPENSE",
+            "parent_id": parent_id,
+        },
+    )
+    assert sub_response.status_code == 201
+    category_id = sub_response.json()["category_id"]
+
+    income_sub_response = client.post(
+        "/categories/",
+        json={
+            "name": "Income Subcategory",
+            "category_type": "INCOME",
+            "parent_id": income_parent_id,
+        },
+    )
+    assert income_sub_response.status_code == 201
+    income_category_id = income_sub_response.json()["category_id"]
+
+    return {
+        "account_id": account_id,
+        "category_id": category_id,
+        "parent_category_id": parent_id,
+        "income_category_id": income_category_id,
+        "income_parent_id": income_parent_id,
+    }

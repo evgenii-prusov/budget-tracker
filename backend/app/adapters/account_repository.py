@@ -14,9 +14,9 @@ def _select_account_with_balance_relations():
     Used by read paths that return Account objects to the API (get, list_all).
     """
     return select(Account).options(
-        selectinload(Account._postings),
-        selectinload(Account._outgoing_transfers),
-        selectinload(Account._incoming_transfers),
+        selectinload(Account._postings),  # type: ignore[attr-defined]  # set by imperative mapping
+        selectinload(Account._outgoing_transfers),  # type: ignore[attr-defined]
+        selectinload(Account._incoming_transfers),  # type: ignore[attr-defined]
     )
 
 
@@ -27,7 +27,7 @@ def _select_account_with_postings_only():
     (e.g. get_by_posting_id, which is only used to look up and return a single Posting).
     """
     return select(Account).options(
-        selectinload(Account._postings),
+        selectinload(Account._postings),  # type: ignore[attr-defined]  # set by imperative mapping
     )
 
 

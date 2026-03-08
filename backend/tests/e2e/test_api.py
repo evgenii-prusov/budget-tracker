@@ -250,7 +250,13 @@ def test_delete_account_with_postings_fails(client):
         "/accounts",
         json={"name": "EUR_1", "currency": "EUR", "initial_balance": "35"},
     ).json()
-    cat = client.post("/categories/", json={"name": "Test"}).json()
+    parent = client.post(
+        "/categories/", json={"name": "Test Parent", "category_type": "INCOME"}
+    ).json()
+    cat = client.post(
+        "/categories/",
+        json={"name": "Test Sub", "category_type": "INCOME", "parent_id": parent["category_id"]},
+    ).json()
     client.post(
         "/postings/",
         json={
@@ -365,7 +371,13 @@ def test_delete_account_with_postings_and_transfers_returns_409(client):
         "/accounts",
         json={"name": "RUB_Combo", "currency": "RUB", "initial_balance": "0"},
     ).json()
-    cat = client.post("/categories/", json={"name": "Combo"}).json()
+    parent = client.post(
+        "/categories/", json={"name": "Combo Parent", "category_type": "INCOME"}
+    ).json()
+    cat = client.post(
+        "/categories/",
+        json={"name": "Combo Sub", "category_type": "INCOME", "parent_id": parent["category_id"]},
+    ).json()
     client.post(
         "/postings/",
         json={
@@ -555,8 +567,12 @@ def test_account_balance_reflects_postings(client):
     ).json()
     account_id = acc["account_id"]
 
-    # Create category (required for posting)
-    cat = client.post("/categories/", json={"name": "Groceries"}).json()
+    # Create category hierarchy (required for posting)
+    parent = client.post("/categories/", json={"name": "Food", "category_type": "EXPENSE"}).json()
+    cat = client.post(
+        "/categories/",
+        json={"name": "Groceries", "category_type": "EXPENSE", "parent_id": parent["category_id"]},
+    ).json()
 
     # Create an expense posting of 30
     client.post(

@@ -147,7 +147,7 @@ def create_posting(
                     f"Cannot create posting with parent category '{category.name}'. "
                     f"Use a subcategory instead."
                 )
-            if posting_type.value != category.category_type.value:
+            if str(posting_type) != str(category.category_type):
                 raise CategoryHierarchyError(
                     f"Posting type '{posting_type}' does not match "
                     f"category type '{category.category_type}'"
