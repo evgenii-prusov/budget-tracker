@@ -2,6 +2,21 @@ import pytest
 from decimal import Decimal
 
 
+def test_unauthorized_no_header(client_no_auth):
+    response = client_no_auth.get("/accounts")
+    assert response.status_code == 401
+
+
+def test_unauthorized_wrong_token(client_no_auth):
+    response = client_no_auth.get("/accounts", headers={"Authorization": "Bearer wrong-token"})
+    assert response.status_code == 401
+
+
+def test_authorized_valid_token(client):
+    response = client.get("/accounts")
+    assert response.status_code == 200
+
+
 def test_get_account_success(client):
     # 1. Arrange: Create account via API
     create_response = client.post(

@@ -2,6 +2,11 @@ from decimal import Decimal
 from tests.constants import JAN_01, JAN_02, JAN_03
 
 
+def test_unauthorized_returns_401(client_no_auth):
+    response = client_no_auth.get("/postings/")
+    assert response.status_code == 401
+
+
 def test_create_posting_expense_success(client, test_data):
     account_id = test_data["account_id"]
     category_id = test_data["category_id"]

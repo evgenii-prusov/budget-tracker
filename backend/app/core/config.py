@@ -12,3 +12,10 @@ def get_database_url() -> str:
     except ArgumentError as exc:
         raise ValueError(f"Invalid DATABASE_URL: {database_url}") from exc
     return database_url
+
+
+def get_api_key() -> str:
+    api_key = os.getenv("API_KEY")
+    if not api_key:
+        raise ValueError("API_KEY environment variable is required")
+    return api_key
