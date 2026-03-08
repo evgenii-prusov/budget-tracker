@@ -301,6 +301,93 @@ def test_account_transfer_count(session):
     assert loaded.transfer_count == 2
 
 
+def test_list_parents_eager_loads_children(session):
+    """list_parents() must eagerly load children so .children works on detached objects."""
+    repo = SqlAlchemyCategoryRepository(session)
+    parent = Category("p1", "Food", CategoryType.EXPENSE)
+    child = Category("c1", "Restaurants", CategoryType.EXPENSE, parent_id="p1")
+    repo.add(parent)
+    repo.add(child)
+    session.commit()
+
+    parents = repo.list_parents()
+    session.expunge_all()  # detach; lazy loads would raise DetachedInstanceError
+
+    assert len(parents) == 1
+    assert len(parents[0].children) == 1  # fails before selectinload fix
+
+
+def test_two_root_categories_same_name_raises_integrity_error(session):
+    """Database must reject two root categories with the same name."""
+    from sqlalchemy.exc import IntegrityError
+    from sqlalchemy import text
+
+    ins = "INSERT INTO category (category_id, name, category_type) VALUES"
+    with pytest.raises(IntegrityError):
+        session.execute(text(f"{ins} ('r1', 'Food', 'EXPENSE')"))
+        session.execute(text(f"{ins} ('r2', 'Food', 'EXPENSE')"))
+        session.commit()
+
+
+def test_list_parents_returns_only_root_categories(session):
+    repo = SqlAlchemyCategoryRepository(session)
+    parent = Category("p1", "Food", CategoryType.EXPENSE)
+    child = Category("c1", "Restaurants", CategoryType.EXPENSE, parent_id="p1")
+    repo.add(parent)
+    repo.add(child)
+    session.commit()
+
+    parents = repo.list_parents()
+    assert len(parents) == 1
+    assert parents[0].category_id == "p1"
+
+
+def test_list_children_returns_subcategories(session):
+    repo = SqlAlchemyCategoryRepository(session)
+    parent = Category("p1", "Food", CategoryType.EXPENSE)
+    child1 = Category("c1", "Restaurants", CategoryType.EXPENSE, parent_id="p1")
+    child2 = Category("c2", "Groceries", CategoryType.EXPENSE, parent_id="p1")
+    repo.add(parent)
+    repo.add(child1)
+    repo.add(child2)
+    session.commit()
+
+    children = repo.list_children("p1")
+    assert len(children) == 2
+    assert {c.category_id for c in children} == {"c1", "c2"}
+
+    assert repo.list_children("nonexistent") == []
+
+
+def test_count_children(session):
+    repo = SqlAlchemyCategoryRepository(session)
+    parent = Category("p1", "Food", CategoryType.EXPENSE)
+    child = Category("c1", "Restaurants", CategoryType.EXPENSE, parent_id="p1")
+    repo.add(parent)
+    repo.add(child)
+    session.commit()
+
+    assert repo.count_children("p1") == 1
+    assert repo.count_children("nonexistent") == 0
+
+
+def test_get_by_name_scoped_to_parent(session):
+    repo = SqlAlchemyCategoryRepository(session)
+    root = Category("p1", "Food", CategoryType.EXPENSE)
+    child = Category("c1", "Snacks", CategoryType.EXPENSE, parent_id="p1")
+    repo.add(root)
+    repo.add(child)
+    session.commit()
+
+    # Root category found by name with parent_id=None
+    assert repo.get_by_name("Food", parent_id=None) is not None
+    # Subcategory found when scoped to parent
+    assert repo.get_by_name("Snacks", parent_id="p1") is not None
+    # Cross-scope lookups return None
+    assert repo.get_by_name("Food", parent_id="p1") is None
+    assert repo.get_by_name("Snacks", parent_id=None) is None
+
+
 def test_category_count_postings(session):
     account_repo = SqlAlchemyAccountRepository(session)
     category_repo = SqlAlchemyCategoryRepository(session)

@@ -1,4 +1,4 @@
-from sqlalchemy import Table, Column, ForeignKey, UniqueConstraint
+from sqlalchemy import Table, Column, ForeignKey, UniqueConstraint, Index
 from sqlalchemy import Boolean, String, Numeric, Date
 from sqlalchemy.orm import registry, relationship, backref
 
@@ -25,6 +25,13 @@ categories = Table(
     Column("parent_id", String(36), ForeignKey("category.category_id"), nullable=True),
     Column("category_type", String(20), nullable=False),
     UniqueConstraint("parent_id", "name", name="uq_category_parent_name"),
+)
+
+Index(
+    "uq_category_root_name",
+    categories.c.name,
+    unique=True,
+    postgresql_where=categories.c.parent_id.is_(None),
 )
 
 postings = Table(
