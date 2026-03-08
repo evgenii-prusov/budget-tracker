@@ -6,6 +6,7 @@ from app.api.routers import accounts
 from app.api.routers import categories
 from app.api.routers import postings
 from app.api.routers import transfers
+from app.api.routers import reports
 from app.core.logging_config import setup_logging
 from app.api.middleware import LoggingMiddleware
 from app.core.db import Database
@@ -28,6 +29,7 @@ app.include_router(accounts.router, dependencies=[Depends(verify_api_key)])
 app.include_router(categories.router, dependencies=[Depends(verify_api_key)])
 app.include_router(postings.router, dependencies=[Depends(verify_api_key)])
 app.include_router(transfers.router, dependencies=[Depends(verify_api_key)])
+app.include_router(reports.router, dependencies=[Depends(verify_api_key)])
 
 # Add CORS middleware
 app.add_middleware(
