@@ -1,4 +1,4 @@
-.PHONY: help run test test-verbose coverage coverage-html quality format lint typecheck sync install clean
+.PHONY: help run test test-verbose coverage coverage-html quality format lint typecheck sync install clean docker-build docker-up docker-down docker-logs
 
 help:
 	@echo "Budget Tracker - Available Commands"
@@ -15,6 +15,12 @@ help:
 	@echo "make typecheck     - Run ty type checker"
 	@echo "make sync          - Sync with remote master branch"
 	@echo "make clean         - Remove generated files"
+	@echo ""
+	@echo "Docker (production)"
+	@echo "make docker-build  - Build the backend Docker image"
+	@echo "make docker-up     - Start Postgres + backend via Docker Compose"
+	@echo "make docker-down   - Stop and remove Docker Compose services"
+	@echo "make docker-logs   - Tail logs from all Docker Compose services"
 
 install:
 	cd backend && uv sync
@@ -54,3 +60,15 @@ clean:
 	cd backend && rm -rf .pytest_cache htmlcov .coverage .ruff_cache
 	find . -type d -name __pycache__ -exec rm -rf {} +
 	find . -type f -name "*.pyc" -delete
+
+docker-build:
+	docker compose build backend
+
+docker-up:
+	docker compose up -d
+
+docker-down:
+	docker compose down
+
+docker-logs:
+	docker compose logs -f
