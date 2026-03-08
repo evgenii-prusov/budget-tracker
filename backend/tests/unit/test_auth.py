@@ -3,15 +3,11 @@ from fastapi import HTTPException
 from fastapi.security import HTTPAuthorizationCredentials
 
 from app.api.auth import verify_api_key
-
-
-@pytest.fixture(autouse=True)
-def set_api_key(monkeypatch):
-    monkeypatch.setenv("API_KEY", "test-secret")
+from tests.constants import TEST_API_KEY
 
 
 def test_verify_api_key_valid_token():
-    credentials = HTTPAuthorizationCredentials(scheme="Bearer", credentials="test-secret")
+    credentials = HTTPAuthorizationCredentials(scheme="Bearer", credentials=TEST_API_KEY)
     verify_api_key(credentials)  # should not raise
 
 
