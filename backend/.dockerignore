@@ -1,0 +1,29 @@
+# Dependencies and virtual environment
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Version control
+.git/
+.gitignore
+
+# Environment files
+.env
+
+# Test artifacts
+tests/
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
+.pytest_cache/
+
+# Linting / type-checking caches
+.ruff_cache/
+
+# Build artifacts
+*.egg-info/
+dist/
+build/

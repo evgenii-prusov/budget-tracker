@@ -68,12 +68,12 @@ New read-only aggregation service: spending by period (week/month/year), grouped
 - `backend/app/main.py` — register router
 - Tests at unit + e2e level
 
-### TODO 7: Backend Dockerfile `[S]`
+### TODO 7: Backend Dockerfile `[S]` (Completed)
 **Deps: None**
 
 Production Dockerfile for FastAPI backend. Add to `docker-compose.yml`. Health check, uvicorn CMD, env handling.
-- New: `backend/Dockerfile`, `backend/.dockerignore`
-- `docker-compose.yml` — add backend service
+- New: `backend/Dockerfile`, `backend/.dockerignore` [DONE]
+- `docker-compose.yml` — add backend service [DONE]
 
 ---
 
