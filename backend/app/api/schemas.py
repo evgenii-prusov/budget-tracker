@@ -16,6 +16,7 @@ class AccountCreate(BaseModel):
     )
     currency: str
     initial_balance: Decimal = Decimal(0)
+    is_savings: bool = False
 
 
 class AccountUpdate(BaseModel):
@@ -35,6 +36,8 @@ class AccountResponse(BaseModel):
     name: str
     currency: str
     initial_balance: Decimal = Decimal(0)
+    is_savings: bool
+    balance: Decimal = Decimal(0)
 
 
 class CategoryCreate(BaseModel):
@@ -68,6 +71,8 @@ class PostingCreate(BaseModel):
     posting_date: date
     posting_type: PostingType
     category_id: str | None = None
+    payee: str | None = None
+    description: str | None = None
 
 
 class PostingResponse(BaseModel):
@@ -79,6 +84,8 @@ class PostingResponse(BaseModel):
     posting_date: date
     posting_type: PostingType
     category_id: str | None
+    payee: str | None
+    description: str | None
 
 
 class TransferCreate(BaseModel):

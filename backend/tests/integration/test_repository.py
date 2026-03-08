@@ -75,6 +75,44 @@ def test_repository_retrieve_all_accounts(session):
     ]
 
 
+def test_list_all_balance_uses_eager_loading(session):
+    """list_all() must eager-load relationships so Account.balance works on detached objects.
+
+    After expunging (truly detaching) all objects from the session, accessing balance
+    would raise DetachedInstanceError if relationships had not been eagerly loaded.
+    """
+    repo = SqlAlchemyAccountRepository(session)
+    account = Account("bal-1", "Eager Test", "EUR", Decimal(100))
+    repo.add(account)
+    account.record_posting(Decimal(30), JAN_01, category_id=None, posting_type=PostingType.INCOME)
+    session.commit()
+
+    accounts = repo.list_all()
+    session.expunge_all()  # detach all objects; lazy loads would now raise DetachedInstanceError
+
+    assert len(accounts) == 1
+    assert accounts[0].balance == Decimal(130)
+
+
+def test_get_balance_uses_eager_loading(session):
+    """get() must eager-load relationships so Account.balance works on detached objects.
+
+    After expunging (truly detaching) the object from the session, accessing balance
+    would raise DetachedInstanceError if relationships had not been eagerly loaded.
+    """
+    repo = SqlAlchemyAccountRepository(session)
+    account = Account("bal-2", "Eager Get Test", "EUR", Decimal(50))
+    repo.add(account)
+    account.record_posting(Decimal(20), JAN_01, category_id=None, posting_type=PostingType.INCOME)
+    session.commit()
+
+    loaded = repo.get("bal-2")
+    assert loaded is not None
+    session.expunge_all()  # detach all objects; lazy loads would now raise DetachedInstanceError
+
+    assert loaded.balance == Decimal(70)
+
+
 def test_repository_delete_account_with_postings_raises_integrity_error(session):
     """Deleting an account that still has postings raises IntegrityError (FK constraint)."""
     from sqlalchemy.exc import IntegrityError

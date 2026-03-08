@@ -133,6 +133,8 @@ class Posting:
         posting_date: date,
         category_id: str | None,
         posting_type: PostingType,
+        payee: str | None = None,
+        description: str | None = None,
     ):
         if not isinstance(amount, Decimal):
             raise TypeError(
@@ -145,6 +147,8 @@ class Posting:
         self.posting_date = posting_date
         self.category_id = category_id
         self.posting_type = posting_type
+        self.payee = payee
+        self.description = description
 
     def __repr__(self) -> str:
         return (
@@ -172,6 +176,7 @@ class Account:
         name: str,
         currency: str,
         initial_balance: Decimal = Decimal(0),
+        is_savings: bool = False,
     ):
         if not isinstance(initial_balance, Decimal):
             raise TypeError(
@@ -185,6 +190,7 @@ class Account:
             raise InvalidCurrencyError(f"Invalid currency: {currency}")
         self.currency = currency
         self.initial_balance = initial_balance
+        self.is_savings = is_savings
         self._postings: list[Posting] = []
         self._outgoing_transfers: list[Transfer] = []
         self._incoming_transfers: list[Transfer] = []
@@ -215,6 +221,8 @@ class Account:
         *,
         category_id: str | None,
         posting_type: PostingType,
+        payee: str | None = None,
+        description: str | None = None,
     ) -> Posting:
         """Record an income or expense posting on this account.
 
@@ -259,6 +267,8 @@ class Account:
             posting_date,
             category_id,
             posting_type,
+            payee,
+            description,
         )
         self._postings.append(posting)
         return posting

@@ -57,6 +57,7 @@ def create_account(
     name: str,
     currency: str,
     initial_balance: Decimal,
+    is_savings: bool = False,
 ) -> Account:
     with uow:
         if initial_balance < 0:
@@ -73,6 +74,7 @@ def create_account(
             name=name,
             currency=currency,
             initial_balance=initial_balance,
+            is_savings=is_savings,
         )
         uow.accounts.add(new_account)
         uow.commit()
@@ -124,6 +126,8 @@ def create_posting(
     posting_date: date,
     posting_type: PostingType,
     category_id: str | None = None,
+    payee: str | None = None,
+    description: str | None = None,
 ) -> Posting:
     with uow:
         account = uow.accounts.get(account_id)
@@ -140,6 +144,8 @@ def create_posting(
             posting_date=posting_date,
             category_id=category_id,
             posting_type=posting_type,
+            payee=payee,
+            description=description,
         )
         uow.commit()
         logger.info(

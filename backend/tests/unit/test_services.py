@@ -176,6 +176,18 @@ class TestCreateAccount:
         assert "Existing Account" in str(exc_info.value)
         assert uow.committed is False
 
+    def test_create_account_with_is_savings(self):
+        uow = FakeUnitOfWork()
+        account = create_account(
+            uow,
+            name="Savings Account",
+            currency="USD",
+            initial_balance=Decimal(100),
+            is_savings=True,
+        )
+        assert account.is_savings is True
+        assert uow.committed is True
+
     def test_create_account_negative_balance_raises_error(self):
         uow = FakeUnitOfWork()
         with pytest.raises(InvalidInitialBalanceError) as exc_info:
@@ -584,6 +596,32 @@ class TestCreatePosting:
             )
 
         assert uow.committed is False
+
+    def test_create_posting_with_payee_and_description(self):
+        uow = FakeUnitOfWork()
+        account = create_account(
+            uow,
+            name="Test Account",
+            currency="EUR",
+            initial_balance=Decimal(100),
+        )
+        category = create_category(uow, name="Food")
+        uow.committed = False
+
+        posting = create_posting(
+            uow,
+            account_id=account.account_id,
+            amount=Decimal(50),
+            posting_date=date(2023, 1, 1),
+            posting_type=PostingType.EXPENSE,
+            category_id=category.category_id,
+            payee="Restaurant XYZ",
+            description="Team lunch",
+        )
+
+        assert posting.payee == "Restaurant XYZ"
+        assert posting.description == "Team lunch"
+        assert uow.committed is True
 
 
 class TestGetPosting:

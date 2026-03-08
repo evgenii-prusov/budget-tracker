@@ -54,6 +54,8 @@ def create_posting_endpoint(
             posting_date=posting.posting_date,
             posting_type=domain_posting_type,
             category_id=posting.category_id,
+            payee=posting.payee,
+            description=posting.description,
         )
         return new_posting
     except AccountNotFoundError as e:

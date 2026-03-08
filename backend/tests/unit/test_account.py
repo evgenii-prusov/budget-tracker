@@ -176,3 +176,48 @@ def test_transfer_count(acc_eur: Account, acc_rub: Account):
     t2 = Transfer(None, acc_rub.account_id, acc_eur.account_id, Decimal(200), Decimal(3), JAN_01)
     acc_eur.record_incoming_transfer(t2)
     assert acc_eur.transfer_count == 2
+
+
+def test_account_is_savings_default_false():
+    account = Account(
+        account_id="acc1",
+        name="Test Account",
+        currency="EUR",
+        initial_balance=Decimal(100),
+    )
+    assert account.is_savings is False
+
+
+def test_account_is_savings_set_true():
+    account = Account(
+        account_id="acc1",
+        name="Savings Account",
+        currency="EUR",
+        initial_balance=Decimal(100),
+        is_savings=True,
+    )
+    assert account.is_savings is True
+
+
+def test_record_posting_with_payee_and_description(acc_eur: Account):
+    posting = acc_eur.record_posting(
+        Decimal(5),
+        JAN_01,
+        category_id=None,
+        posting_type=PostingType.INCOME,
+        payee="Acme Corp",
+        description="January salary",
+    )
+    assert posting.payee == "Acme Corp"
+    assert posting.description == "January salary"
+
+
+def test_record_posting_payee_description_default_none(acc_eur: Account):
+    posting = acc_eur.record_posting(
+        Decimal(5),
+        JAN_01,
+        category_id=None,
+        posting_type=PostingType.INCOME,
+    )
+    assert posting.payee is None
+    assert posting.description is None
