@@ -57,6 +57,7 @@ def create_account(
     name: str,
     currency: str,
     initial_balance: Decimal,
+    is_savings: bool = False,
 ) -> Account:
     with uow:
         if initial_balance < 0:
@@ -73,6 +74,7 @@ def create_account(
             name=name,
             currency=currency,
             initial_balance=initial_balance,
+            is_savings=is_savings,
         )
         uow.accounts.add(new_account)
         uow.commit()

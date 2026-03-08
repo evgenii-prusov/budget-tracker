@@ -176,6 +176,18 @@ class TestCreateAccount:
         assert "Existing Account" in str(exc_info.value)
         assert uow.committed is False
 
+    def test_create_account_with_is_savings(self):
+        uow = FakeUnitOfWork()
+        account = create_account(
+            uow,
+            name="Savings Account",
+            currency="USD",
+            initial_balance=Decimal(100),
+            is_savings=True,
+        )
+        assert account.is_savings is True
+        assert uow.committed is True
+
     def test_create_account_negative_balance_raises_error(self):
         uow = FakeUnitOfWork()
         with pytest.raises(InvalidInitialBalanceError) as exc_info:

@@ -172,6 +172,7 @@ class Account:
         name: str,
         currency: str,
         initial_balance: Decimal = Decimal(0),
+        is_savings: bool = False,
     ):
         if not isinstance(initial_balance, Decimal):
             raise TypeError(
@@ -185,6 +186,7 @@ class Account:
             raise InvalidCurrencyError(f"Invalid currency: {currency}")
         self.currency = currency
         self.initial_balance = initial_balance
+        self.is_savings = is_savings
         self._postings: list[Posting] = []
         self._outgoing_transfers: list[Transfer] = []
         self._incoming_transfers: list[Transfer] = []

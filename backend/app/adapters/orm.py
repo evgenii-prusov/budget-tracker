@@ -1,5 +1,5 @@
 from sqlalchemy import Table, Column, ForeignKey
-from sqlalchemy import String, Numeric, Date
+from sqlalchemy import Boolean, String, Numeric, Date
 from sqlalchemy.orm import registry, relationship
 
 from app.domain import model
@@ -14,6 +14,7 @@ accounts = Table(
     Column("name", String(255), nullable=False, unique=True),
     Column("currency", String(3), nullable=False),
     Column("initial_balance", Numeric(precision=15, scale=2), nullable=False),
+    Column("is_savings", Boolean, nullable=False, server_default="false"),
 )
 
 categories = Table(

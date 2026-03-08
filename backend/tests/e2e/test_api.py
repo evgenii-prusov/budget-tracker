@@ -459,3 +459,50 @@ def test_update_account_name_not_found(client):
     )
     assert response.status_code == 404
     assert "not found" in response.json()["detail"]
+
+
+def test_create_account_with_is_savings(client):
+    """POST with is_savings=true returns is_savings in response."""
+    response = client.post(
+        "/accounts",
+        json={
+            "name": "Savings Account",
+            "currency": "EUR",
+            "initial_balance": "100",
+            "is_savings": True,
+        },
+    )
+    assert response.status_code == 201
+    data = response.json()
+    assert data["is_savings"] is True
+
+
+def test_create_account_default_is_savings_false(client):
+    """POST without is_savings defaults to false."""
+    response = client.post(
+        "/accounts",
+        json={"name": "Regular Account", "currency": "EUR", "initial_balance": "50"},
+    )
+    assert response.status_code == 201
+    data = response.json()
+    assert data["is_savings"] is False
+
+
+def test_get_account_includes_is_savings(client):
+    """GET returns is_savings field."""
+    create_response = client.post(
+        "/accounts",
+        json={
+            "name": "Savings Test",
+            "currency": "USD",
+            "initial_balance": "200",
+            "is_savings": True,
+        },
+    )
+    assert create_response.status_code == 201
+    account_id = create_response.json()["account_id"]
+
+    response = client.get(f"/accounts/{account_id}")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["is_savings"] is True

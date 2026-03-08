@@ -16,6 +16,7 @@ class AccountCreate(BaseModel):
     )
     currency: str
     initial_balance: Decimal = Decimal(0)
+    is_savings: bool = False
 
 
 class AccountUpdate(BaseModel):
@@ -35,6 +36,7 @@ class AccountResponse(BaseModel):
     name: str
     currency: str
     initial_balance: Decimal = Decimal(0)
+    is_savings: bool
 
 
 class CategoryCreate(BaseModel):
