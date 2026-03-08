@@ -114,5 +114,3 @@ make coverage
 - `DATABASE_URL` **(required)**: PostgreSQL connection URL (e.g., `postgresql://budget:budget@localhost:5432/budget_tracker`)
 - `API_KEY` **(required)**: Secret key that clients must pass in the `Authorization: Bearer <token>` header
 - `LOG_LEVEL`: Python logging level (e.g., `DEBUG`, `INFO`, `WARNING`, `ERROR`). Default: `INFO`
-
-See the root `CLAUDE.md` for full documentation.

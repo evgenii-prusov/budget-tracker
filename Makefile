@@ -1,4 +1,4 @@
-.PHONY: help run test test-verbose coverage coverage-html quality format lint typecheck sync install clean docker-build docker-up docker-down docker-logs
+.PHONY: help run test test-verbose coverage coverage-html quality format lint typecheck sync install clean db-up db-down db-migrate db-revision docker-build docker-up docker-down docker-logs
 
 help:
 	@echo "Budget Tracker - Available Commands"
@@ -15,6 +15,12 @@ help:
 	@echo "make typecheck     - Run ty type checker"
 	@echo "make sync          - Sync with remote master branch"
 	@echo "make clean         - Remove generated files"
+	@echo ""
+	@echo "Development database"
+	@echo "make db-up         - Start Postgres (dev)"
+	@echo "make db-down       - Stop Postgres (dev)"
+	@echo "make db-migrate    - Run Alembic migrations"
+	@echo "make db-revision   - Create new migration (msg=\"description\")"
 	@echo ""
 	@echo "Docker (production)"
 	@echo "make docker-build  - Build the backend Docker image"
@@ -60,6 +66,18 @@ clean:
 	cd backend && rm -rf .pytest_cache htmlcov .coverage .ruff_cache
 	find . -type d -name __pycache__ -exec rm -rf {} +
 	find . -type f -name "*.pyc" -delete
+
+db-up:
+	cd backend && make db-up
+
+db-down:
+	cd backend && make db-down
+
+db-migrate:
+	cd backend && make db-migrate
+
+db-revision:
+	cd backend && make db-revision msg="$(msg)"
 
 docker-build:
 	docker compose build backend
