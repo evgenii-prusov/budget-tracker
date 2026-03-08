@@ -68,6 +68,8 @@ class PostingCreate(BaseModel):
     posting_date: date
     posting_type: PostingType
     category_id: str | None = None
+    payee: str | None = None
+    description: str | None = None
 
 
 class PostingResponse(BaseModel):
@@ -79,6 +81,8 @@ class PostingResponse(BaseModel):
     posting_date: date
     posting_type: PostingType
     category_id: str | None
+    payee: str | None
+    description: str | None
 
 
 class TransferCreate(BaseModel):

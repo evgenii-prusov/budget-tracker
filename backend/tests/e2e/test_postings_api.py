@@ -230,6 +230,69 @@ def test_list_postings_pagination(client, test_data):
     assert data[0]["posting_date"] == JAN_02.isoformat()
 
 
+def test_create_posting_with_payee_and_description(client, test_data):
+    account_id = test_data["account_id"]
+    category_id = test_data["category_id"]
+
+    posting_data = {
+        "account_id": account_id,
+        "amount": "30.00",
+        "posting_date": JAN_01.isoformat(),
+        "posting_type": "EXPENSE",
+        "category_id": category_id,
+        "payee": "Grocery Store",
+        "description": "Weekly groceries",
+    }
+
+    response = client.post("/postings/", json=posting_data)
+
+    assert response.status_code == 201
+    data = response.json()
+    assert data["payee"] == "Grocery Store"
+    assert data["description"] == "Weekly groceries"
+
+
+def test_create_posting_without_payee_description_defaults_null(client, test_data):
+    account_id = test_data["account_id"]
+
+    posting_data = {
+        "account_id": account_id,
+        "amount": "10.00",
+        "posting_date": JAN_01.isoformat(),
+        "posting_type": "EXPENSE",
+    }
+
+    response = client.post("/postings/", json=posting_data)
+
+    assert response.status_code == 201
+    data = response.json()
+    assert data["payee"] is None
+    assert data["description"] is None
+
+
+def test_get_posting_includes_payee_and_description(client, test_data):
+    account_id = test_data["account_id"]
+
+    posting_data = {
+        "account_id": account_id,
+        "amount": "15.00",
+        "posting_date": JAN_02.isoformat(),
+        "posting_type": "INCOME",
+        "payee": "Employer Inc",
+        "description": "Bonus payment",
+    }
+
+    create_response = client.post("/postings/", json=posting_data)
+    assert create_response.status_code == 201
+    posting_id = create_response.json()["posting_id"]
+
+    response = client.get(f"/postings/{posting_id}")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["payee"] == "Employer Inc"
+    assert data["description"] == "Bonus payment"
+
+
 def test_list_postings_endpoint_filtered(client, test_data):
     account_id = test_data["account_id"]
 
