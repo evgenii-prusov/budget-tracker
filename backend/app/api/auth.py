@@ -14,7 +14,14 @@ def verify_api_key(
         Depends(_bearer_scheme),
     ] = None,
 ) -> None:
-    expected = get_api_key()
+    try:
+        expected = get_api_key()
+    except ValueError as exc:
+        # Surface configuration errors as a clear 5xx HTTP response
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Server configuration error: API key is not configured",
+        ) from exc
     if credentials is None or credentials.credentials != expected:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
