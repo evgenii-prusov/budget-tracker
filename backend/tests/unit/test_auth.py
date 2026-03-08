@@ -1,16 +1,15 @@
-import os
-
 import pytest
 from fastapi import HTTPException
 from fastapi.security import HTTPAuthorizationCredentials
 
-os.environ["API_KEY"] = "test-secret"
+from app.api.auth import verify_api_key
 
-from app.api.auth import verify_api_key  # noqa: E402
+# Matches TEST_API_KEY / the value set by the set_api_key autouse fixture in conftest.py
+_VALID_KEY = "test-secret-key"
 
 
 def test_verify_api_key_valid_token():
-    credentials = HTTPAuthorizationCredentials(scheme="Bearer", credentials="test-secret")
+    credentials = HTTPAuthorizationCredentials(scheme="Bearer", credentials=_VALID_KEY)
     verify_api_key(credentials)  # should not raise
 
 
