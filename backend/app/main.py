@@ -22,12 +22,12 @@ async def lifespan(app: FastAPI):
     app.state.db.dispose()
 
 
-app = FastAPI(lifespan=lifespan, dependencies=[Depends(verify_api_key)])
+app = FastAPI(lifespan=lifespan)
 app.add_middleware(LoggingMiddleware)
-app.include_router(accounts.router)
-app.include_router(categories.router)
-app.include_router(postings.router)
-app.include_router(transfers.router)
+app.include_router(accounts.router, dependencies=[Depends(verify_api_key)])
+app.include_router(categories.router, dependencies=[Depends(verify_api_key)])
+app.include_router(postings.router, dependencies=[Depends(verify_api_key)])
+app.include_router(transfers.router, dependencies=[Depends(verify_api_key)])
 
 # Add CORS middleware
 app.add_middleware(
