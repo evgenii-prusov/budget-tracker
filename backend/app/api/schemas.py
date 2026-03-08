@@ -121,3 +121,17 @@ class TransferResponse(BaseModel):
     credit_amount: Decimal
     transfer_date: date
     description: str | None
+
+
+class CategorySpendingResponse(BaseModel):
+    parent_category_id: str
+    parent_category_name: str
+    currency: str
+    total: Decimal
+
+
+class SpendingReportResponse(BaseModel):
+    period: str
+    start_date: date
+    end_date: date
+    rows: list[CategorySpendingResponse]

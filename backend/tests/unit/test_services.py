@@ -26,6 +26,8 @@ from collections.abc import Callable
 from app.service_layer.abstract_account_repository import AbstractAccountRepository
 from app.service_layer.abstract_transfer_repository import AbstractTransferRepository
 from app.service_layer.abstract_category_repository import AbstractCategoryRepository
+from app.service_layer.abstract_report_repository import AbstractReportRepository
+from app.service_layer.reports import SpendingReport
 from app.service_layer.unit_of_work import AbstractUnitOfWork
 from app.service_layer.services import create_account
 from app.service_layer.services import delete_account
@@ -121,14 +123,24 @@ class FakeCategoryRepository(AbstractCategoryRepository):
         return self._count_postings_fn(category_id)
 
 
+class FakeReportRepository(AbstractReportRepository):
+    def __init__(self):
+        pass
+
+    def spending_by_period(self, start_date, end_date, exclude_savings=True):
+        return SpendingReport(period="month", start_date=start_date, end_date=end_date, rows=[])
+
+
 class FakeUnitOfWork(AbstractUnitOfWork):
     accounts: FakeAccountRepository
     transfers: FakeTransferRepository
     categories: FakeCategoryRepository
+    reports: FakeReportRepository
 
     def __init__(self):
         self.accounts = FakeAccountRepository()
         self.transfers = FakeTransferRepository()
+        self.reports = FakeReportRepository()
         self.committed = False
 
         # Wire up category's count_postings to scan accounts
