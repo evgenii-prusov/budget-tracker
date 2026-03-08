@@ -1,6 +1,11 @@
 from fastapi.testclient import TestClient
 
 
+def test_unauthorized_returns_401(client_no_auth):
+    response = client_no_auth.get("/categories")
+    assert response.status_code == 401
+
+
 def test_list_categories_endpoint(client: TestClient):
     # Arrange
     client.post("/categories", json={"name": "Food"})

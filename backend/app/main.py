@@ -1,5 +1,6 @@
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
+from app.api.auth import verify_api_key
 from fastapi.middleware.cors import CORSMiddleware
 from app.api.routers import accounts
 from app.api.routers import categories
@@ -21,7 +22,7 @@ async def lifespan(app: FastAPI):
     app.state.db.dispose()
 
 
-app = FastAPI(lifespan=lifespan)
+app = FastAPI(lifespan=lifespan, dependencies=[Depends(verify_api_key)])
 app.add_middleware(LoggingMiddleware)
 app.include_router(accounts.router)
 app.include_router(categories.router)

@@ -1,3 +1,7 @@
+import os
+
+os.environ.setdefault("API_KEY", "test-secret-key")
+
 import pytest
 from decimal import Decimal
 from sqlalchemy import create_engine
@@ -13,6 +17,8 @@ from app.main import app
 from app.api.dependencies import get_db_session
 from fastapi.testclient import TestClient
 from tests.constants import JAN_01, JAN_02, JAN_03
+
+TEST_API_KEY = "test-secret-key"
 
 
 @pytest.fixture(scope="session")
@@ -51,7 +57,19 @@ def session(postgres_engine):
 
 @pytest.fixture
 def client(session):
-    """Test client with database session already configured."""
+    """Test client with database session and auth header configured."""
+
+    def override_get_db_session():
+        yield session
+
+    app.dependency_overrides[get_db_session] = override_get_db_session
+    yield TestClient(app, headers={"Authorization": f"Bearer {TEST_API_KEY}"})
+    app.dependency_overrides.clear()
+
+
+@pytest.fixture
+def client_no_auth(session):
+    """Test client with NO Authorization header — for testing 401 responses."""
 
     def override_get_db_session():
         yield session

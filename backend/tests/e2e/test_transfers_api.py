@@ -1,3 +1,8 @@
+def test_unauthorized_returns_401(client_no_auth):
+    response = client_no_auth.get("/transfers/")
+    assert response.status_code == 401
+
+
 def test_create_transfer_source_account_not_found(client):
     # 1. Arrange: Create only destination account via API
     acc = client.post(
