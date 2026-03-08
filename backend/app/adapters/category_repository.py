@@ -20,8 +20,13 @@ class SqlAlchemyCategoryRepository(AbstractCategoryRepository):
             .one_or_none()
         )
 
-    def get_by_name(self, name: str) -> Category | None:
-        return self.session.execute(select(Category).filter_by(name=name)).scalars().first()
+    def get_by_name(self, name: str, parent_id: str | None = None) -> Category | None:
+        stmt = select(Category).filter_by(name=name)
+        if parent_id is None:
+            stmt = stmt.where(categories.c.parent_id.is_(None))
+        else:
+            stmt = stmt.where(categories.c.parent_id == parent_id)
+        return self.session.execute(stmt).scalars().first()
 
     def list_all(self, skip: int = 0, limit: int = 50) -> list[Category]:
         return list(
@@ -34,6 +39,37 @@ class SqlAlchemyCategoryRepository(AbstractCategoryRepository):
             .scalars()
             .all()
         )
+
+    def list_parents(self, skip: int = 0, limit: int = 50) -> list[Category]:
+        return list(
+            self.session.execute(
+                select(Category)
+                .where(categories.c.parent_id.is_(None))
+                .order_by(categories.c.name, categories.c.category_id)
+                .offset(skip)
+                .limit(limit)
+            )
+            .scalars()
+            .all()
+        )
+
+    def list_children(self, parent_id: str) -> list[Category]:
+        return list(
+            self.session.execute(
+                select(Category)
+                .where(categories.c.parent_id == parent_id)
+                .order_by(categories.c.name, categories.c.category_id)
+            )
+            .scalars()
+            .all()
+        )
+
+    def count_children(self, category_id: str) -> int:
+        return self.session.execute(
+            select(func.count(categories.c.category_id)).where(
+                categories.c.parent_id == category_id
+            )
+        ).scalar_one()
 
     def delete(self, category: Category) -> None:
         self.session.delete(category)

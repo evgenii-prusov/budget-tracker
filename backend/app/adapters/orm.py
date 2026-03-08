@@ -1,6 +1,6 @@
-from sqlalchemy import Table, Column, ForeignKey
+from sqlalchemy import Table, Column, ForeignKey, UniqueConstraint
 from sqlalchemy import Boolean, String, Numeric, Date
-from sqlalchemy.orm import registry, relationship
+from sqlalchemy.orm import registry, relationship, backref
 
 from app.domain import model
 
@@ -21,7 +21,10 @@ categories = Table(
     "category",
     metadata,
     Column("category_id", String(36), primary_key=True),
-    Column("name", String(255), nullable=False, unique=True),
+    Column("name", String(255), nullable=False),
+    Column("parent_id", String(36), ForeignKey("category.category_id"), nullable=True),
+    Column("category_type", String(20), nullable=False),
+    UniqueConstraint("parent_id", "name", name="uq_category_parent_name"),
 )
 
 postings = Table(
@@ -73,6 +76,16 @@ def start_mappers():
             ),
         },
     )
-    mapper_registry.map_imperatively(model.Category, categories)
+    mapper_registry.map_imperatively(
+        model.Category,
+        categories,
+        properties={
+            "children": relationship(
+                model.Category,
+                backref=backref("parent", remote_side=[categories.c.category_id]),
+                cascade="save-update, merge",
+            ),
+        },
+    )
     mapper_registry.map_imperatively(model.Posting, postings)
     mapper_registry.map_imperatively(model.Transfer, transfers)

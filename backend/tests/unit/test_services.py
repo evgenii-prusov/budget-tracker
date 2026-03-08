@@ -1043,9 +1043,7 @@ class TestCategoryHierarchy:
 class TestPostingCategoryEnforcement:
     def test_create_posting_with_parent_category_raises_error(self):
         uow = FakeUnitOfWork()
-        account = create_account(
-            uow, name="Test", currency="EUR", initial_balance=Decimal(100)
-        )
+        account = create_account(uow, name="Test", currency="EUR", initial_balance=Decimal(100))
         parent = create_category(uow, name="Food", category_type=CategoryType.EXPENSE)
         with pytest.raises(ParentCategoryPostingError, match="Use a subcategory"):
             create_posting(
@@ -1059,9 +1057,7 @@ class TestPostingCategoryEnforcement:
 
     def test_create_posting_with_subcategory_succeeds(self):
         uow = FakeUnitOfWork()
-        account = create_account(
-            uow, name="Test", currency="EUR", initial_balance=Decimal(100)
-        )
+        account = create_account(uow, name="Test", currency="EUR", initial_balance=Decimal(100))
         parent = create_category(uow, name="Food", category_type=CategoryType.EXPENSE)
         child = create_category(
             uow, name="Groceries", category_type=CategoryType.EXPENSE, parent_id=parent.category_id
@@ -1078,9 +1074,7 @@ class TestPostingCategoryEnforcement:
 
     def test_create_posting_type_mismatch_raises_error(self):
         uow = FakeUnitOfWork()
-        account = create_account(
-            uow, name="Test", currency="EUR", initial_balance=Decimal(100)
-        )
+        account = create_account(uow, name="Test", currency="EUR", initial_balance=Decimal(100))
         parent = create_category(uow, name="Salary", category_type=CategoryType.INCOME)
         child = create_category(
             uow, name="Monthly", category_type=CategoryType.INCOME, parent_id=parent.category_id

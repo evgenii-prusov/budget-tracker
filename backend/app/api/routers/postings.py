@@ -10,8 +10,10 @@ from app.api.dependencies import get_unit_of_work
 from app.api.schemas import PostingCreate
 from app.api.schemas import PostingResponse
 from app.domain.exceptions import AccountNotFoundError
+from app.domain.exceptions import CategoryHierarchyError
 from app.domain.exceptions import CategoryNotFoundError
 from app.domain.exceptions import InsufficientFundsError
+from app.domain.exceptions import ParentCategoryPostingError
 from app.domain.exceptions import PostingNotFoundError
 from app.domain.model import PostingType
 from app.service_layer.unit_of_work import AbstractUnitOfWork
@@ -62,6 +64,10 @@ def create_posting_endpoint(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except CategoryNotFoundError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    except ParentCategoryPostingError as e:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(e))
+    except CategoryHierarchyError as e:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(e))
     except InsufficientFundsError as e:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(e))
 

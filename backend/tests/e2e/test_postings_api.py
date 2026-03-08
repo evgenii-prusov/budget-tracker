@@ -34,7 +34,7 @@ def test_create_posting_expense_success(client, test_data):
 
 def test_create_posting_income_success(client, test_data):
     account_id = test_data["account_id"]
-    category_id = test_data["category_id"]
+    category_id = test_data["income_category_id"]
 
     posting_data = {
         "account_id": account_id,
@@ -131,7 +131,7 @@ def test_create_posting_insufficient_funds(client, test_data):
 
 def test_get_posting_success(client, test_data):
     account_id = test_data["account_id"]
-    category_id = test_data["category_id"]
+    category_id = test_data["income_category_id"]
 
     # Create posting
     posting_data = {
