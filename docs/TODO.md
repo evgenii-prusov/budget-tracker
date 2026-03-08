@@ -50,14 +50,14 @@ Add `parent_id` (nullable self-FK) and `category_type` (Income/Expense enum) to 
 
 ## Phase 3: Infrastructure + Reporting
 
-### TODO 5: Authentication (Bearer Token) `[M]`
+### TODO 5: Authentication (Bearer Token) `[M]` (Completed)
 **Deps: None**
 
 Single-tenant shared-secret auth. `API_KEY` env var, FastAPI dependency checking `Authorization: Bearer <token>`.
-- New: `backend/app/api/auth.py` — auth dependency
-- `backend/app/core/config.py` — `get_api_key()` config
-- `backend/app/main.py` — apply globally
-- All e2e tests + `conftest.py` — add auth header fixture
+- New: `backend/app/api/auth.py` — auth dependency [DONE]
+- `backend/app/core/config.py` — `get_api_key()` config [DONE]
+- `backend/app/main.py` — apply globally [DONE]
+- All e2e tests + `conftest.py` — add auth header fixture [DONE]
 
 ### TODO 6: Spending Reports `[M]`
 **Deps: TODO 1 (`is_savings`), TODO 4 (parent categories)**
