@@ -12,8 +12,12 @@ from app.domain.exceptions import InvalidInitialBalanceError
 from app.domain.exceptions import AccountNotFoundError
 from app.domain.exceptions import AccountHasTransfersError
 from app.domain.exceptions import AccountHasPostingsError
+from app.domain.exceptions import CategoryHasChildrenError
+from app.domain.exceptions import CategoryHierarchyError
 from app.domain.exceptions import CategoryNotFoundError
+from app.domain.exceptions import DuplicateCategoryNameError
 from app.domain.exceptions import InsufficientFundsError
+from app.domain.exceptions import ParentCategoryPostingError
 from app.domain.exceptions import PostingNotFoundError
 from app.domain.exceptions import TransferNotFoundError
 
@@ -26,7 +30,10 @@ from app.service_layer.unit_of_work import AbstractUnitOfWork
 from app.service_layer.services import create_account
 from app.service_layer.services import delete_account
 from app.service_layer.services import create_category
+from app.service_layer.services import delete_category
 from app.service_layer.services import get_category
+from app.service_layer.services import list_parent_categories
+from app.service_layer.services import list_subcategories
 from app.service_layer.services import create_posting
 from app.service_layer.services import get_posting
 from app.service_layer.services import list_postings
@@ -955,3 +962,180 @@ class TestCategoryServices:
         uow = FakeUnitOfWork()
         with pytest.raises(CategoryNotFoundError):
             get_category(uow, category_id="non-existent")
+
+
+class TestCategoryHierarchy:
+    def test_create_parent_category(self):
+        uow = FakeUnitOfWork()
+        cat = create_category(uow, name="Food", category_type=CategoryType.EXPENSE)
+        assert cat.parent_id is None
+        assert cat.category_type == CategoryType.EXPENSE
+
+    def test_create_subcategory_success(self):
+        uow = FakeUnitOfWork()
+        parent = create_category(uow, name="Food", category_type=CategoryType.EXPENSE)
+        child = create_category(
+            uow, name="Groceries", category_type=CategoryType.EXPENSE, parent_id=parent.category_id
+        )
+        assert child.parent_id == parent.category_id
+        assert child.category_type == CategoryType.EXPENSE
+
+    def test_create_subcategory_parent_not_found(self):
+        uow = FakeUnitOfWork()
+        with pytest.raises(CategoryNotFoundError):
+            create_category(
+                uow, name="Groceries", category_type=CategoryType.EXPENSE, parent_id="non-existent"
+            )
+
+    def test_create_subcategory_of_subcategory_raises_error(self):
+        uow = FakeUnitOfWork()
+        parent = create_category(uow, name="Food", category_type=CategoryType.EXPENSE)
+        child = create_category(
+            uow, name="Groceries", category_type=CategoryType.EXPENSE, parent_id=parent.category_id
+        )
+        with pytest.raises(CategoryHierarchyError, match="max 2 levels"):
+            create_category(
+                uow,
+                name="Organic",
+                category_type=CategoryType.EXPENSE,
+                parent_id=child.category_id,
+            )
+
+    def test_create_subcategory_type_mismatch_raises_error(self):
+        uow = FakeUnitOfWork()
+        parent = create_category(uow, name="Food", category_type=CategoryType.EXPENSE)
+        with pytest.raises(CategoryHierarchyError, match="must match"):
+            create_category(
+                uow,
+                name="Salary",
+                category_type=CategoryType.INCOME,
+                parent_id=parent.category_id,
+            )
+
+    def test_create_category_duplicate_name_same_parent(self):
+        uow = FakeUnitOfWork()
+        parent = create_category(uow, name="Food", category_type=CategoryType.EXPENSE)
+        create_category(
+            uow, name="Groceries", category_type=CategoryType.EXPENSE, parent_id=parent.category_id
+        )
+        with pytest.raises(DuplicateCategoryNameError):
+            create_category(
+                uow,
+                name="Groceries",
+                category_type=CategoryType.EXPENSE,
+                parent_id=parent.category_id,
+            )
+
+    def test_create_category_same_name_different_parents_succeeds(self):
+        uow = FakeUnitOfWork()
+        parent1 = create_category(uow, name="Food", category_type=CategoryType.EXPENSE)
+        parent2 = create_category(uow, name="Transport", category_type=CategoryType.EXPENSE)
+        c1 = create_category(
+            uow, name="Misc", category_type=CategoryType.EXPENSE, parent_id=parent1.category_id
+        )
+        c2 = create_category(
+            uow, name="Misc", category_type=CategoryType.EXPENSE, parent_id=parent2.category_id
+        )
+        assert c1.name == c2.name
+        assert c1.parent_id != c2.parent_id
+
+
+class TestPostingCategoryEnforcement:
+    def test_create_posting_with_parent_category_raises_error(self):
+        uow = FakeUnitOfWork()
+        account = create_account(
+            uow, name="Test", currency="EUR", initial_balance=Decimal(100)
+        )
+        parent = create_category(uow, name="Food", category_type=CategoryType.EXPENSE)
+        with pytest.raises(ParentCategoryPostingError, match="Use a subcategory"):
+            create_posting(
+                uow,
+                account_id=account.account_id,
+                amount=Decimal(10),
+                posting_date=JAN_01,
+                posting_type=PostingType.EXPENSE,
+                category_id=parent.category_id,
+            )
+
+    def test_create_posting_with_subcategory_succeeds(self):
+        uow = FakeUnitOfWork()
+        account = create_account(
+            uow, name="Test", currency="EUR", initial_balance=Decimal(100)
+        )
+        parent = create_category(uow, name="Food", category_type=CategoryType.EXPENSE)
+        child = create_category(
+            uow, name="Groceries", category_type=CategoryType.EXPENSE, parent_id=parent.category_id
+        )
+        posting = create_posting(
+            uow,
+            account_id=account.account_id,
+            amount=Decimal(10),
+            posting_date=JAN_01,
+            posting_type=PostingType.EXPENSE,
+            category_id=child.category_id,
+        )
+        assert posting.category_id == child.category_id
+
+    def test_create_posting_type_mismatch_raises_error(self):
+        uow = FakeUnitOfWork()
+        account = create_account(
+            uow, name="Test", currency="EUR", initial_balance=Decimal(100)
+        )
+        parent = create_category(uow, name="Salary", category_type=CategoryType.INCOME)
+        child = create_category(
+            uow, name="Monthly", category_type=CategoryType.INCOME, parent_id=parent.category_id
+        )
+        with pytest.raises(CategoryHierarchyError, match="does not match"):
+            create_posting(
+                uow,
+                account_id=account.account_id,
+                amount=Decimal(10),
+                posting_date=JAN_01,
+                posting_type=PostingType.EXPENSE,
+                category_id=child.category_id,
+            )
+
+
+class TestDeleteCategoryHierarchy:
+    def test_delete_parent_with_children_raises_error(self):
+        uow = FakeUnitOfWork()
+        parent = create_category(uow, name="Food", category_type=CategoryType.EXPENSE)
+        create_category(
+            uow, name="Groceries", category_type=CategoryType.EXPENSE, parent_id=parent.category_id
+        )
+        with pytest.raises(CategoryHasChildrenError, match="has child categories"):
+            delete_category(uow, category_id=parent.category_id)
+
+    def test_delete_parent_without_children_succeeds(self):
+        uow = FakeUnitOfWork()
+        parent = create_category(uow, name="Food", category_type=CategoryType.EXPENSE)
+        delete_category(uow, category_id=parent.category_id)
+        assert len(uow.categories._categories) == 0
+
+
+class TestListCategoryHierarchy:
+    def test_list_parent_categories(self):
+        uow = FakeUnitOfWork()
+        p1 = create_category(uow, name="Food", category_type=CategoryType.EXPENSE)
+        p2 = create_category(uow, name="Income", category_type=CategoryType.INCOME)
+        create_category(
+            uow, name="Groceries", category_type=CategoryType.EXPENSE, parent_id=p1.category_id
+        )
+        parents = list_parent_categories(uow)
+        assert len(parents) == 2
+        assert p1 in parents
+        assert p2 in parents
+
+    def test_list_subcategories(self):
+        uow = FakeUnitOfWork()
+        parent = create_category(uow, name="Food", category_type=CategoryType.EXPENSE)
+        c1 = create_category(
+            uow, name="Groceries", category_type=CategoryType.EXPENSE, parent_id=parent.category_id
+        )
+        c2 = create_category(
+            uow, name="Restaurant", category_type=CategoryType.EXPENSE, parent_id=parent.category_id
+        )
+        children = list_subcategories(uow, parent_id=parent.category_id)
+        assert len(children) == 2
+        assert c1 in children
+        assert c2 in children
