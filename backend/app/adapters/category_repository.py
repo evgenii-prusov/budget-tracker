@@ -1,5 +1,5 @@
 from sqlalchemy import select, func
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
 from app.domain.model import Category
 from app.adapters.orm import categories, postings
@@ -45,6 +45,7 @@ class SqlAlchemyCategoryRepository(AbstractCategoryRepository):
             self.session.execute(
                 select(Category)
                 .where(categories.c.parent_id.is_(None))
+                .options(selectinload(Category.children))
                 .order_by(categories.c.name, categories.c.category_id)
                 .offset(skip)
                 .limit(limit)

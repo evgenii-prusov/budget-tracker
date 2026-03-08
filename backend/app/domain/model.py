@@ -44,6 +44,9 @@ VALID_CURRENCIES = frozenset({"USD", "EUR", "GBP", "RUB", "CHF", "JPY", "CNY"})
 class Category:
     """Represents a transaction category."""
 
+    # Populated by SQLAlchemy imperative mapper (orm.py)
+    children: list[Category]
+
     def __init__(
         self,
         category_id: str | None,
