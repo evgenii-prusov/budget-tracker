@@ -1,7 +1,5 @@
 import os
 
-os.environ.setdefault("API_KEY", "test-secret-key")
-
 import pytest
 from decimal import Decimal
 from sqlalchemy import create_engine
@@ -16,9 +14,19 @@ from app.domain.model import PostingType
 from app.main import app
 from app.api.dependencies import get_db_session
 from fastapi.testclient import TestClient
-from tests.constants import JAN_01, JAN_02, JAN_03
+from tests.constants import JAN_01, JAN_02, JAN_03, TEST_API_KEY
 
-TEST_API_KEY = "test-secret-key"
+
+@pytest.fixture(scope="session", autouse=True)
+def set_api_key():
+    """Override API_KEY for the entire test session regardless of the outer environment."""
+    original = os.environ.get("API_KEY")
+    os.environ["API_KEY"] = TEST_API_KEY
+    yield
+    if original is None:
+        os.environ.pop("API_KEY", None)
+    else:
+        os.environ["API_KEY"] = original
 
 
 @pytest.fixture(scope="session")
