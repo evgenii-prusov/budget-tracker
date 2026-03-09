@@ -59,7 +59,7 @@ Single-tenant shared-secret auth. `API_KEY` env var, FastAPI dependency checking
 - `backend/app/main.py` — apply globally [DONE]
 - All e2e tests + `conftest.py` — add auth header fixture [DONE]
 
-### TODO 6: Spending Reports `[M]`
+### TODO 6: Spending Reports `[M]` (Completed)
 **Deps: TODO 1 (`is_savings`), TODO 4 (parent categories)**
 
 New read-only aggregation service: spending by period (week/month/year), grouped by parent category, filterable by savings accounts. SQL-based aggregation for efficiency.
@@ -79,14 +79,17 @@ Production Dockerfile for FastAPI backend. Add to `docker-compose.yml`. Health c
 
 ## Phase 4: MCP Server
 
-### TODO 8: MCP Server with SSE Transport `[L]`
+### TODO 8: MCP Server with Streamable HTTP Transport `[L]` (Completed)
 **Deps: TODO 1, TODO 2, TODO 4, TODO 5, TODO 6**
 
-The primary interface per manifesto. MCP server exposing tools: `add_expense`, `transfer_funds`, `get_spending_report`, `list_accounts`. SSE transport for mobile LLM app connections.
-- New: `backend/app/mcp_server.py` (or `backend/mcp/` package)
-- `backend/pyproject.toml` — add `mcp` SDK dependency
-- `backend/app/main.py` — mount SSE endpoint
-- Tests for MCP tool handlers
+The primary interface per manifesto. MCP server exposing tools: `add_expense`, `transfer_funds`, `get_spending_report`, `list_accounts`. Streamable HTTP transport for mobile LLM app connections.
+- `backend/pyproject.toml` — added `fastmcp>=2.0.0` dependency [DONE]
+- New: `backend/app/mcp/__init__.py` — package init [DONE]
+- New: `backend/app/mcp/resolvers.py` — name-to-ID resolution helpers [DONE]
+- New: `backend/app/mcp/server.py` — FastMCP instance, tools, lifespan, auth [DONE]
+- `backend/app/main.py` — mount MCP app at `/mcp` [DONE]
+- New: `backend/tests/unit/test_mcp_tools.py` — unit tests (29 tests) [DONE]
+- New: `backend/tests/e2e/test_mcp_api.py` — e2e tests (7 tests) [DONE]
 
 ---
 
