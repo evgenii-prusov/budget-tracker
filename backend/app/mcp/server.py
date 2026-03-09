@@ -1,7 +1,7 @@
 """MCP Server for budget-tracker.
 
-Exposes 7 tools: create_account, create_category, add_expense, add_income,
-transfer_funds, get_spending, list_accounts.
+Exposes 8 tools: create_account, create_category, add_expense, add_income,
+transfer_funds, get_spending, list_accounts, list_postings.
 Uses FastMCP with Streamable HTTP transport, mounted on the FastAPI app at /mcp.
 """
 
@@ -318,6 +318,48 @@ def _list_accounts_impl(
     return "\n".join(lines)
 
 
+def _list_postings_impl(
+    uow: AbstractUnitOfWork,
+    *,
+    account_name: str | None = None,
+    limit: int = 20,
+) -> str:
+    account_id = None
+    if account_name:
+        try:
+            account = resolve_account_by_name(uow, account_name)
+            account_id = account.account_id
+        except ValueError as exc:
+            return str(exc)
+
+    postings = services.list_postings(uow, account_id=account_id, limit=limit)
+
+    if not postings:
+        return "No postings found."
+
+    # Sort postings by date (newest first)
+    postings.sort(key=lambda p: p.posting_date, reverse=True)
+
+    lines = []
+    for p in postings:
+        acc = uow.accounts.get(p.account_id)
+        cat = uow.categories.get(p.category_id) if p.category_id else None
+
+        acc_info = f"({acc.name})" if acc else ""
+        cat_info = f"[{cat.name}]" if cat else "[No Category]"
+        payee_info = f"Payee: {p.payee}" if p.payee else ""
+
+        # Format: 2025-01-15  EXPENSE  42.50 EUR  [Groceries]  Payee: Lidl  (Cash EUR)
+        line = (
+            f"{p.posting_date}  {p.posting_type:<7}  {abs(p.amount):>10.2f} "
+            f"{acc.currency if acc else '':<3}  {cat_info:<15}  "
+            f"{payee_info:<20}  {acc_info}"
+        )
+        lines.append(line.strip())
+
+    return "\n".join(lines)
+
+
 # ── FastMCP instance & tool registration ──────────────────────────────
 
 
@@ -574,6 +616,26 @@ def _register_tools(mcp: FastMCP) -> None:
         with _uow_from_ctx(ctx) as uow:
             return _list_accounts_impl(uow, filter=filter)
 
+    @mcp.tool()
+    def list_postings(
+        account_name: str | None = None,
+        limit: str = "20",
+        ctx: Context | None = None,
+    ) -> str:
+        """List recent expenses and income postings.
+
+        Args:
+            account_name: Optional name of the account to filter by.
+            limit: Maximum number of postings to return (default "20").
+        """
+        try:
+            limit_int = int(limit)
+        except ValueError:
+            return f"Invalid limit: '{limit}'. Provide an integer."
+
+        with _uow_from_ctx(ctx) as uow:
+            return _list_postings_impl(uow, account_name=account_name, limit=limit_int)
+
 
 def _create_mcp() -> FastMCP:
     mcp = FastMCP(
@@ -582,7 +644,7 @@ def _create_mcp() -> FastMCP:
             "Personal finance assistant. Use these tools to manage your budget: "
             "create accounts, create expense/income categories, record expenses, "
             "record income, transfer funds between accounts, view spending reports, "
-            "and list accounts with balances."
+            "list accounts with balances, and list recent postings."
         ),
         auth=_build_auth(),
         lifespan=_mcp_lifespan,

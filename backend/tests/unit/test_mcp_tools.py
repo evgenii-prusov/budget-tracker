@@ -16,6 +16,7 @@ from app.mcp.server import (
     _create_category_impl,
     _get_spending_report_impl,
     _list_accounts_impl,
+    _list_postings_impl,
     _transfer_funds_impl,
 )
 from tests.constants import JAN_01
@@ -629,3 +630,65 @@ class TestListAccountsImpl:
         uow = FakeUnitOfWork()
         result = _list_accounts_impl(uow)
         assert result == "No accounts found."
+
+
+class TestListPostingsImpl:
+    def test_list_postings_empty(self):
+        uow = FakeUnitOfWork()
+        result = _list_postings_impl(uow)
+        assert result == "No postings found."
+
+    def test_list_postings_with_data(self):
+        uow = _setup_expense_uow()
+        # Add a posting
+        acc = uow.accounts.list_all()[0]
+        cat = [c for c in uow.categories.list_all() if c.parent_id is not None][0]
+        _add_expense_impl(
+            uow,
+            amount=Decimal("42.50"),
+            account_name=acc.name,
+            subcategory=cat.name,
+            posting_date=JAN_01,
+            payee="Lidl",
+        )
+
+        result = _list_postings_impl(uow)
+        assert "2025-01-01" in result
+        assert "EXPENSE" in result
+        assert "42.50" in result
+        assert "EUR" in result
+        assert "Groceries" in result
+        assert "Lidl" in result
+        assert "Cash EUR" in result
+
+    def test_list_postings_account_filter(self):
+        uow = _setup_expense_uow()
+        acc1 = uow.accounts.list_all()[0]  # Cash EUR
+        acc2 = Account(None, "Bank USD", "USD", Decimal("1000"))
+        uow.accounts.add(acc2)
+
+        cat = [c for c in uow.categories.list_all() if c.parent_id is not None][0]
+
+        _add_expense_impl(
+            uow,
+            amount=Decimal("10"),
+            account_name=acc1.name,
+            subcategory=cat.name,
+            posting_date=JAN_01,
+        )
+        _add_expense_impl(
+            uow,
+            amount=Decimal("20"),
+            account_name=acc2.name,
+            subcategory=cat.name,
+            posting_date=JAN_01,
+        )
+
+        result = _list_postings_impl(uow, account_name="Cash EUR")
+        assert "10.00" in result
+        assert "20.00" not in result
+
+    def test_list_postings_unknown_account(self):
+        uow = FakeUnitOfWork()
+        result = _list_postings_impl(uow, account_name="Nonexistent")
+        assert "No account named 'Nonexistent'" in result

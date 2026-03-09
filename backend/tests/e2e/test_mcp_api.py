@@ -84,8 +84,8 @@ def _create_category_hierarchy(client, parent_name, sub_name, category_type="EXP
 
 
 @pytest.mark.asyncio
-async def test_list_tools_returns_seven(mcp_client):
-    """The MCP server advertises exactly 7 tools."""
+async def test_list_tools_returns_eight(mcp_client):
+    """The MCP server advertises exactly 8 tools."""
     tools = await mcp_client.list_tools()
     tool_names = {t.name for t in tools}
     assert tool_names == {
@@ -96,7 +96,36 @@ async def test_list_tools_returns_seven(mcp_client):
         "transfer_funds",
         "get_spending",
         "list_accounts",
+        "list_postings",
     }
+
+
+@pytest.mark.asyncio
+async def test_list_postings_roundtrip(mcp_client, client):
+    """Create account + category via REST, record expense via MCP, then list via MCP."""
+    _create_account(client, "Postings Acc", "EUR", "1000.00")
+    _create_category_hierarchy(client, "Food", "Restaurants", "EXPENSE")
+
+    # 1. Add expense via MCP
+    await mcp_client.call_tool(
+        "add_expense",
+        {
+            "amount": "15.50",
+            "account_name": "Postings Acc",
+            "subcategory": "Restaurants",
+            "posting_date": "2025-01-20",
+            "payee": "Salad Bar",
+        },
+    )
+
+    # 2. List postings via MCP
+    result = await mcp_client.call_tool("list_postings", {"account_name": "Postings Acc"})
+    text = result.content[0].text
+    assert "2025-01-20" in text
+    assert "15.50" in text
+    assert "Restaurants" in text
+    assert "Salad Bar" in text
+    assert "Postings Acc" in text
 
 
 @pytest.mark.asyncio
@@ -175,9 +204,7 @@ async def test_create_category_then_add_expense(mcp_client, client):
     _create_account(client, "Expense Acc", "EUR", "1000.00")
 
     # 1. Create parent + subcategory via MCP
-    await mcp_client.call_tool(
-        "create_category", {"name": "Shopping", "category_type": "expense"}
-    )
+    await mcp_client.call_tool("create_category", {"name": "Shopping", "category_type": "expense"})
     await mcp_client.call_tool(
         "create_category",
         {"name": "Clothes", "category_type": "expense", "parent_name": "Shopping"},
