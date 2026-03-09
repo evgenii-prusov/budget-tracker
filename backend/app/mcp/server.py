@@ -17,7 +17,12 @@ from fastmcp.server.auth import AccessToken, TokenVerifier
 from app.adapters.unit_of_work import SqlAlchemyUnitOfWork
 from app.core.config import get_api_key
 from app.core.db import Database
-from app.domain.exceptions import CategoryHierarchyError, InsufficientFundsError
+from app.domain.exceptions import (
+    CategoryHierarchyError,
+    DuplicateAccountNameError,
+    InsufficientFundsError,
+    InvalidInitialBalanceError,
+)
 from app.domain.model import CategoryType, PostingType
 from app.mcp.resolvers import (
     resolve_account_by_currency,
@@ -63,6 +68,32 @@ def _uow_from_ctx(ctx: Context):
 
 
 # ── Tool implementations (pure logic, testable with FakeUnitOfWork) ──
+
+
+def _create_account_impl(
+    uow: AbstractUnitOfWork,
+    *,
+    name: str,
+    currency: str,
+    initial_balance: Decimal,
+    is_savings: bool = False,
+) -> str:
+    try:
+        account = services.create_account(
+            uow,
+            name=name,
+            currency=currency,
+            initial_balance=initial_balance,
+            is_savings=is_savings,
+        )
+    except (DuplicateAccountNameError, InvalidInitialBalanceError) as exc:
+        return str(exc)
+
+    tag = " (savings)" if account.is_savings else ""
+    return (
+        f"Created account '{account.name}'{tag} "
+        f"with initial balance {account.initial_balance} {account.currency}."
+    )
 
 
 def _add_expense_impl(
@@ -200,6 +231,36 @@ async def _mcp_lifespan(server):
 
 def _register_tools(mcp: FastMCP) -> None:
     """Register all MCP tools on the given FastMCP instance."""
+
+    @mcp.tool()
+    def create_account(
+        name: str,
+        currency: str,
+        initial_balance: str = "0.00",
+        is_savings: bool = False,
+        ctx: Context | None = None,
+    ) -> str:
+        """Create a new bank account, checking account, or savings account.
+
+        Args:
+            name: Unique name for the account (e.g. 'Main Checking', 'Travel Savings').
+            currency: ISO currency code (e.g. 'EUR', 'USD', 'GBP').
+            initial_balance: Starting balance as a decimal string (e.g. '1000.00').
+            is_savings: Whether this is a savings account (true/false).
+        """
+        try:
+            balance = Decimal(initial_balance)
+        except InvalidOperation:
+            return f"Invalid initial_balance: '{initial_balance}'. Provide a decimal number."
+
+        with _uow_from_ctx(ctx) as uow:
+            return _create_account_impl(
+                uow,
+                name=name,
+                currency=currency,
+                initial_balance=balance,
+                is_savings=is_savings,
+            )
 
     @mcp.tool()
     def add_expense(
