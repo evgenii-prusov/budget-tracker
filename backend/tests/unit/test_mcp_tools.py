@@ -6,11 +6,13 @@ from app.domain.model import Account, Category, CategoryType
 from app.mcp.resolvers import (
     resolve_account_by_currency,
     resolve_account_by_name,
+    resolve_parent_category_by_name,
     resolve_subcategory_by_name,
 )
 from app.mcp.server import (
     _add_expense_impl,
     _create_account_impl,
+    _create_category_impl,
     _get_spending_report_impl,
     _list_accounts_impl,
     _transfer_funds_impl,
@@ -146,7 +148,101 @@ class TestResolveSubcategoryByName:
         assert result.category_type == CategoryType.EXPENSE
 
 
+class TestResolveParentCategoryByName:
+    def test_resolves_existing_parent(self):
+        uow = FakeUnitOfWork()
+        parent = Category(None, "Food", CategoryType.EXPENSE)
+        uow.categories.add(parent)
+        result = resolve_parent_category_by_name(uow, "Food")
+        assert result.category_id == parent.category_id
+
+    def test_case_insensitive(self):
+        uow = FakeUnitOfWork()
+        parent = Category(None, "Food", CategoryType.EXPENSE)
+        uow.categories.add(parent)
+        result = resolve_parent_category_by_name(uow, "food")
+        assert result.category_id == parent.category_id
+
+    def test_ignores_subcategories(self):
+        uow = FakeUnitOfWork()
+        parent = Category(None, "Food", CategoryType.EXPENSE)
+        sub = Category(None, "Groceries", CategoryType.EXPENSE, parent_id=parent.category_id)
+        uow.categories.add(parent)
+        uow.categories.add(sub)
+        with pytest.raises(ValueError, match="No parent category named 'Groceries'"):
+            resolve_parent_category_by_name(uow, "Groceries")
+
+    def test_raises_when_not_found(self):
+        uow = FakeUnitOfWork()
+        uow.categories.add(Category(None, "Food", CategoryType.EXPENSE))
+        with pytest.raises(ValueError, match="No parent category named 'Unknown'"):
+            resolve_parent_category_by_name(uow, "Unknown")
+
+    def test_filters_by_category_type(self):
+        uow = FakeUnitOfWork()
+        exp_parent = Category(None, "Food", CategoryType.EXPENSE)
+        inc_parent = Category(None, "Salary", CategoryType.INCOME)
+        uow.categories.add(exp_parent)
+        uow.categories.add(inc_parent)
+
+        result = resolve_parent_category_by_name(uow, "Food", category_type=CategoryType.EXPENSE)
+        assert result.category_id == exp_parent.category_id
+
+        with pytest.raises(ValueError, match=r"No parent category named 'Food' \(type=INCOME\)"):
+            resolve_parent_category_by_name(uow, "Food", category_type=CategoryType.INCOME)
+
+
 # ==================== Tool implementation tests ==================== #
+
+
+class TestCreateCategoryImpl:
+    def test_creates_parent_category(self):
+        uow = FakeUnitOfWork()
+        result = _create_category_impl(uow, name="Food", category_type_str="expense")
+        assert "Created EXPENSE parent category 'Food'" in result
+        assert len(uow.categories.list_parents()) == 1
+        assert uow.categories.list_parents()[0].name == "Food"
+
+    def test_creates_subcategory(self):
+        uow = FakeUnitOfWork()
+        uow.categories.add(Category(None, "Food", CategoryType.EXPENSE))
+
+        result = _create_category_impl(
+            uow, name="Groceries", category_type_str="expense", parent_name="Food"
+        )
+        assert "Created EXPENSE subcategory 'Groceries' under 'Food'" in result
+
+        parent = uow.categories.list_parents()[0]
+        subs = uow.categories.list_children(parent.category_id)
+        assert len(subs) == 1
+        assert subs[0].name == "Groceries"
+
+    def test_invalid_category_type(self):
+        uow = FakeUnitOfWork()
+        result = _create_category_impl(uow, name="Food", category_type_str="invalid")
+        assert "Invalid category type" in result
+
+    def test_duplicate_category_name(self):
+        uow = FakeUnitOfWork()
+        uow.categories.add(Category(None, "Food", CategoryType.EXPENSE))
+        result = _create_category_impl(uow, name="Food", category_type_str="expense")
+        assert "already exists" in result
+
+    def test_parent_not_found(self):
+        uow = FakeUnitOfWork()
+        result = _create_category_impl(
+            uow, name="Groceries", category_type_str="expense", parent_name="Nonexistent"
+        )
+        assert "No parent category named 'Nonexistent'" in result
+
+    def test_mismatched_type_with_parent(self):
+        uow = FakeUnitOfWork()
+        uow.categories.add(Category(None, "Food", CategoryType.EXPENSE))
+        # Resolve parent by name will fail because it filters by type
+        result = _create_category_impl(
+            uow, name="Groceries", category_type_str="income", parent_name="Food"
+        )
+        assert "No parent category named 'Food' (type=INCOME)" in result
 
 
 def _setup_expense_uow() -> FakeUnitOfWork:
