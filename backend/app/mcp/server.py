@@ -19,7 +19,9 @@ from app.core.config import get_api_key
 from app.core.db import Database
 from app.domain.exceptions import (
     CategoryHierarchyError,
+    CategoryNotFoundError,
     DuplicateAccountNameError,
+    DuplicateCategoryNameError,
     InsufficientFundsError,
     InvalidCurrencyError,
     InvalidInitialBalanceError,
@@ -28,6 +30,7 @@ from app.domain.model import CategoryType, PostingType
 from app.mcp.resolvers import (
     resolve_account_by_currency,
     resolve_account_by_name,
+    resolve_parent_category_by_name,
     resolve_subcategory_by_name,
 )
 from app.service_layer import services
@@ -95,6 +98,47 @@ def _create_account_impl(
         f"Created account '{account.name}'{tag} "
         f"with initial balance {account.initial_balance} {account.currency}."
     )
+
+
+def _create_category_impl(
+    uow: AbstractUnitOfWork,
+    *,
+    name: str,
+    category_type_str: str,
+    parent_name: str | None = None,
+) -> str:
+    # 1. Map category_type string to enum
+    try:
+        category_type = CategoryType(category_type_str.upper())
+    except ValueError:
+        return f"Invalid category type: '{category_type_str}'. Use 'expense' or 'income'."
+
+    # 2. Resolve parent if name provided
+    parent_id = None
+    if parent_name:
+        try:
+            parent = resolve_parent_category_by_name(uow, parent_name, category_type=category_type)
+            parent_id = parent.category_id
+        except ValueError as exc:
+            return str(exc)
+
+    # 3. Create the category
+    try:
+        services.create_category(
+            uow,
+            name=name,
+            category_type=category_type,
+            parent_id=parent_id,
+        )
+    except (DuplicateCategoryNameError, CategoryHierarchyError, CategoryNotFoundError) as exc:
+        return str(exc)
+
+    kind = "subcategory" if parent_id else "parent category"
+    msg = f"Created {category_type.value} {kind} '{name}'"
+    if parent_name:
+        msg += f" under '{parent_name}'"
+    msg += "."
+    return msg
 
 
 def _add_expense_impl(
@@ -261,6 +305,29 @@ def _register_tools(mcp: FastMCP) -> None:
                 currency=currency,
                 initial_balance=balance,
                 is_savings=is_savings,
+            )
+
+    @mcp.tool()
+    def create_category(
+        name: str,
+        category_type: str,
+        parent_name: str | None = None,
+        ctx: Context | None = None,
+    ) -> str:
+        """Create a new category or subcategory.
+        Parents must be created first before subcategories can be added to them.
+
+        Args:
+            name: Name of the new category.
+            category_type: 'expense' or 'income'.
+            parent_name: Optional name of the parent category.
+        """
+        with _uow_from_ctx(ctx) as uow:
+            return _create_category_impl(
+                uow,
+                name=name,
+                category_type_str=category_type,
+                parent_name=parent_name,
             )
 
     @mcp.tool()

@@ -62,3 +62,24 @@ def resolve_subcategory_by_name(
     type_hint = f" (type={category_type.value})" if category_type is not None else ""
     available = ", ".join(c.name for c in subcategories)
     raise ValueError(f"No subcategory named '{name}'{type_hint}. Available: [{available}]")
+
+
+def resolve_parent_category_by_name(
+    uow: AbstractUnitOfWork,
+    name: str,
+    category_type: CategoryType | None = None,
+) -> Category:
+    """Find a parent category by name (case-insensitive). Ignores subcategories."""
+    all_categories = uow.categories.list_all(skip=0, limit=500)
+    parents = [c for c in all_categories if c.parent_id is None]
+
+    if category_type is not None:
+        parents = [c for c in parents if c.category_type == category_type]
+
+    for cat in parents:
+        if cat.name.lower() == name.lower():
+            return cat
+
+    type_hint = f" (type={category_type.value})" if category_type is not None else ""
+    available = ", ".join(c.name for c in parents)
+    raise ValueError(f"No parent category named '{name}'{type_hint}. Available: [{available}]")

@@ -84,12 +84,13 @@ def _create_category_hierarchy(client, parent_name, sub_name, category_type="EXP
 
 
 @pytest.mark.asyncio
-async def test_list_tools_returns_five(mcp_client):
-    """The MCP server advertises exactly 5 tools."""
+async def test_list_tools_returns_six(mcp_client):
+    """The MCP server advertises exactly 6 tools."""
     tools = await mcp_client.list_tools()
     tool_names = {t.name for t in tools}
     assert tool_names == {
         "create_account",
+        "create_category",
         "add_expense",
         "transfer_funds",
         "get_spending",
@@ -130,6 +131,71 @@ async def test_create_account_duplicate_error(mcp_client):
     )
     text = result.content[0].text
     assert "already exists" in text.lower()
+
+
+@pytest.mark.asyncio
+async def test_create_category_roundtrip(mcp_client, client):
+    """Create parent then subcategory via MCP, verify via REST API."""
+    # 1. Create parent category via MCP
+    result = await mcp_client.call_tool(
+        "create_category", {"name": "Travel", "category_type": "expense"}
+    )
+    text = result.content[0].text
+    assert "Created EXPENSE parent category 'Travel'" in text
+
+    # 2. Create subcategory via MCP
+    result = await mcp_client.call_tool(
+        "create_category",
+        {"name": "Flights", "category_type": "expense", "parent_name": "Travel"},
+    )
+    text = result.content[0].text
+    assert "Created EXPENSE subcategory 'Flights' under 'Travel'" in text
+
+    # 3. Verify via REST API
+    resp = client.get("/categories/")
+    assert resp.status_code == 200
+    categories = resp.json()
+
+    # Find "Flights" subcategory
+    flights = next((c for c in categories if c["name"] == "Flights"), None)
+    assert flights is not None
+    assert flights["category_type"] == "EXPENSE"
+    assert flights["parent_id"] is not None
+
+    # Find its parent
+    parent = next((c for c in categories if c["category_id"] == flights["parent_id"]), None)
+    assert parent is not None
+    assert parent["name"] == "Travel"
+
+
+@pytest.mark.asyncio
+async def test_create_category_then_add_expense(mcp_client, client):
+    """Create category hierarchy via MCP, then use it in add_expense."""
+    _create_account(client, "Expense Acc", "EUR", "1000.00")
+
+    # 1. Create parent + subcategory via MCP
+    await mcp_client.call_tool(
+        "create_category", {"name": "Shopping", "category_type": "expense"}
+    )
+    await mcp_client.call_tool(
+        "create_category",
+        {"name": "Clothes", "category_type": "expense", "parent_name": "Shopping"},
+    )
+
+    # 2. Record expense using the MCP-created subcategory
+    result = await mcp_client.call_tool(
+        "add_expense",
+        {
+            "amount": "75.00",
+            "currency": "EUR",
+            "subcategory": "Clothes",
+            "posting_date": "2025-01-15",
+        },
+    )
+    text = result.content[0].text
+    assert "75.00" in text
+    assert "Expense Acc" in text
+    assert "Clothes" in text
 
 
 @pytest.mark.asyncio
