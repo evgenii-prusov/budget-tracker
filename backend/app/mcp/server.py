@@ -21,6 +21,7 @@ from app.domain.exceptions import (
     CategoryHierarchyError,
     DuplicateAccountNameError,
     InsufficientFundsError,
+    InvalidCurrencyError,
     InvalidInitialBalanceError,
 )
 from app.domain.model import CategoryType, PostingType
@@ -86,7 +87,7 @@ def _create_account_impl(
             initial_balance=initial_balance,
             is_savings=is_savings,
         )
-    except (DuplicateAccountNameError, InvalidInitialBalanceError) as exc:
+    except (DuplicateAccountNameError, InvalidInitialBalanceError, InvalidCurrencyError) as exc:
         return str(exc)
 
     tag = " (savings)" if account.is_savings else ""

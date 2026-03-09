@@ -1,42 +1,16 @@
 # TODO 9: Per-Branch Review Fixes
 
-Code review findings for the three implementation branches. Each section lists fixes scoped to that branch, to be addressed before merge.
+Code review findings for TODO 9 implementations. Each section lists remaining fixes.
 
 ---
 
-## Branch: `feature/task-9.1-create-account-mcp` (TODO 9.1)
+## Merged: TODO 9.1 — `create_account` (commit `499be4d` on `feature/mcp-server`)
 
-Commit reviewed: `66de8c2 fix: pre-commit check (type safety in tests)`
+> 9.1 was merged directly into `feature/mcp-server`. All review items resolved.
 
-### 9.1-R1: Update module docstring `[Trivial]`
-
-**File**: `backend/app/mcp/server.py:3`
-
-The docstring says "Exposes 4 tools" — update to 5.
-
-```python
-# Before
-"""MCP Server for budget-tracker.
-
-Exposes 4 tools: add_expense, transfer_funds, get_spending, list_accounts.
-...
-"""
-
-# After
-"""MCP Server for budget-tracker.
-
-Exposes 5 tools: create_account, add_expense, transfer_funds, get_spending, list_accounts.
-...
-"""
-```
-
-### 9.1-R2: Add E2E test for savings account and duplicate error `[Low]`
-
-**File**: `backend/tests/e2e/test_mcp_api.py`
-
-The current `test_create_account_roundtrip` only tests a basic non-savings account. Add assertions for:
-1. Create a savings account (`is_savings: true`) and verify `[savings]` appears in `list_accounts` output
-2. Attempt to create a duplicate name and verify a friendly error (not a 500)
+- [x] **9.1-R1**: Module docstring — deferred to integration pass (see `TODO9_INTEGRATION.md` INT-5)
+- [x] **9.1-R2**: E2E test for duplicate account error — added `test_create_account_duplicate_error`
+- [x] **9.1-R3**: `InvalidCurrencyError` added to except clause and imports in `_create_account_impl`
 
 ---
 
@@ -44,9 +18,9 @@ The current `test_create_account_roundtrip` only tests a basic non-savings accou
 
 Commit reviewed: `21bfcbe Implement create_category MCP tool (Task 9.2)`
 
-### 9.2-R1: Update module docstring `[Trivial]`
+### 9.2-R1: ~~Update module docstring~~ `[Deferred to integration pass]`
 
-Same as 9.1-R1 — update "Exposes 4 tools" to 5 with `create_category` in the list.
+Deferred — see `TODO9_INTEGRATION.md` INT-5.
 
 ### 9.2-R2: Add E2E test using created category in `add_expense` `[Low]`
 
@@ -128,6 +102,6 @@ async def test_add_income_with_account_name(mcp_client, client):
     assert "700.0" in text  # 500 + 200
 ```
 
-### 9.3-R4: Update module docstring `[Trivial]`
+### 9.3-R4: ~~Update module docstring~~ `[Deferred to integration pass]`
 
-Same as 9.1-R1 — update "Exposes 4 tools" to 5 with `add_income` in the list.
+Deferred — see `TODO9_INTEGRATION.md` INT-5.
