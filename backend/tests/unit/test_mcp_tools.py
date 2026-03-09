@@ -600,6 +600,12 @@ class TestGetSpendingReportImpl:
         result = _get_spending_report_impl(uow, period="decade")
         assert "Invalid" in result or "invalid" in result.lower()
 
+    def test_reference_date_anchors_period(self):
+        uow = FakeUnitOfWork()
+        result = _get_spending_report_impl(uow, period="month", reference_date=JAN_01)
+        # The report always embeds start/end dates; January 2025 should appear.
+        assert "2025-01-01" in result
+
 
 class TestListAccountsImpl:
     def test_lists_all_accounts(self):
