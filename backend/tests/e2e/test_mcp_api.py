@@ -92,6 +92,7 @@ async def test_list_tools_returns_six(mcp_client):
         "create_account",
         "create_category",
         "add_expense",
+        "add_income",
         "transfer_funds",
         "get_spending",
         "list_accounts",
@@ -240,6 +241,70 @@ async def test_add_expense_roundtrip(mcp_client, client):
     text = result.content[0].text
     assert "42.50" in text
     assert "Expense Account" in text
+
+
+@pytest.mark.asyncio
+async def test_add_expense_with_account_name(mcp_client, client):
+    """Target a specific account by name instead of currency."""
+    _create_account(client, "Main EUR", "EUR", "1000.00")
+    _create_account(client, "Secondary EUR", "EUR", "200.00")
+    _create_category_hierarchy(client, "Food", "Groceries", "EXPENSE")
+
+    result = await mcp_client.call_tool(
+        "add_expense",
+        {
+            "amount": "50.00",
+            "account_name": "Secondary EUR",
+            "subcategory": "Groceries",
+            "posting_date": "2025-01-15",
+        },
+    )
+    text = result.content[0].text
+    assert "Secondary EUR" in text
+    assert "150.0" in text  # 200 - 50
+
+
+@pytest.mark.asyncio
+async def test_add_income_roundtrip(mcp_client, client):
+    """Create account + category via REST, record income via MCP."""
+    _create_account(client, "Income Account", "EUR", "1000.00")
+    _create_category_hierarchy(client, "Salary", "Bonus", "INCOME")
+
+    result = await mcp_client.call_tool(
+        "add_income",
+        {
+            "amount": "500.00",
+            "currency": "EUR",
+            "subcategory": "Bonus",
+            "posting_date": "2025-01-15",
+        },
+    )
+    text = result.content[0].text
+    assert "500.00" in text
+    assert "Income Account" in text
+    assert "income" in text.lower()
+    assert "1500.0" in text
+
+
+@pytest.mark.asyncio
+async def test_add_income_with_account_name(mcp_client, client):
+    """Target a specific account by name for income."""
+    _create_account(client, "Main EUR", "EUR", "1000.00")
+    _create_account(client, "Side EUR", "EUR", "500.00")
+    _create_category_hierarchy(client, "Income", "Freelance", "INCOME")
+
+    result = await mcp_client.call_tool(
+        "add_income",
+        {
+            "amount": "200.00",
+            "account_name": "Side EUR",
+            "subcategory": "Freelance",
+            "posting_date": "2025-01-15",
+        },
+    )
+    text = result.content[0].text
+    assert "Side EUR" in text
+    assert "700.0" in text  # 500 + 200
 
 
 @pytest.mark.asyncio

@@ -11,6 +11,7 @@ from app.mcp.resolvers import (
 )
 from app.mcp.server import (
     _add_expense_impl,
+    _add_income_impl,
     _create_account_impl,
     _create_category_impl,
     _get_spending_report_impl,
@@ -307,6 +308,18 @@ class TestAddExpenseImpl:
         assert "42.50" in result
         assert "Cash EUR" in result
 
+    def test_records_expense_by_account_name(self):
+        uow = _setup_expense_uow()
+        result = _add_expense_impl(
+            uow,
+            amount=Decimal("42.50"),
+            account_name="Cash EUR",
+            subcategory="Groceries",
+            posting_date=JAN_01,
+        )
+        assert "42.50" in result
+        assert "Cash EUR" in result
+
     def test_records_expense_with_payee(self):
         uow = _setup_expense_uow()
         result = _add_expense_impl(
@@ -389,6 +402,109 @@ class TestAddExpenseImpl:
         )
         # Should return a friendly error string, not crash with CategoryHierarchyError
         assert "No" in result and "subcategory" in result.lower()
+
+    def test_no_account_identifier_error(self):
+        uow = _setup_expense_uow()
+        result = _add_expense_impl(
+            uow,
+            amount=Decimal("100"),
+            subcategory="Groceries",
+            posting_date=JAN_01,
+        )
+        assert "account_name or currency must be provided" in result.lower()
+
+
+class TestAddIncomeImpl:
+    def _setup_income_uow(self) -> FakeUnitOfWork:
+        uow = FakeUnitOfWork()
+        uow.accounts.add(Account(None, "Cash EUR", "EUR", Decimal("1000")))
+
+        parent = Category(None, "Income", CategoryType.INCOME)
+        sub = Category(None, "Salary", CategoryType.INCOME, parent_id=parent.category_id)
+        uow.categories.add(parent)
+        uow.categories.add(sub)
+        return uow
+
+    def test_records_income_by_currency(self):
+        uow = self._setup_income_uow()
+        result = _add_income_impl(
+            uow,
+            amount=Decimal("2500"),
+            currency="EUR",
+            subcategory="Salary",
+            posting_date=JAN_01,
+        )
+        assert "2500" in result
+        assert "Cash EUR" in result
+        assert "income" in result.lower()
+
+    def test_records_income_by_account_name(self):
+        uow = self._setup_income_uow()
+        result = _add_income_impl(
+            uow,
+            amount=Decimal("2500"),
+            account_name="Cash EUR",
+            subcategory="Salary",
+            posting_date=JAN_01,
+        )
+        assert "Cash EUR" in result
+
+    def test_balance_increases_after_income(self):
+        uow = self._setup_income_uow()
+        acc = uow.accounts.list_all()[0]
+        _add_income_impl(
+            uow,
+            amount=Decimal("500"),
+            currency="EUR",
+            subcategory="Salary",
+            posting_date=JAN_01,
+        )
+        assert acc.balance == Decimal("1500")
+
+    def test_unknown_subcategory_error(self):
+        uow = self._setup_income_uow()
+        result = _add_income_impl(
+            uow,
+            amount=Decimal("10"),
+            currency="EUR",
+            subcategory="Nonexistent",
+            posting_date=JAN_01,
+        )
+        assert "No subcategory" in result
+
+    def test_expense_subcategory_returns_friendly_error(self):
+        uow = self._setup_income_uow()
+        # Add an EXPENSE subcategory named "Salary"
+        exp_parent = Category(None, "Fixed", CategoryType.EXPENSE)
+        exp_sub = Category(None, "Salary", CategoryType.EXPENSE, parent_id=exp_parent.category_id)
+        uow.categories.add(exp_parent)
+        uow.categories.add(exp_sub)
+
+        # Remove the INCOME "Salary"
+        uow.categories._categories = [
+            c
+            for c in uow.categories._categories
+            if not (c.name == "Salary" and c.category_type == CategoryType.INCOME)
+        ]
+
+        result = _add_income_impl(
+            uow,
+            amount=Decimal("10"),
+            currency="EUR",
+            subcategory="Salary",
+            posting_date=JAN_01,
+        )
+        assert "No" in result and "subcategory" in result.lower()
+
+    def test_no_account_identifier_error(self):
+        uow = self._setup_income_uow()
+        result = _add_income_impl(
+            uow,
+            amount=Decimal("100"),
+            subcategory="Salary",
+            posting_date=JAN_01,
+        )
+        assert "account_name or currency must be provided" in result.lower()
 
 
 class TestTransferFundsImpl:
