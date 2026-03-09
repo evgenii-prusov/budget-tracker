@@ -118,6 +118,21 @@ async def test_create_account_roundtrip(mcp_client):
 
 
 @pytest.mark.asyncio
+async def test_create_account_duplicate_error(mcp_client):
+    """Duplicate account name returns a friendly error, not a 500."""
+    await mcp_client.call_tool(
+        "create_account",
+        {"name": "Duplicate", "currency": "EUR"},
+    )
+    result = await mcp_client.call_tool(
+        "create_account",
+        {"name": "Duplicate", "currency": "USD"},
+    )
+    text = result.content[0].text
+    assert "already exists" in text.lower()
+
+
+@pytest.mark.asyncio
 async def test_list_accounts_roundtrip(mcp_client, client):
     """Create accounts via REST API then list via MCP tool."""
     _create_account(client, "MCP Cash EUR", "EUR", "500.00")
