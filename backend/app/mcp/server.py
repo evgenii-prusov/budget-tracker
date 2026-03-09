@@ -566,8 +566,10 @@ def _create_mcp() -> FastMCP:
     mcp = FastMCP(
         "Budget Tracker",
         instructions=(
-            "Personal finance assistant. Use these tools to record expenses, "
-            "transfer funds between accounts, view spending reports, and list accounts."
+            "Personal finance assistant. Use these tools to manage your budget: "
+            "create accounts, create expense/income categories, record expenses, "
+            "record income, transfer funds between accounts, view spending reports, "
+            "and list accounts with balances."
         ),
         auth=_build_auth(),
         lifespan=_mcp_lifespan,
