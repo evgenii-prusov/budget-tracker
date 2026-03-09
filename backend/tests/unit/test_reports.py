@@ -71,7 +71,9 @@ class SpyReportRepository(AbstractReportRepository):
         self._rows = rows or []
         self.called_with = None
 
-    def spending_by_period(self, start_date, end_date, exclude_savings=True):
+    def spending_by_period(
+        self, start_date: date, end_date: date, exclude_savings: bool = True
+    ) -> SpendingReport:
         self.called_with = (start_date, end_date, exclude_savings)
         return SpendingReport(
             period="month",

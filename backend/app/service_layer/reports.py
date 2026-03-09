@@ -3,6 +3,10 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import date, timedelta
 from decimal import Decimal
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from app.service_layer.unit_of_work import AbstractUnitOfWork
 
 
 @dataclass
@@ -36,7 +40,7 @@ def _compute_period_dates(period: str, reference: date) -> tuple[date, date]:
 
 
 def get_spending_report(
-    uow,
+    uow: AbstractUnitOfWork,
     *,
     period: str,
     exclude_savings: bool = True,
@@ -45,4 +49,6 @@ def get_spending_report(
     ref = reference_date or date.today()
     start, end = _compute_period_dates(period, ref)
     with uow:
-        return uow.reports.spending_by_period(start, end, exclude_savings=exclude_savings)
+        report = uow.reports.spending_by_period(start, end, exclude_savings=exclude_savings)
+        report.period = period
+        return report
