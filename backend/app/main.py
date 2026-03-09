@@ -10,6 +10,7 @@ from app.api.routers import reports
 from app.core.logging_config import setup_logging
 from app.api.middleware import LoggingMiddleware
 from app.core.db import Database
+from app.mcp.server import create_mcp_app
 
 
 @asynccontextmanager
@@ -30,6 +31,10 @@ app.include_router(categories.router, dependencies=[Depends(verify_api_key)])
 app.include_router(postings.router, dependencies=[Depends(verify_api_key)])
 app.include_router(transfers.router, dependencies=[Depends(verify_api_key)])
 app.include_router(reports.router, dependencies=[Depends(verify_api_key)])
+
+# Mount MCP server (has its own auth via Bearer token verification)
+mcp_app = create_mcp_app()
+app.mount("/mcp", mcp_app)
 
 # Add CORS middleware
 app.add_middleware(
