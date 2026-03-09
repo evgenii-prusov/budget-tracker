@@ -336,6 +336,27 @@ async def test_get_spending_report_roundtrip(mcp_client):
 
 
 @pytest.mark.asyncio
+async def test_get_spending_report_with_reference_date(mcp_client):
+    """Get spending report with a reference_date anchors the period to that month."""
+    result = await mcp_client.call_tool(
+        "get_spending", {"period": "month", "reference_date": "2025-01-15"}
+    )
+    text = result.content[0].text
+    # The report always embeds start/end dates for January 2025.
+    assert "2025-01-01" in text
+
+
+@pytest.mark.asyncio
+async def test_get_spending_report_invalid_reference_date(mcp_client):
+    """Invalid reference_date returns a friendly error message."""
+    result = await mcp_client.call_tool(
+        "get_spending", {"period": "month", "reference_date": "not-a-date"}
+    )
+    text = result.content[0].text
+    assert "Invalid" in text or "invalid" in text.lower()
+
+
+@pytest.mark.asyncio
 async def test_add_expense_insufficient_funds(mcp_client, client):
     """Recording an expense beyond balance returns friendly error."""
     _create_account(client, "Small Account", "EUR", "10.00")
