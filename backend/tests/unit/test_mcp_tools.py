@@ -37,7 +37,7 @@ class TestResolveAccountByName:
 
     def test_raises_when_not_found(self):
         uow = FakeUnitOfWork()
-        Account(None, "Cash EUR", "EUR", Decimal("1000"))
+        uow.accounts.add(Account(None, "Cash EUR", "EUR", Decimal("1000")))
         with pytest.raises(ValueError, match="No account named 'Nonexistent'"):
             resolve_account_by_name(uow, "Nonexistent")
 
@@ -166,7 +166,7 @@ class TestAddExpenseImpl:
             posting_date=JAN_01,
             payee="Lidl",
         )
-        assert "Lidl" in result or "10" in result
+        assert "Lidl" in result
 
     def test_balance_decreases_after_expense(self):
         uow = _setup_expense_uow()
@@ -305,4 +305,4 @@ class TestListAccountsImpl:
     def test_empty_accounts(self):
         uow = FakeUnitOfWork()
         result = _list_accounts_impl(uow)
-        assert "no accounts" in result.lower() or result.strip() != ""
+        assert result == "No accounts found."
