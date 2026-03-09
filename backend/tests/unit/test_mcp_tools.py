@@ -16,6 +16,7 @@ from app.mcp.server import (
     _create_category_impl,
     _get_spending_report_impl,
     _list_accounts_impl,
+    _list_categories_impl,
     _list_postings_impl,
     _transfer_funds_impl,
 )
@@ -630,6 +631,75 @@ class TestListAccountsImpl:
         uow = FakeUnitOfWork()
         result = _list_accounts_impl(uow)
         assert result == "No accounts found."
+
+
+class TestListCategoriesImpl:
+    def test_list_categories_empty(self):
+        uow = FakeUnitOfWork()
+        result = _list_categories_impl(uow)
+        assert result == "No categories found."
+
+    def test_list_categories_with_hierarchy(self):
+        uow = FakeUnitOfWork()
+
+        # Setup hierarchy
+        exp_parent = Category(None, "Food", CategoryType.EXPENSE)
+        exp_sub1 = Category(
+            None, "Groceries", CategoryType.EXPENSE, parent_id=exp_parent.category_id
+        )
+        exp_sub2 = Category(
+            None, "Restaurants", CategoryType.EXPENSE, parent_id=exp_parent.category_id
+        )
+        inc_parent = Category(None, "Employment", CategoryType.INCOME)
+        inc_sub = Category(None, "Salary", CategoryType.INCOME, parent_id=inc_parent.category_id)
+
+        uow.categories.add(exp_parent)
+        uow.categories.add(exp_sub1)
+        uow.categories.add(exp_sub2)
+        uow.categories.add(inc_parent)
+        uow.categories.add(inc_sub)
+
+        result = _list_categories_impl(uow)
+
+        assert "Expense categories:" in result
+        assert "• Food" in result
+        assert "  - Groceries" in result
+        assert "  - Restaurants" in result
+        assert "Income categories:" in result
+        assert "• Employment" in result
+        assert "  - Salary" in result
+
+    def test_list_categories_filter_expense(self):
+        uow = FakeUnitOfWork()
+
+        exp_parent = Category(None, "Food", CategoryType.EXPENSE)
+        inc_parent = Category(None, "Employment", CategoryType.INCOME)
+        uow.categories.add(exp_parent)
+        uow.categories.add(inc_parent)
+
+        result = _list_categories_impl(uow, category_type_str="expense")
+        assert "Expense categories:" in result
+        assert "• Food" in result
+        assert "Income categories:" not in result
+
+    def test_list_categories_filter_income(self):
+        uow = FakeUnitOfWork()
+
+        exp_parent = Category(None, "Food", CategoryType.EXPENSE)
+        inc_parent = Category(None, "Employment", CategoryType.INCOME)
+        uow.categories.add(exp_parent)
+        uow.categories.add(inc_parent)
+
+        result = _list_categories_impl(uow, category_type_str="income")
+        assert "Income categories:" in result
+        assert "• Employment" in result
+        assert "Expense categories:" not in result
+
+    def test_list_categories_invalid_type(self):
+        uow = FakeUnitOfWork()
+
+        result = _list_categories_impl(uow, category_type_str="invalid")
+        assert "Invalid category type" in result
 
 
 class TestListPostingsImpl:

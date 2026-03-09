@@ -1,7 +1,7 @@
 """MCP Server for budget-tracker.
 
-Exposes 8 tools: create_account, create_category, add_expense, add_income,
-transfer_funds, get_spending, list_accounts, list_postings.
+Exposes 9 tools: create_account, create_category, add_expense, add_income,
+transfer_funds, get_spending, list_accounts, list_categories, list_postings.
 Uses FastMCP with Streamable HTTP transport, mounted on the FastAPI app at /mcp.
 """
 
@@ -318,6 +318,53 @@ def _list_accounts_impl(
     return "\n".join(lines)
 
 
+def _list_categories_impl(
+    uow: AbstractUnitOfWork,
+    *,
+    category_type_str: str | None = None,
+) -> str:
+    # 1. Map category_type string to enum if provided
+    category_type = None
+    if category_type_str:
+        try:
+            category_type = CategoryType(category_type_str.upper())
+        except ValueError:
+            return f"Invalid category type: '{category_type_str}'. Use 'expense' or 'income'."
+
+    # 2. Get all parent categories, filtered by type if requested
+    parents = services.list_parent_categories(uow, limit=100)
+    if category_type:
+        parents = [p for p in parents if p.category_type == category_type]
+
+    if not parents:
+        return "No categories found."
+
+    # 3. Format as a hierarchical tree
+    expense_parents = [p for p in parents if p.category_type == CategoryType.EXPENSE]
+    income_parents = [p for p in parents if p.category_type == CategoryType.INCOME]
+
+    lines = []
+    if expense_parents:
+        lines.append("Expense categories:")
+        for p in expense_parents:
+            lines.append(f"  • {p.name}")
+            subs = services.list_subcategories(uow, parent_id=p.category_id)
+            for s in subs:
+                lines.append(f"    - {s.name}")
+
+    if income_parents:
+        if lines:
+            lines.append("")
+        lines.append("Income categories:")
+        for p in income_parents:
+            lines.append(f"  • {p.name}")
+            subs = services.list_subcategories(uow, parent_id=p.category_id)
+            for s in subs:
+                lines.append(f"    - {s.name}")
+
+    return "\n".join(lines)
+
+
 def _list_postings_impl(
     uow: AbstractUnitOfWork,
     *,
@@ -617,6 +664,19 @@ def _register_tools(mcp: FastMCP) -> None:
             return _list_accounts_impl(uow, filter=filter)
 
     @mcp.tool()
+    def list_categories(
+        category_type: str | None = None,
+        ctx: Context | None = None,
+    ) -> str:
+        """List all categories and subcategories.
+
+        Args:
+            category_type: Optional filter: 'expense' or 'income'.
+        """
+        with _uow_from_ctx(ctx) as uow:
+            return _list_categories_impl(uow, category_type_str=category_type)
+
+    @mcp.tool()
     def list_postings(
         account_name: str | None = None,
         limit: str = "20",
@@ -644,7 +704,7 @@ def _create_mcp() -> FastMCP:
             "Personal finance assistant. Use these tools to manage your budget: "
             "create accounts, create expense/income categories, record expenses, "
             "record income, transfer funds between accounts, view spending reports, "
-            "list accounts with balances, and list recent postings."
+            "list accounts with balances, list categories, and list recent postings."
         ),
         auth=_build_auth(),
         lifespan=_mcp_lifespan,
