@@ -1,6 +1,6 @@
 """MCP Server for budget-tracker.
 
-Exposes 4 tools: add_expense, transfer_funds, get_spending_report, list_accounts.
+Exposes 4 tools: add_expense, transfer_funds, get_spending, list_accounts.
 Uses FastMCP with Streamable HTTP transport, mounted on the FastAPI app at /mcp.
 """
 
@@ -17,8 +17,8 @@ from fastmcp.server.auth import AccessToken, TokenVerifier
 from app.adapters.unit_of_work import SqlAlchemyUnitOfWork
 from app.core.config import get_api_key
 from app.core.db import Database
-from app.domain.exceptions import InsufficientFundsError
-from app.domain.model import PostingType
+from app.domain.exceptions import CategoryHierarchyError, InsufficientFundsError
+from app.domain.model import CategoryType, PostingType
 from app.mcp.resolvers import (
     resolve_account_by_currency,
     resolve_account_by_name,
@@ -77,7 +77,7 @@ def _add_expense_impl(
 ) -> str:
     try:
         account = resolve_account_by_currency(uow, currency)
-        category = resolve_subcategory_by_name(uow, subcategory)
+        category = resolve_subcategory_by_name(uow, subcategory, category_type=CategoryType.EXPENSE)
     except ValueError as exc:
         return str(exc)
 
@@ -92,7 +92,7 @@ def _add_expense_impl(
             payee=payee,
             description=description,
         )
-    except InsufficientFundsError as exc:
+    except (InsufficientFundsError, CategoryHierarchyError) as exc:
         return str(exc)
 
     return (
@@ -130,7 +130,7 @@ def _transfer_funds_impl(
             transfer_date=transfer_date,
             description=description,
         )
-    except InsufficientFundsError as exc:
+    except (InsufficientFundsError, ValueError) as exc:
         return str(exc)
 
     msg = f"Transferred {amount} {source.currency} from {source.name}"
