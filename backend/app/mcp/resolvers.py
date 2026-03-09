@@ -70,8 +70,7 @@ def resolve_parent_category_by_name(
     category_type: CategoryType | None = None,
 ) -> Category:
     """Find a parent category by name (case-insensitive). Ignores subcategories."""
-    all_categories = uow.categories.list_all(skip=0, limit=500)
-    parents = [c for c in all_categories if c.parent_id is None]
+    parents = uow.categories.list_parents(skip=0, limit=500)
 
     if category_type is not None:
         parents = [c for c in parents if c.category_type == category_type]
