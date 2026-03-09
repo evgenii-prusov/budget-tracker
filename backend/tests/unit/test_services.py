@@ -127,7 +127,9 @@ class FakeReportRepository(AbstractReportRepository):
     def __init__(self):
         pass
 
-    def spending_by_period(self, start_date, end_date, exclude_savings=True):
+    def spending_by_period(
+        self, start_date: date, end_date: date, exclude_savings: bool = True
+    ) -> SpendingReport:
         return SpendingReport(period="month", start_date=start_date, end_date=end_date, rows=[])
 
 

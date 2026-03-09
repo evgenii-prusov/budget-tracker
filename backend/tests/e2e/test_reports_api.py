@@ -55,7 +55,9 @@ def _create_posting(
 
 
 def test_unauthorized_returns_401(client_no_auth):
-    response = client_no_auth.get("/reports/spending")
+    response = client_no_auth.get(
+        "/reports/spending", params={"period": "month", "reference_date": "2026-03-15"}
+    )
     assert response.status_code == 401
 
 
@@ -76,14 +78,12 @@ def test_spending_report_aggregates_by_parent_category(client):
     """Two subcategories under same parent → single row with summed total."""
     acc_id = _create_account(client, "Agg Test Account")
     parent_id, sub1_id = _create_category_hierarchy(client, "Food Agg", "Groceries Agg")
-    _, sub2_id = (
-        # reuse the same parent by creating another child manually
-        parent_id,
-        client.post(
-            "/categories/",
-            json={"name": "Restaurant Agg", "category_type": "EXPENSE", "parent_id": parent_id},
-        ).json()["category_id"],
+    sub2_resp = client.post(
+        "/categories/",
+        json={"name": "Restaurant Agg", "category_type": "EXPENSE", "parent_id": parent_id},
     )
+    assert sub2_resp.status_code == 201
+    sub2_id = sub2_resp.json()["category_id"]
 
     _create_posting(client, acc_id, "30.00", date(2026, 3, 10), category_id=sub1_id)
     _create_posting(client, acc_id, "20.00", date(2026, 3, 12), category_id=sub2_id)
