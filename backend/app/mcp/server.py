@@ -135,8 +135,8 @@ def _create_category_impl(
 
     kind = "subcategory" if parent_id else "parent category"
     msg = f"Created {category_type.value} {kind} '{name}'"
-    if parent_name:
-        msg += f" under '{parent_name}'"
+    if parent_id is not None:
+        msg += f" under '{parent.name}'"
     msg += "."
     return msg
 
