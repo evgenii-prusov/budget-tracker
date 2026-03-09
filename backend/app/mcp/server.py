@@ -538,15 +538,27 @@ def _register_tools(mcp: FastMCP) -> None:
     @mcp.tool()
     def get_spending(
         period: str = "month",
+        reference_date: str | None = None,
         ctx: Context | None = None,
     ) -> str:
         """Get spending aggregated by parent category.
 
         Args:
             period: 'week', 'month', or 'year'. Defaults to 'month'.
+            reference_date: Reference date in YYYY-MM-DD format to anchor the
+                period (defaults to today).
         """
+        parsed_reference_date: date | None = None
+        if reference_date is not None:
+            try:
+                parsed_reference_date = date.fromisoformat(reference_date)
+            except ValueError:
+                return f"Invalid reference_date: '{reference_date}'. Use YYYY-MM-DD format."
+
         with _uow_from_ctx(ctx) as uow:
-            return _get_spending_report_impl(uow, period=period)
+            return _get_spending_report_impl(
+                uow, period=period, reference_date=parsed_reference_date
+            )
 
     @mcp.tool()
     def list_accounts(
