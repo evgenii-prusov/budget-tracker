@@ -125,6 +125,25 @@ class TestResolveSubcategoryByName:
         with pytest.raises(ValueError, match="Available.*Groceries"):
             resolve_subcategory_by_name(uow, "Unknown")
 
+    def test_filters_by_category_type(self):
+        uow = FakeUnitOfWork()
+        # Create EXPENSE subcategory "Groceries"
+        exp_parent = Category(None, "Food", CategoryType.EXPENSE)
+        exp_sub = Category(
+            None, "Groceries", CategoryType.EXPENSE, parent_id=exp_parent.category_id
+        )
+        # Create INCOME subcategory also named "Groceries"
+        inc_parent = Category(None, "Side Income", CategoryType.INCOME)
+        inc_sub = Category(None, "Groceries", CategoryType.INCOME, parent_id=inc_parent.category_id)
+        uow.categories.add(exp_parent)
+        uow.categories.add(exp_sub)
+        uow.categories.add(inc_parent)
+        uow.categories.add(inc_sub)
+
+        result = resolve_subcategory_by_name(uow, "Groceries", category_type=CategoryType.EXPENSE)
+        assert result.category_id == exp_sub.category_id
+        assert result.category_type == CategoryType.EXPENSE
+
 
 # ==================== Tool implementation tests ==================== #
 
@@ -213,6 +232,32 @@ class TestAddExpenseImpl:
         )
         assert "No account" in result
 
+    def test_income_subcategory_returns_friendly_error(self):
+        """INCOME subcategory with same name as EXPENSE one should not crash."""
+        uow = _setup_expense_uow()
+        # Add an INCOME subcategory named "Groceries" (same name as the EXPENSE one)
+        inc_parent = Category(None, "Side Income", CategoryType.INCOME)
+        inc_sub = Category(None, "Groceries", CategoryType.INCOME, parent_id=inc_parent.category_id)
+        uow.categories.add(inc_parent)
+        uow.categories.add(inc_sub)
+
+        # Remove the EXPENSE "Groceries" so only INCOME one remains
+        uow.categories._categories = [
+            c
+            for c in uow.categories._categories
+            if not (c.name == "Groceries" and c.category_type == CategoryType.EXPENSE)
+        ]
+
+        result = _add_expense_impl(
+            uow,
+            amount=Decimal("10"),
+            currency="EUR",
+            subcategory="Groceries",
+            posting_date=JAN_01,
+        )
+        # Should return a friendly error string, not crash with CategoryHierarchyError
+        assert "No" in result and "subcategory" in result.lower()
+
 
 class TestTransferFundsImpl:
     def _setup_transfer_uow(self) -> FakeUnitOfWork:
@@ -270,6 +315,30 @@ class TestTransferFundsImpl:
             transfer_date=JAN_01,
         )
         assert "Insufficient" in result or "insufficient" in result.lower()
+
+    def test_zero_amount_error(self):
+        uow = self._setup_transfer_uow()
+        result = _transfer_funds_impl(
+            uow,
+            from_account="Cash EUR",
+            to_account="Savings EUR",
+            amount=Decimal("0"),
+            transfer_date=JAN_01,
+        )
+        assert isinstance(result, str)
+        assert result  # non-empty error message
+
+    def test_negative_amount_error(self):
+        uow = self._setup_transfer_uow()
+        result = _transfer_funds_impl(
+            uow,
+            from_account="Cash EUR",
+            to_account="Savings EUR",
+            amount=Decimal("-10"),
+            transfer_date=JAN_01,
+        )
+        assert isinstance(result, str)
+        assert result  # non-empty error message
 
 
 class TestGetSpendingReportImpl:

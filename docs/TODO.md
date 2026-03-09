@@ -82,7 +82,7 @@ Production Dockerfile for FastAPI backend. Add to `docker-compose.yml`. Health c
 ### TODO 8: MCP Server with Streamable HTTP Transport `[L]` (Completed)
 **Deps: TODO 1, TODO 2, TODO 4, TODO 5, TODO 6**
 
-The primary interface per manifesto. MCP server exposing tools: `add_expense`, `transfer_funds`, `get_spending_report`, `list_accounts`. Streamable HTTP transport for mobile LLM app connections.
+The primary interface per manifesto. MCP server exposing tools: `add_expense`, `transfer_funds`, `get_spending`, `list_accounts`. Streamable HTTP transport for mobile LLM app connections.
 - `backend/pyproject.toml` — added `fastmcp>=2.0.0` dependency [DONE]
 - New: `backend/app/mcp/__init__.py` — package init [DONE]
 - New: `backend/app/mcp/resolvers.py` — name-to-ID resolution helpers [DONE]

@@ -2,7 +2,7 @@
 
 ## Context
 
-This is the final task for the budget-tracker project. The product manifesto defines MCP as the **primary interface** — a hosted MCP server allowing Claude/ChatGPT mobile apps to act as personal financial assistants via 4 tools: `add_expense`, `transfer_funds`, `get_spending_report`, `list_accounts`.
+This is the final task for the budget-tracker project. The product manifesto defines MCP as the **primary interface** — a hosted MCP server allowing Claude/ChatGPT mobile apps to act as personal financial assistants via 4 tools: `add_expense`, `transfer_funds`, `get_spending`, `list_accounts`.
 
 All dependencies (TODOs 1-7) are complete. The MCP server will be mounted on the existing FastAPI app, reuse existing service layer functions, and authenticate with the same `API_KEY` Bearer token.
 
@@ -40,22 +40,27 @@ backend/
 
 ## 3. Authentication
 
-Use FastMCP's built-in `StaticTokenVerifier`:
+Use a custom `TokenVerifier` subclass that reads the API key lazily at verification time via `get_api_key()`:
 
 ```python
-from fastmcp.server.auth.providers.jwt import StaticTokenVerifier
+from fastmcp.server.auth import AccessToken, TokenVerifier
 from app.core.config import get_api_key
 
-def _build_auth() -> StaticTokenVerifier:
-    api_key = get_api_key()
-    return StaticTokenVerifier(
-        tokens={
-            api_key: {
-                "client_id": "budget-tracker-user",
-                "scopes": ["all"],
-            }
-        }
-    )
+class _BearerTokenVerifier(TokenVerifier):
+    """Validates a static Bearer API key. Reads API_KEY lazily at verification time."""
+
+    async def verify_token(self, token: str) -> AccessToken | None:
+        api_key = get_api_key()
+        if token == api_key:
+            return AccessToken(
+                token=token,
+                client_id="budget-tracker-user",
+                scopes=["all"],
+            )
+        return None
+
+def _build_auth() -> _BearerTokenVerifier:
+    return _BearerTokenVerifier()
 ```
 
 This validates `Authorization: Bearer <API_KEY>` on all MCP HTTP endpoints automatically.
@@ -107,7 +112,7 @@ Record an expense. Finds account by currency (prefers non-savings). Subcategory 
 ### 6.2 `transfer_funds`
 Transfer money between accounts. Use account names. Amounts can differ for cross-currency transfers.
 
-### 6.3 `get_spending_report`
+### 6.3 `get_spending`
 Get spending aggregated by parent category. Period: 'week', 'month', or 'year'.
 
 ### 6.4 `list_accounts`
