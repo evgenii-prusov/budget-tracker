@@ -1,7 +1,7 @@
 """MCP Server for budget-tracker.
 
-Exposes 9 tools: create_account, create_category, add_expense, add_income,
-transfer_funds, get_spending, list_accounts, list_categories, list_postings.
+Exposes 10 tools: create_account, create_category, add_expense, add_income,
+transfer_funds, get_spending, list_accounts, list_categories, list_postings, list_transfers.
 Uses FastMCP with Streamable HTTP transport, mounted on the FastAPI app at /mcp.
 """
 
@@ -410,6 +410,37 @@ def _list_postings_impl(
     return "\n".join(lines)
 
 
+def _list_transfers_impl(
+    uow: AbstractUnitOfWork,
+    *,
+    limit: int = 20,
+) -> str:
+    transfers = services.list_transfers(uow, limit=limit)
+
+    if not transfers:
+        return "No transfers found."
+
+    lines = []
+    for t in transfers:
+        source = uow.accounts.get(t.source_account_id)
+        dest = uow.accounts.get(t.dest_account_id)
+
+        source_name = source.name if source else "Unknown"
+        dest_name = dest.name if dest else "Unknown"
+        source_curr = source.currency if source else ""
+        dest_curr = dest.currency if dest else ""
+
+        if source_curr == dest_curr:
+            amt_str = f"{t.debit_amount} {source_curr}"
+        else:
+            amt_str = f"{t.debit_amount} {source_curr} → {t.credit_amount} {dest_curr}"
+
+        desc = f" ({t.description})" if t.description else ""
+        lines.append(f"{t.transfer_date}  {source_name} → {dest_name}  {amt_str}{desc}")
+
+    return "\n".join(lines)
+
+
 # ── FastMCP instance & tool registration ──────────────────────────────
 
 
@@ -699,6 +730,24 @@ def _register_tools(mcp: FastMCP) -> None:
         with _uow_from_ctx(ctx) as uow:
             return _list_postings_impl(uow, account_name=account_name, limit=limit_int)
 
+    @mcp.tool()
+    def list_transfers(
+        limit: str = "20",
+        ctx: Context | None = None,
+    ) -> str:
+        """List recent fund transfers between accounts.
+
+        Args:
+            limit: Max number of transfers to return (default "20").
+        """
+        try:
+            limit_int = int(limit)
+        except ValueError:
+            return f"Invalid limit: '{limit}'. Provide an integer."
+
+        with _uow_from_ctx(ctx) as uow:
+            return _list_transfers_impl(uow, limit=limit_int)
+
 
 def _create_mcp() -> FastMCP:
     mcp = FastMCP(
@@ -707,7 +756,7 @@ def _create_mcp() -> FastMCP:
             "Personal finance assistant. Use these tools to manage your budget: "
             "create accounts, create expense/income categories, record expenses, "
             "record income, transfer funds between accounts, view spending reports, "
-            "list accounts with balances, list categories, and list recent postings."
+            "list accounts with balances, list categories, list recent postings, and list fund transfers."
         ),
         auth=_build_auth(),
         lifespan=_mcp_lifespan,

@@ -2,7 +2,7 @@ from decimal import Decimal
 
 import pytest
 
-from app.domain.model import Account, Category, CategoryType
+from app.domain.model import Account, Category, CategoryType, Transfer
 from app.mcp.resolvers import (
     resolve_account_by_currency,
     resolve_account_by_name,
@@ -18,6 +18,7 @@ from app.mcp.server import (
     _list_accounts_impl,
     _list_categories_impl,
     _list_postings_impl,
+    _list_transfers_impl,
     _transfer_funds_impl,
 )
 from tests.constants import JAN_01
@@ -762,3 +763,68 @@ class TestListPostingsImpl:
         uow = FakeUnitOfWork()
         result = _list_postings_impl(uow, account_name="Nonexistent")
         assert "No account named 'Nonexistent'" in result
+
+
+class TestListTransfersImpl:
+    def test_list_transfers_empty(self):
+        uow = FakeUnitOfWork()
+        result = _list_transfers_impl(uow)
+        assert result == "No transfers found."
+
+    def test_list_transfers_same_currency(self):
+        uow = FakeUnitOfWork()
+        src = Account(None, "Cash EUR", "EUR", Decimal("1000"))
+        dst = Account(None, "Savings EUR", "EUR", Decimal("5000"), is_savings=True)
+        uow.accounts.add(src)
+        uow.accounts.add(dst)
+
+        transfer = Transfer(
+            None, src.account_id, dst.account_id, Decimal("200"), Decimal("200"), JAN_01
+        )
+        uow.transfers.add(transfer)
+
+        result = _list_transfers_impl(uow)
+        assert str(JAN_01) in result
+        assert "Cash EUR → Savings EUR" in result
+        assert "200" in result
+        assert "EUR" in result
+
+    def test_list_transfers_cross_currency(self):
+        uow = FakeUnitOfWork()
+        src = Account(None, "Cash EUR", "EUR", Decimal("1000"))
+        dst = Account(None, "Cash USD", "USD", Decimal("500"))
+        uow.accounts.add(src)
+        uow.accounts.add(dst)
+
+        transfer = Transfer(
+            None, src.account_id, dst.account_id, Decimal("100"), Decimal("110"), JAN_01
+        )
+        uow.transfers.add(transfer)
+
+        result = _list_transfers_impl(uow)
+        assert "Cash EUR → Cash USD" in result
+        assert "100" in result
+        assert "EUR" in result
+        assert "110" in result
+        assert "USD" in result
+
+    def test_list_transfers_with_description(self):
+        uow = FakeUnitOfWork()
+        src = Account(None, "Cash EUR", "EUR", Decimal("1000"))
+        dst = Account(None, "Savings EUR", "EUR", Decimal("5000"))
+        uow.accounts.add(src)
+        uow.accounts.add(dst)
+
+        transfer = Transfer(
+            None,
+            src.account_id,
+            dst.account_id,
+            Decimal("200"),
+            Decimal("200"),
+            JAN_01,
+            description="Monthly savings",
+        )
+        uow.transfers.add(transfer)
+
+        result = _list_transfers_impl(uow)
+        assert "Monthly savings" in result
