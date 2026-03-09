@@ -141,19 +141,28 @@ def _create_category_impl(
     return msg
 
 
-def _add_expense_impl(
+def _add_posting_impl(
     uow: AbstractUnitOfWork,
     *,
     amount: Decimal,
-    currency: str,
+    posting_type: PostingType,
+    category_type: CategoryType,
+    currency: str | None = None,
+    account_name: str | None = None,
     subcategory: str,
     posting_date: date,
     payee: str | None = None,
     description: str | None = None,
 ) -> str:
     try:
-        account = resolve_account_by_currency(uow, currency)
-        category = resolve_subcategory_by_name(uow, subcategory, category_type=CategoryType.EXPENSE)
+        if account_name:
+            account = resolve_account_by_name(uow, account_name)
+        elif currency:
+            account = resolve_account_by_currency(uow, currency)
+        else:
+            return "Either account_name or currency must be provided."
+
+        category = resolve_subcategory_by_name(uow, subcategory, category_type=category_type)
     except ValueError as exc:
         return str(exc)
 
@@ -163,7 +172,7 @@ def _add_expense_impl(
             account_id=account.account_id,
             amount=amount,
             posting_date=posting_date,
-            posting_type=PostingType.EXPENSE,
+            posting_type=posting_type,
             category_id=category.category_id,
             payee=payee,
             description=description,
@@ -171,11 +180,62 @@ def _add_expense_impl(
     except (InsufficientFundsError, CategoryHierarchyError) as exc:
         return str(exc)
 
+    verb = "expense" if posting_type == PostingType.EXPENSE else "income"
     return (
-        f"Recorded expense of {abs(posting.amount)} {account.currency} "
+        f"Recorded {verb} of {abs(posting.amount)} {account.currency} "
         f"on {account.name} under {subcategory}."
         + (f" Payee: {payee}." if payee else "")
         + f" New balance: {account.balance} {account.currency}."
+    )
+
+
+def _add_expense_impl(
+    uow: AbstractUnitOfWork,
+    *,
+    amount: Decimal,
+    currency: str | None = None,
+    account_name: str | None = None,
+    subcategory: str,
+    posting_date: date,
+    payee: str | None = None,
+    description: str | None = None,
+) -> str:
+    return _add_posting_impl(
+        uow,
+        amount=amount,
+        posting_type=PostingType.EXPENSE,
+        category_type=CategoryType.EXPENSE,
+        currency=currency,
+        account_name=account_name,
+        subcategory=subcategory,
+        posting_date=posting_date,
+        payee=payee,
+        description=description,
+    )
+
+
+def _add_income_impl(
+    uow: AbstractUnitOfWork,
+    *,
+    amount: Decimal,
+    currency: str | None = None,
+    account_name: str | None = None,
+    subcategory: str,
+    posting_date: date,
+    payee: str | None = None,
+    description: str | None = None,
+) -> str:
+    return _add_posting_impl(
+        uow,
+        amount=amount,
+        posting_type=PostingType.INCOME,
+        category_type=CategoryType.INCOME,
+        currency=currency,
+        account_name=account_name,
+        subcategory=subcategory,
+        posting_date=posting_date,
+        payee=payee,
+        description=description,
     )
 
 
@@ -333,21 +393,26 @@ def _register_tools(mcp: FastMCP) -> None:
     @mcp.tool()
     def add_expense(
         amount: str,
-        currency: str,
         subcategory: str,
         posting_date: str,
+        currency: str | None = None,
+        account_name: str | None = None,
         payee: str | None = None,
         description: str | None = None,
         ctx: Context | None = None,
     ) -> str:
-        """Record an expense. Finds account by currency (prefers non-savings).
-        Subcategory must be an existing expense subcategory name.
+        """Record an expense. Subcategory must be an existing expense subcategory name.
+        Target account can be found by currency or name.
+
+        At least one of currency or account_name must be provided.
+        If both are given, account_name takes priority.
 
         Args:
             amount: The expense amount as a decimal string (e.g. "42.50").
-            currency: ISO currency code (e.g. "EUR", "USD").
             subcategory: Name of the expense subcategory (e.g. "Groceries").
             posting_date: Date in YYYY-MM-DD format.
+            currency: ISO currency code (e.g. "EUR"). Finds first non-savings account.
+            account_name: Specific account name (e.g. "Cash EUR").
             payee: Optional payee name.
             description: Optional description.
         """
@@ -366,6 +431,55 @@ def _register_tools(mcp: FastMCP) -> None:
                 uow,
                 amount=decimal_amount,
                 currency=currency,
+                account_name=account_name,
+                subcategory=subcategory,
+                posting_date=parsed_date,
+                payee=payee,
+                description=description,
+            )
+
+    @mcp.tool()
+    def add_income(
+        amount: str,
+        subcategory: str,
+        posting_date: str,
+        currency: str | None = None,
+        account_name: str | None = None,
+        payee: str | None = None,
+        description: str | None = None,
+        ctx: Context | None = None,
+    ) -> str:
+        """Record income. Subcategory must be an existing income subcategory name.
+        Target account can be found by currency or name.
+
+        At least one of currency or account_name must be provided.
+        If both are given, account_name takes priority.
+
+        Args:
+            amount: The income amount as a decimal string (e.g. "2500.00").
+            subcategory: Name of the income subcategory (e.g. "Salary").
+            posting_date: Date in YYYY-MM-DD format.
+            currency: ISO currency code (e.g. "EUR"). Finds first non-savings account.
+            account_name: Specific account name (e.g. "Main Checking").
+            payee: Optional payee name.
+            description: Optional description.
+        """
+        try:
+            decimal_amount = Decimal(amount)
+        except InvalidOperation:
+            return f"Invalid amount: '{amount}'. Provide a decimal number."
+
+        try:
+            parsed_date = date.fromisoformat(posting_date)
+        except ValueError:
+            return f"Invalid date: '{posting_date}'. Use YYYY-MM-DD format."
+
+        with _uow_from_ctx(ctx) as uow:
+            return _add_income_impl(
+                uow,
+                amount=decimal_amount,
+                currency=currency,
+                account_name=account_name,
                 subcategory=subcategory,
                 posting_date=parsed_date,
                 payee=payee,
