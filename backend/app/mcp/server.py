@@ -1,6 +1,7 @@
 """MCP Server for budget-tracker.
 
-Exposes 4 tools: add_expense, transfer_funds, get_spending, list_accounts.
+Exposes 7 tools: create_account, create_category, add_expense, add_income,
+transfer_funds, get_spending, list_accounts.
 Uses FastMCP with Streamable HTTP transport, mounted on the FastAPI app at /mcp.
 """
 
