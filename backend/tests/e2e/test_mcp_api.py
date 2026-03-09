@@ -84,8 +84,8 @@ def _create_category_hierarchy(client, parent_name, sub_name, category_type="EXP
 
 
 @pytest.mark.asyncio
-async def test_list_tools_returns_eight(mcp_client):
-    """The MCP server advertises exactly 8 tools."""
+async def test_list_tools_returns_nine(mcp_client):
+    """The MCP server advertises exactly 9 tools."""
     tools = await mcp_client.list_tools()
     tool_names = {t.name for t in tools}
     assert tool_names == {
@@ -96,6 +96,7 @@ async def test_list_tools_returns_eight(mcp_client):
         "transfer_funds",
         "get_spending",
         "list_accounts",
+        "list_categories",
         "list_postings",
     }
 
@@ -129,6 +130,34 @@ async def test_list_postings_roundtrip(mcp_client, client):
 
 
 @pytest.mark.asyncio
+async def test_list_categories_roundtrip(mcp_client, client):
+    """Create categories via MCP, list via MCP, verify output."""
+    # 1. Create hierarchy via MCP
+    await mcp_client.call_tool("create_category", {"name": "Health", "category_type": "expense"})
+    await mcp_client.call_tool(
+        "create_category",
+        {"name": "Dentist", "category_type": "expense", "parent_name": "Health"},
+    )
+    await mcp_client.call_tool("create_category", {"name": "Gift", "category_type": "income"})
+
+    # 2. List categories via MCP
+    result = await mcp_client.call_tool("list_categories", {})
+    text = result.content[0].text
+
+    assert "Expense categories:" in text
+    assert "• Health" in text
+    assert "  - Dentist" in text
+    assert "Income categories:" in text
+    assert "• Gift" in text
+
+    # 3. Test filtering
+    result_exp = await mcp_client.call_tool("list_categories", {"category_type": "expense"})
+    text_exp = result_exp.content[0].text
+    assert "Expense categories:" in text_exp
+    assert "Income categories:" not in text_exp
+
+
+@pytest.mark.asyncio
 async def test_create_account_roundtrip(mcp_client):
     """Create account via MCP tool then verify it via list_accounts tool."""
     await mcp_client.call_tool(
@@ -154,6 +183,10 @@ async def test_create_account_duplicate_error(mcp_client):
     await mcp_client.call_tool(
         "create_account",
         {"name": "Duplicate", "currency": "EUR"},
+    )
+    await mcp_client.call_tool(
+        "create_account",
+        {"name": "Duplicate", "currency": "USD"},
     )
     result = await mcp_client.call_tool(
         "create_account",
