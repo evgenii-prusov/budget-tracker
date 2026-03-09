@@ -84,11 +84,37 @@ def _create_category_hierarchy(client, parent_name, sub_name, category_type="EXP
 
 
 @pytest.mark.asyncio
-async def test_list_tools_returns_four(mcp_client):
-    """The MCP server advertises exactly 4 tools."""
+async def test_list_tools_returns_five(mcp_client):
+    """The MCP server advertises exactly 5 tools."""
     tools = await mcp_client.list_tools()
     tool_names = {t.name for t in tools}
-    assert tool_names == {"add_expense", "transfer_funds", "get_spending", "list_accounts"}
+    assert tool_names == {
+        "create_account",
+        "add_expense",
+        "transfer_funds",
+        "get_spending",
+        "list_accounts",
+    }
+
+
+@pytest.mark.asyncio
+async def test_create_account_roundtrip(mcp_client):
+    """Create account via MCP tool then verify it via list_accounts tool."""
+    await mcp_client.call_tool(
+        "create_account",
+        {
+            "name": "MCP New Account",
+            "currency": "USD",
+            "initial_balance": "123.45",
+            "is_savings": True,
+        },
+    )
+
+    result = await mcp_client.call_tool("list_accounts", {"filter": "savings"})
+    text = result.content[0].text
+    assert "MCP New Account" in text
+    assert "123.45" in text
+    assert "USD" in text
 
 
 @pytest.mark.asyncio

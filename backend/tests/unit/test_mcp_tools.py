@@ -10,6 +10,7 @@ from app.mcp.resolvers import (
 )
 from app.mcp.server import (
     _add_expense_impl,
+    _create_account_impl,
     _get_spending_report_impl,
     _list_accounts_impl,
     _transfer_funds_impl,
@@ -159,6 +160,41 @@ def _setup_expense_uow() -> FakeUnitOfWork:
     uow.categories.add(parent)
     uow.categories.add(sub)
     return uow
+
+
+class TestCreateAccountImpl:
+    def test_creates_account(self):
+        uow = FakeUnitOfWork()
+        result = _create_account_impl(
+            uow,
+            name="New Account",
+            currency="EUR",
+            initial_balance=Decimal("100"),
+            is_savings=True,
+        )
+        assert "Created account 'New Account'" in result
+        assert "(savings)" in result
+        assert "100" in result
+
+        acc = uow.accounts.get_by_name("New Account")
+        assert acc is not None
+        assert acc.currency == "EUR"
+        assert acc.is_savings is True
+
+    def test_duplicate_name_error(self):
+        uow = FakeUnitOfWork()
+        uow.accounts.add(Account(None, "Existing", "EUR", Decimal("0")))
+        result = _create_account_impl(
+            uow, name="Existing", currency="USD", initial_balance=Decimal("0")
+        )
+        assert "already exists" in result.lower()
+
+    def test_negative_balance_error(self):
+        uow = FakeUnitOfWork()
+        result = _create_account_impl(
+            uow, name="Bad Account", currency="EUR", initial_balance=Decimal("-10")
+        )
+        assert "negative" in result.lower()
 
 
 class TestAddExpenseImpl:
