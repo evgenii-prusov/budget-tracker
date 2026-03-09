@@ -2,7 +2,7 @@
 
 ## Context
 
-The budget tracker REST API is fully functional with comprehensive CRUD operations. The MCP server (TODO 8) exposes 4 tools: `add_expense`, `transfer_funds`, `get_spending`, `list_accounts`. These are insufficient for User Acceptance Testing, where an external AI assistant (Claude.ai, Gemini, ChatGPT) connects via MCP to perform a realistic personal finance workflow:
+The budget tracker REST API is fully functional with comprehensive CRUD operations. The MCP server now exposes 7 tools: `create_account`, `create_category`, `add_expense`, `add_income`, `transfer_funds`, `get_spending`, `list_accounts`. These cover the critical workflow steps for User Acceptance Testing, where an external AI assistant (Claude.ai, Gemini, ChatGPT) connects via MCP to perform a realistic personal finance workflow:
 
 1. Create accounts (checking, savings, credit cards, multiple currencies)
 2. Create expense/income categories with subcategories
@@ -10,17 +10,17 @@ The budget tracker REST API is fully functional with comprehensive CRUD operatio
 4. Make transfers between accounts
 5. Review spending reports and transaction history
 
-**Current blocker**: Steps 1-3 cannot even begin — account creation, category creation, and income recording are all missing from MCP.
+**Status**: Steps 1-4 are now fully supported. Step 5 is partially supported (`get_spending`, `list_accounts`) — see remaining gaps below.
 
 ## Gap Summary
 
-### Critical (Blocks workflow entirely)
+### ~~Critical (Blocks workflow entirely)~~ — Resolved ✅
 
-| # | Gap | Why blocked | Service exists? |
-|---|-----|-------------|-----------------|
-| 9.1 | No `create_account` tool | Can't set up accounts — step 1 impossible | ✅ `services.create_account()` |
-| 9.2 | No `create_category` tool | Can't create categories — step 2 impossible, `add_expense` fails | ✅ `services.create_category()` |
-| 9.3 | No `add_income` tool | `add_expense` hardcodes `PostingType.EXPENSE` — income impossible | ✅ `services.create_posting()` with `PostingType.INCOME` |
+| # | Gap | Status |
+|---|-----|--------|
+| 9.1 | No `create_account` tool | ✅ **Implemented** — `create_account` tool added |
+| 9.2 | No `create_category` tool | ✅ **Implemented** — `create_category` tool added |
+| 9.3 | No `add_income` tool | ✅ **Implemented** — `add_income` tool added |
 
 ### Important (Severely limits workflow)
 
@@ -43,68 +43,21 @@ The budget tracker REST API is fully functional with comprehensive CRUD operatio
 
 ## Detailed TODOs
 
-### TODO 9.1: `create_account` MCP tool `[S]`
+### ~~TODO 9.1: `create_account` MCP tool~~ — ✅ Done
 
-**Description**: Expose account creation via MCP so the AI can set up checking, savings, and credit card accounts in any currency.
-
-**Service**: `services.create_account(uow, *, name, currency, initial_balance, is_savings=False)`
-
-**Implementation**:
-- `_create_account_impl(uow, *, name, currency, initial_balance, is_savings)` → returns formatted confirmation string
-- Tool wrapper parses `initial_balance` from string to `Decimal`, `is_savings` from string to bool
-- Catch `DuplicateAccountNameError` → friendly error message
-
-**Files**:
-- `backend/app/mcp/server.py` — add `_create_account_impl()` + `@mcp.tool() create_account()`
-
-**TDD**:
-1. Unit test in `backend/tests/unit/test_mcp_tools.py`: success case, duplicate name error
-2. E2E test in `backend/tests/e2e/test_mcp_api.py`: round-trip create + list
+`create_account` is implemented in `backend/app/mcp/server.py`. Handles `DuplicateAccountNameError`, `InvalidCurrencyError`, `InvalidInitialBalanceError`.
 
 ---
 
-### TODO 9.2: `create_category` MCP tool `[S]`
+### ~~TODO 9.2: `create_category` MCP tool~~ — ✅ Done
 
-**Description**: Expose category and subcategory creation. The AI needs to create parent categories (e.g., "Food", "Transport") and subcategories (e.g., "Groceries", "Uber") before recording expenses.
-
-**Service**: `services.create_category(uow, *, name, category_type, parent_id=None)`
-
-**Implementation**:
-- `_create_category_impl(uow, *, name, category_type, parent_name=None)` → returns confirmation string
-- `category_type` parameter: accepts `"expense"` or `"income"` string, maps to `CategoryType` enum
-- If `parent_name` is provided, resolve it to a parent category ID (new resolver or inline lookup)
-- Catch `DuplicateCategoryNameError`, `CategoryHierarchyError` → friendly error messages
-
-**New resolver needed**: `resolve_parent_category_by_name(uow, name, category_type)` — finds top-level categories (where `parent_id is None`) by name. Add to `backend/app/mcp/resolvers.py`.
-
-**Files**:
-- `backend/app/mcp/resolvers.py` — add `resolve_parent_category_by_name()`
-- `backend/app/mcp/server.py` — add `_create_category_impl()` + `@mcp.tool() create_category()`
-
-**TDD**:
-1. Unit test resolver: success, not found (lists available parents)
-2. Unit test impl: create parent, create subcategory, duplicate name error
-3. E2E test: create hierarchy then use in `add_expense`
+`create_category` is implemented in `backend/app/mcp/server.py`. Resolver `resolve_parent_category_by_name()` added to `backend/app/mcp/resolvers.py`. Handles `DuplicateCategoryNameError`, `CategoryHierarchyError`.
 
 ---
 
-### TODO 9.3: `add_income` MCP tool `[S]`
+### ~~TODO 9.3: `add_income` MCP tool~~ — ✅ Done
 
-**Description**: Record income postings. Structurally identical to `add_expense` but uses `PostingType.INCOME` and resolves income subcategories (`CategoryType.INCOME`).
-
-**Service**: `services.create_posting(uow, ..., posting_type=PostingType.INCOME)`
-
-**Implementation**:
-- `_add_income_impl(uow, *, amount, currency, subcategory, posting_date, payee=None, description=None)` → confirmation string
-- Mirrors `_add_expense_impl` but resolves with `category_type=CategoryType.INCOME`
-- Alternatively, refactor to share logic with `_add_expense_impl` via a private `_add_posting_impl` with a `posting_type` parameter — keeps code DRY
-
-**Files**:
-- `backend/app/mcp/server.py` — add `_add_income_impl()` (or `_add_posting_impl()`) + `@mcp.tool() add_income()`
-
-**TDD**:
-1. Unit test: record income, verify balance increases, verify income subcategory resolution
-2. E2E test: create income category + subcategory, record income, verify via `list_accounts`
+`add_income` is implemented in `backend/app/mcp/server.py` sharing logic with `add_expense` via `_add_posting_impl()`.
 
 ---
 
@@ -264,10 +217,10 @@ The budget tracker REST API is fully functional with comprehensive CRUD operatio
 
 ## Recommended Execution Order
 
-**Batch 1 — Critical blockers (unblocks UAT steps 1-3):**
-1. TODO 9.1: `create_account` — unblocks step 1
-2. TODO 9.2: `create_category` — unblocks step 2
-3. TODO 9.3: `add_income` — unblocks step 3
+**~~Batch 1 — Critical blockers (unblocks UAT steps 1-3):~~** ✅ Completed
+1. ~~TODO 9.1: `create_account` — unblocks step 1~~ ✅
+2. ~~TODO 9.2: `create_category` — unblocks step 2~~ ✅
+3. ~~TODO 9.3: `add_income` — unblocks step 3~~ ✅
 
 **Batch 2 — Important for usable workflow:**
 4. TODO 9.4: `add_expense` account targeting
