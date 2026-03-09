@@ -98,6 +98,7 @@ async def test_list_tools_returns_nine(mcp_client):
         "list_accounts",
         "list_categories",
         "list_postings",
+        "list_transfers",
     }
 
 
@@ -382,6 +383,31 @@ async def test_transfer_funds_roundtrip(mcp_client, client):
     text = result.content[0].text
     assert "150" in text
     assert "Source ACC" in text
+
+
+@pytest.mark.asyncio
+async def test_list_transfers_roundtrip(mcp_client, client):
+    """Transfer funds via MCP, then list transfers to verify."""
+    _create_account(client, "Source ACC", "EUR", "1000.00")
+    _create_account(client, "Dest ACC", "EUR", "200.00")
+
+    await mcp_client.call_tool(
+        "transfer_funds",
+        {
+            "from_account": "Source ACC",
+            "to_account": "Dest ACC",
+            "amount": "150.00",
+            "transfer_date": "2025-01-15",
+            "description": "Roundtrip test",
+        },
+    )
+
+    result = await mcp_client.call_tool("list_transfers", {"limit": "10"})
+    text = result.content[0].text
+    assert "2025-01-15" in text
+    assert "Source ACC → Dest ACC" in text
+    assert "150.0" in text
+    assert "Roundtrip test" in text
 
 
 @pytest.mark.asyncio
