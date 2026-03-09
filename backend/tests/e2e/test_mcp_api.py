@@ -180,3 +180,21 @@ async def test_add_expense_insufficient_funds(mcp_client, client):
     )
     text = result.content[0].text
     assert "insufficient" in text.lower() or "Insufficient" in text
+
+
+# ── Auth tests (HTTP-level) ──────────────────────────────────────────
+
+
+def test_mcp_endpoint_rejects_no_auth(client_no_auth):
+    """MCP endpoint returns 401 without Authorization header."""
+    response = client_no_auth.get("/mcp/mcp")
+    assert response.status_code == 401
+
+
+def test_mcp_endpoint_rejects_invalid_token(client_no_auth):
+    """MCP endpoint returns 401 with wrong Bearer token."""
+    response = client_no_auth.get(
+        "/mcp/mcp",
+        headers={"Authorization": "Bearer wrong-token"},
+    )
+    assert response.status_code == 401
