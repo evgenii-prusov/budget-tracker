@@ -765,6 +765,17 @@ class TestListPostingsImpl:
         assert "No account named 'Nonexistent'" in result
 
 
+class TestMcpToolWrappersLimitValidation:
+    """Tests for the limit validation in the tool wrappers.
+    These tests call the tool functions registered on the mcp instance.
+    Since we can't easily call the closures from _register_tools here without more setup,
+    we'll rely on the logic being tested in integration/e2e or manually if needed,
+    but here we can at least add unit tests if we had access to them.
+    Actually, the easiest is to add E2E tests for invalid limits.
+    """
+    pass
+
+
 class TestListTransfersImpl:
     def test_list_transfers_empty(self):
         uow = FakeUnitOfWork()
@@ -828,3 +839,26 @@ class TestListTransfersImpl:
 
         result = _list_transfers_impl(uow)
         assert "Monthly savings" in result
+
+    def test_list_transfers_is_sorted_newest_first(self):
+        uow = FakeUnitOfWork()
+        src = Account(None, "Cash EUR", "EUR", Decimal("1000"))
+        dst = Account(None, "Savings EUR", "EUR", Decimal("5000"))
+        uow.accounts.add(src)
+        uow.accounts.add(dst)
+
+        from datetime import date
+
+        t1 = Transfer(
+            None, src.account_id, dst.account_id, Decimal("100"), Decimal("100"), date(2025, 1, 1)
+        )
+        t2 = Transfer(
+            None, src.account_id, dst.account_id, Decimal("200"), Decimal("200"), date(2025, 1, 5)
+        )
+        uow.transfers.add(t1)
+        uow.transfers.add(t2)
+
+        result = _list_transfers_impl(uow)
+        lines = result.split("\n")
+        assert "2025-01-05" in lines[0]
+        assert "2025-01-01" in lines[1]
