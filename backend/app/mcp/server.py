@@ -332,7 +332,8 @@ def _list_categories_impl(
             return f"Invalid category type: '{category_type_str}'. Use 'expense' or 'income'."
 
     # 2. Get all parent categories, filtered by type if requested
-    parents = services.list_parent_categories(uow, limit=100)
+    # Limit to 500 parents to avoid overwhelming context while remaining comprehensive
+    parents = services.list_parent_categories(uow, limit=500)
     if category_type:
         parents = [p for p in parents if p.category_type == category_type]
 
@@ -348,7 +349,8 @@ def _list_categories_impl(
         lines.append("Expense categories:")
         for p in expense_parents:
             lines.append(f"  • {p.name}")
-            subs = services.list_subcategories(uow, parent_id=p.category_id)
+            # Use pre-loaded p.children instead of redundant service calls
+            subs = sorted(p.children, key=lambda c: c.name)
             for s in subs:
                 lines.append(f"    - {s.name}")
 
@@ -358,7 +360,8 @@ def _list_categories_impl(
         lines.append("Income categories:")
         for p in income_parents:
             lines.append(f"  • {p.name}")
-            subs = services.list_subcategories(uow, parent_id=p.category_id)
+            # Use pre-loaded p.children instead of redundant service calls
+            subs = sorted(p.children, key=lambda c: c.name)
             for s in subs:
                 lines.append(f"    - {s.name}")
 

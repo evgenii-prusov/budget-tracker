@@ -93,6 +93,10 @@ class FakeCategoryRepository(AbstractCategoryRepository):
 
     def add(self, category: Category) -> None:
         self._categories.append(category)
+        if category.parent_id:
+            parent = self.get(category.parent_id)
+            if parent:
+                parent.children.append(category)
 
     def get(self, category_id: str) -> Category | None:
         return next((c for c in self._categories if c.category_id == category_id), None)
