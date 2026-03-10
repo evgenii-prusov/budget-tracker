@@ -12,8 +12,7 @@ A "Headless" Personal Finance Tracker designed for a **Shared AI-First Experienc
 
 ### 2.2 Dual-Amount Transfers
 *   **Cross-Currency Support:** Transfers between accounts of different currencies.
-*   **Manual Rate Override:** User provides both `source_amount` and `destination_amount`. 
-*   **Derived Exchange Rate:** The system calculates and stores the effective rate based on the two amounts provided.
+*   **Manual Rate Override:** User provides both `debit_amount` and `credit_amount`. The effective exchange rate is derivable from the two amounts but is not stored separately.
 
 ### 2.3 2-Level Category Hierarchy
 *   **Strict 2-Level Limit:** Parent categories (e.g., Food, Health) and Child subcategories (e.g., Groceries, Medical).
@@ -27,20 +26,23 @@ A "Headless" Personal Finance Tracker designed for a **Shared AI-First Experienc
 *   **Optional Description:** Used only for additional context when the payee/category isn't self-explanatory.
 
 ### 2.5 AI-First Interface (MCP)
-*   **Primary UI:** An MCP Server exposing tools for:
-    *   `add_expense(amount, currency, subcategory, payee, description)`
-    *   `transfer_funds(from_account, to_account, from_amount, to_amount)`
-    *   `get_spending_report(period, level='parent')`
-    *   `list_accounts(filter='savings')`
-*   **Mobile Integration:** The MCP server must be hosted on a permanent URL using the **SSE (Server-Sent Events)** transport. This allows Claude and ChatGPT mobile apps to maintain a persistent connection to the tools.
+*   **Primary UI:** An MCP Server exposing 10 tools:
+    *   **Setup:** `create_account`, `create_category`
+    *   **Recording:** `add_expense`, `add_income`, `transfer_funds`
+    *   **Review:** `list_accounts`, `list_categories`, `list_postings`, `list_transfers`, `get_spending`
+*   **Mobile Integration:** The MCP server is hosted on a permanent URL using **Streamable HTTP** transport, mounted at `/mcp`. This allows Claude and ChatGPT mobile apps to connect to the tools.
+
+### 2.6 Auditability
+*   **Source Tracking:** Every posting and transfer records which assistant or user created it (e.g., "Claude", "ChatGPT", "manual").
+*   **Purpose:** Enables the household to see who logged what, useful for resolving discrepancies and building trust in shared data.
 
 ## 3. Technical Implementation Details
 
 ### 3.1 Domain Model
-*   **Account:** `id, name, currency, is_savings, current_balance`.
+*   **Account:** `id, name, currency, is_savings, initial_balance, balance`.
 *   **Category:** `id, name, parent_id (null for parents), type (income/expense)`.
-*   **Posting (Transaction):** `id, account_id, subcategory_id, amount, date, payee, description`.
-*   **Transfer:** `id, from_account_id, to_account_id, from_amount, to_amount, exchange_rate, description`.
+*   **Posting (Transaction):** `id, account_id, category_id, amount, posting_date, posting_type, payee, description`.
+*   **Transfer:** `id, source_account_id, dest_account_id, debit_amount, credit_amount, transfer_date, description`.
 
 ### 3.2 Shared Experience & Auth
 *   **Couple-Centric (Single-Tenant):** Designed for a single household sharing a global state.
@@ -49,14 +51,14 @@ A "Headless" Personal Finance Tracker designed for a **Shared AI-First Experienc
 
 ### 3.3 Deployment Strategy
 *   **Backend:** FastAPI hosted on a public-facing VPS (or tunnel via Cloudflare) to be reachable by LLM providers.
-*   **MCP Server:** A dedicated SSE entry point that translates LLM tool calls into Backend API calls. It must be robust enough to handle simultaneous requests from both spouses.
+*   **MCP Server:** Streamable HTTP endpoint at `/mcp` that exposes tools directly backed by the service layer. Must be robust enough to handle simultaneous requests from both spouses.
 
 ## 4. Engineering Standards for AI Agents
 *   **Contextual Precedence:** This document is the foundational mandate for all architectural decisions.
 *   **API First:** Every new feature must have a corresponding FastAPI endpoint AND an MCP Tool definition.
-*   **SSE Priority:** Ensure the MCP implementation supports SSE transport as the primary production-ready interface.
+*   **MCP Transport:** Streamable HTTP is the production transport, mounted on the FastAPI app at `/mcp`.
 *   **No Bullshit:** Prioritize functional domain logic and AI-tool reliability over secondary UI polish.
 
 ---
-**Version:** 1.1.0
+**Version:** 2.0.0
 **Status:** Active Working Document
