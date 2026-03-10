@@ -84,8 +84,8 @@ def _create_category_hierarchy(client, parent_name, sub_name, category_type="EXP
 
 
 @pytest.mark.asyncio
-async def test_list_tools_returns_nine(mcp_client):
-    """The MCP server advertises exactly 9 tools."""
+async def test_list_tools_returns_ten(mcp_client):
+    """The MCP server advertises exactly 10 tools."""
     tools = await mcp_client.list_tools()
     tool_names = {t.name for t in tools}
     assert tool_names == {
@@ -408,6 +408,29 @@ async def test_list_transfers_roundtrip(mcp_client, client):
     assert "Source ACC → Dest ACC" in text
     assert "150.0" in text
     assert "Roundtrip test" in text
+
+
+@pytest.mark.asyncio
+async def test_list_transfers_invalid_limit(mcp_client):
+    """Providing an invalid limit to list_transfers returns a friendly error."""
+    # 1. Non-integer
+    result = await mcp_client.call_tool("list_transfers", {"limit": "abc"})
+    assert "Invalid limit" in result.content[0].text
+
+    # 2. Out of range (low)
+    result = await mcp_client.call_tool("list_transfers", {"limit": "0"})
+    assert "Must be between 1 and 100" in result.content[0].text
+
+    # 3. Out of range (high)
+    result = await mcp_client.call_tool("list_transfers", {"limit": "101"})
+    assert "Must be between 1 and 100" in result.content[0].text
+
+
+@pytest.mark.asyncio
+async def test_list_postings_invalid_limit(mcp_client):
+    """Providing an invalid limit to list_postings returns a friendly error."""
+    result = await mcp_client.call_tool("list_postings", {"limit": "-1"})
+    assert "Must be between 1 and 100" in result.content[0].text
 
 
 @pytest.mark.asyncio

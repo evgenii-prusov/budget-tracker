@@ -390,10 +390,26 @@ def _list_postings_impl(
     # Sort postings by date (newest first)
     postings.sort(key=lambda p: p.posting_date, reverse=True)
 
+    # Bulk load accounts and categories to avoid N+1 queries
+    account_ids = {p.account_id for p in postings}
+    category_ids = {p.category_id for p in postings if p.category_id}
+
+    accounts_map = {}
+    for acc_id in account_ids:
+        acc = uow.accounts.get(acc_id)
+        if acc:
+            accounts_map[acc_id] = acc
+
+    categories_map = {}
+    for cat_id in category_ids:
+        cat = uow.categories.get(cat_id)
+        if cat:
+            categories_map[cat_id] = cat
+
     lines = []
     for p in postings:
-        acc = uow.accounts.get(p.account_id)
-        cat = uow.categories.get(p.category_id) if p.category_id else None
+        acc = accounts_map.get(p.account_id)
+        cat = categories_map.get(p.category_id) if p.category_id else None
 
         acc_info = f"({acc.name})" if acc else ""
         cat_info = f"[{cat.name}]" if cat else "[No Category]"
@@ -420,10 +436,25 @@ def _list_transfers_impl(
     if not transfers:
         return "No transfers found."
 
+    # Sort transfers by date (newest first)
+    transfers.sort(key=lambda t: t.transfer_date, reverse=True)
+
+    # Bulk load accounts to avoid N+1 queries
+    account_ids = set()
+    for t in transfers:
+        account_ids.add(t.source_account_id)
+        account_ids.add(t.dest_account_id)
+
+    accounts_map = {}
+    for acc_id in account_ids:
+        acc = uow.accounts.get(acc_id)
+        if acc:
+            accounts_map[acc_id] = acc
+
     lines = []
     for t in transfers:
-        source = uow.accounts.get(t.source_account_id)
-        dest = uow.accounts.get(t.dest_account_id)
+        source = accounts_map.get(t.source_account_id)
+        dest = accounts_map.get(t.dest_account_id)
 
         source_name = source.name if source else "Unknown"
         dest_name = dest.name if dest else "Unknown"
@@ -720,12 +751,15 @@ def _register_tools(mcp: FastMCP) -> None:
 
         Args:
             account_name: Optional name of the account to filter by.
-            limit: Maximum number of postings to return (default "20").
+            limit: Maximum number of postings to return (default "20", max "100").
         """
         try:
             limit_int = int(limit)
         except ValueError:
             return f"Invalid limit: '{limit}'. Provide an integer."
+
+        if not (1 <= limit_int <= 100):
+            return f"Invalid limit: {limit_int}. Must be between 1 and 100."
 
         with _uow_from_ctx(ctx) as uow:
             return _list_postings_impl(uow, account_name=account_name, limit=limit_int)
@@ -738,12 +772,15 @@ def _register_tools(mcp: FastMCP) -> None:
         """List recent fund transfers between accounts.
 
         Args:
-            limit: Max number of transfers to return (default "20").
+            limit: Max number of transfers to return (default "20", max "100").
         """
         try:
             limit_int = int(limit)
         except ValueError:
             return f"Invalid limit: '{limit}'. Provide an integer."
+
+        if not (1 <= limit_int <= 100):
+            return f"Invalid limit: {limit_int}. Must be between 1 and 100."
 
         with _uow_from_ctx(ctx) as uow:
             return _list_transfers_impl(uow, limit=limit_int)
