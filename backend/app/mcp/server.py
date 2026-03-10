@@ -332,8 +332,8 @@ def _list_categories_impl(
             return f"Invalid category type: '{category_type_str}'. Use 'expense' or 'income'."
 
     # 2. Get all parent categories, filtered by type if requested
-    # Fetch all categories (effectively no limit)
-    parents = services.list_parent_categories(uow, limit=10000)
+    # Fetch categories with a generous limit to ensure all are shown in typical use cases
+    parents = services.list_parent_categories(uow, limit=500)
     if category_type:
         parents = [p for p in parents if p.category_type == category_type]
 
