@@ -793,7 +793,8 @@ def _create_mcp() -> FastMCP:
             "Personal finance assistant. Use these tools to manage your budget: "
             "create accounts, create expense/income categories, record expenses, "
             "record income, transfer funds between accounts, view spending reports, "
-            "list accounts with balances, list categories, list recent postings, and list fund transfers."
+            "list accounts with balances, list categories, "
+            "list recent postings, and list fund transfers."
         ),
         auth=_build_auth(),
         lifespan=_mcp_lifespan,
