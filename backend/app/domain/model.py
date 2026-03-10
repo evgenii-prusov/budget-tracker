@@ -58,6 +58,7 @@ class Category:
         self.name = name
         self.category_type = category_type
         self.parent_id = parent_id
+        self.children = []
 
     def __repr__(self) -> str:
         return f"Category({self.category_id!r}, {self.name!r})"

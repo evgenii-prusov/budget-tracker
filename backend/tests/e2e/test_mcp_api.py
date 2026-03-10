@@ -184,10 +184,7 @@ async def test_create_account_duplicate_error(mcp_client):
         "create_account",
         {"name": "Duplicate", "currency": "EUR"},
     )
-    await mcp_client.call_tool(
-        "create_account",
-        {"name": "Duplicate", "currency": "USD"},
-    )
+    # Different currency but same name should still fail
     result = await mcp_client.call_tool(
         "create_account",
         {"name": "Duplicate", "currency": "USD"},
