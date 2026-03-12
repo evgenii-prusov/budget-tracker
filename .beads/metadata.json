@@ -1,0 +1,7 @@
+{
+  "database": "dolt",
+  "backend": "dolt",
+  "dolt_mode": "server",
+  "dolt_database": "budget_tracker",
+  "project_id": "3e99b22f-2a0a-49ee-a9a3-329489e99c93"
+}

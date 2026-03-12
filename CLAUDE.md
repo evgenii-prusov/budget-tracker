@@ -1,5 +1,7 @@
 # Project Instructions
 
+This project uses **bd** (beads) for issue tracking. Run `bd onboard` to get started.
+
 ## Development Methodology
 - Follow TDD (Test-Driven Development): write tests first, verify they fail, then write implementation to make them pass.
 
