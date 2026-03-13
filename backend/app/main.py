@@ -12,15 +12,17 @@ from app.api.middleware import LoggingMiddleware
 from app.core.db import Database
 from app.mcp.server import create_mcp_app
 
+# Create MCP app at module level so its lifespan can be composed below
+mcp_app = create_mcp_app()
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup: Initialize database
     setup_logging()
     app.state.db = Database()
     app.state.db.init()
-    yield
-    # Shutdown: Dispose database connection
+    async with mcp_app.lifespan(mcp_app):
+        yield
     app.state.db.dispose()
 
 
@@ -33,7 +35,6 @@ app.include_router(transfers.router, dependencies=[Depends(verify_api_key)])
 app.include_router(reports.router, dependencies=[Depends(verify_api_key)])
 
 # Mount MCP server (has its own auth via Bearer token verification)
-mcp_app = create_mcp_app()
 app.mount("/mcp", mcp_app)
 
 # Add CORS middleware
