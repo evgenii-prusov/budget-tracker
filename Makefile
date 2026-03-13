@@ -1,53 +1,48 @@
-.PHONY: help run test test-verbose coverage coverage-html quality format lint typecheck sync install clean db-up db-down db-migrate db-revision docker-build docker-up docker-down docker-logs
+.PHONY: help install run test coverage check format lint typecheck sync clean \
+        db-up db-down db-migrate db-revision db-seed \
+        docker-build docker-up docker-down docker-logs
 
 help:
 	@echo "Budget Tracker - Available Commands"
 	@echo "===================================="
-	@echo "make install       - Install all dependencies"
-	@echo "make run           - Start backend server"
-	@echo "make test          - Run all tests"
-	@echo "make test-verbose  - Run tests with verbose output"
-	@echo "make coverage      - Run tests with coverage report"
-	@echo "make coverage-html - Run tests with HTML coverage report"
-	@echo "make quality       - Run prek checks on all files"
-	@echo "make format        - Format code with ruff"
-	@echo "make lint          - Lint and auto-fix with ruff"
-	@echo "make typecheck     - Run ty type checker"
-	@echo "make sync          - Sync with remote master branch"
-	@echo "make clean         - Remove generated files"
+	@echo "make install         - Install all dependencies"
+	@echo "make run             - Start backend server"
+	@echo "make test            - Run all tests  (V=1 for verbose)"
+	@echo "make coverage        - Run tests with coverage  (HTML=1 for html report)"
+	@echo "make check           - Run prek checks on all files"
+	@echo "make format          - Format code with ruff"
+	@echo "make lint            - Lint and auto-fix with ruff"
+	@echo "make typecheck       - Run ty type checker"
+	@echo "make sync            - Sync with remote master branch"
+	@echo "make clean           - Remove generated files"
 	@echo ""
 	@echo "Development database"
-	@echo "make db-up         - Start Postgres (dev)"
-	@echo "make db-down       - Stop Postgres (dev)"
-	@echo "make db-migrate    - Run Alembic migrations"
-	@echo "make db-revision   - Create new migration (msg=\"description\")"
+	@echo "make db-up           - Start Postgres (dev)"
+	@echo "make db-down         - Stop Postgres (dev)"
+	@echo "make db-migrate      - Run Alembic migrations"
+	@echo "make db-revision     - Create new migration (msg=\"description\")"
+	@echo "make db-seed         - Seed database with sample data"
 	@echo ""
 	@echo "Docker (production)"
-	@echo "make docker-build  - Build the backend Docker image"
-	@echo "make docker-up     - Start Postgres + backend via Docker Compose"
-	@echo "make docker-down   - Stop and remove Docker Compose services"
-	@echo "make docker-logs   - Tail logs from all Docker Compose services"
+	@echo "make docker-build    - Build the backend Docker image"
+	@echo "make docker-up       - Start Postgres + backend via Docker Compose"
+	@echo "make docker-down     - Stop and remove Docker Compose services"
+	@echo "make docker-logs     - Tail logs from all Docker Compose services"
 
 install:
 	cd backend && uv sync
 
 run:
-	cd backend && uv run fastapi dev app/main.py
+	cd backend && uv run --env-file .env fastapi dev app/main.py
 
 test:
-	cd backend && uv run pytest
-
-test-verbose:
-	cd backend && uv run pytest -v
+	cd backend && uv run pytest$(if $(V), -v)
 
 coverage:
-	cd backend && uv run pytest --cov=app --cov-report=term-missing
+	cd backend && uv run pytest --cov=app --cov-report=term-missing$(if $(HTML), --cov-report=html)
+	$(if $(HTML),@echo "Coverage report generated at backend/htmlcov/index.html")
 
-coverage-html:
-	cd backend && uv run pytest --cov=app --cov-report=term-missing --cov-report=html
-	@echo "Coverage report generated at backend/htmlcov/index.html"
-
-quality:
+check:
 	cd backend && uv run prek run --all-files
 
 format:
@@ -68,16 +63,19 @@ clean:
 	find . -type f -name "*.pyc" -delete
 
 db-up:
-	cd backend && make db-up
+	docker compose up -d postgres
 
 db-down:
-	cd backend && make db-down
+	docker compose down
 
 db-migrate:
-	cd backend && make db-migrate
+	cd backend && uv run alembic upgrade head
 
 db-revision:
-	cd backend && make db-revision msg="$(msg)"
+	cd backend && uv run alembic revision --autogenerate -m "$(msg)"
+
+db-seed:
+	cd backend && uv run python -m scripts.seed
 
 docker-build:
 	docker compose build backend
