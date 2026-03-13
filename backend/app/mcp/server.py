@@ -1,8 +1,8 @@
 """MCP Server for budget-tracker.
 
-Exposes 12 tools: create_account, create_category, add_expense, add_income,
+Exposes 14 tools: create_account, create_category, add_expense, add_income,
 transfer_funds, get_spending, list_accounts, list_categories, list_postings,
-list_transfers, delete_posting, delete_transfer.
+list_transfers, delete_posting, delete_transfer, delete_account, delete_category.
 Uses FastMCP with Streamable HTTP transport, mounted on the FastAPI app at /mcp.
 """
 
@@ -20,7 +20,12 @@ from app.adapters.unit_of_work import SqlAlchemyUnitOfWork
 from app.core.config import get_api_key
 from app.core.db import Database
 from app.domain.exceptions import (
+    AccountHasPostingsError,
+    AccountHasTransfersError,
+    AccountNotFoundError,
+    CategoryHasChildrenError,
     CategoryHierarchyError,
+    CategoryInUseError,
     CategoryNotFoundError,
     DuplicateAccountNameError,
     DuplicateCategoryNameError,
@@ -501,6 +506,52 @@ def _delete_transfer_impl(
     return f"Deleted transfer '{transfer_id}'."
 
 
+def _delete_account_impl(
+    uow: AbstractUnitOfWork,
+    *,
+    account_name: str,
+) -> str:
+    account = resolve_account_by_name(uow, account_name)
+    if not account:
+        return f"Account '{account_name}' not found."
+
+    try:
+        services.delete_account(uow, account_id=account.account_id)
+    except (AccountHasPostingsError, AccountHasTransfersError, AccountNotFoundError) as exc:
+        return str(exc)
+
+    return f"Deleted account '{account_name}'."
+
+
+def _delete_category_impl(
+    uow: AbstractUnitOfWork,
+    *,
+    name: str,
+    category_type_str: str,
+) -> str:
+    try:
+        category_type = CategoryType[category_type_str.upper()]
+    except (KeyError, AttributeError):
+        return f"Invalid category type '{category_type_str}'. Use 'EXPENSE' or 'INCOME'."
+
+    # Check if it's a subcategory (name contains '/')
+    if "/" in name:
+        _, sub_name = name.split("/", 1)
+        category = resolve_subcategory_by_name(uow, sub_name, category_type)
+    else:
+        category = resolve_parent_category_by_name(uow, name, category_type)
+
+    if not category:
+        return f"{category_type_str.capitalize()} category '{name}' not found."
+
+    try:
+        services.delete_category(uow, category_id=category.category_id)
+    except (CategoryHasChildrenError, CategoryInUseError, CategoryNotFoundError) as exc:
+        return str(exc)
+
+    return f"Deleted {category_type_str} category '{name}'."
+
+
 # ── FastMCP instance & tool registration ──────────────────────────────
 
 
@@ -840,6 +891,34 @@ def _register_tools(mcp: FastMCP) -> None:
         with _uow_from_ctx(ctx) as uow:
             return _delete_transfer_impl(uow, transfer_id=transfer_id)
 
+    @mcp.tool()
+    def delete_account(
+        account_name: str,
+        ctx: Context | None = None,
+    ) -> str:
+        """Delete an account by its name.
+
+        Args:
+            account_name: Name of the account to delete.
+        """
+        with _uow_from_ctx(ctx) as uow:
+            return _delete_account_impl(uow, account_name=account_name)
+
+    @mcp.tool()
+    def delete_category(
+        name: str,
+        category_type: str,
+        ctx: Context | None = None,
+    ) -> str:
+        """Delete a category by its name and type.
+
+        Args:
+            name: Name of the category (e.g., 'Food' or 'Food/Groceries').
+            category_type: Type of category ('EXPENSE' or 'INCOME').
+        """
+        with _uow_from_ctx(ctx) as uow:
+            return _delete_category_impl(uow, name=name, category_type_str=category_type)
+
 
 def _create_mcp() -> FastMCP:
     mcp = FastMCP(
@@ -850,7 +929,8 @@ def _create_mcp() -> FastMCP:
             "record income, transfer funds between accounts, view spending reports, "
             "list accounts with balances, list categories, "
             "list recent postings, list fund transfers, "
-            "delete postings, and delete transfers."
+            "delete postings, delete transfers, "
+            "delete accounts, and delete categories."
         ),
         auth=_build_auth(),
         lifespan=_mcp_lifespan,
