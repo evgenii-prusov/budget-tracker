@@ -18,26 +18,26 @@ The budget tracker REST API is fully functional with comprehensive CRUD operatio
 
 | # | Gap | Why blocked | Service exists? |
 |---|-----|-------------|-----------------|
-| 9.1 | No `create_account` tool | Can't set up accounts — step 1 impossible | ✅ `services.create_account()` |
-| 9.2 | No `create_category` tool | Can't create categories — step 2 impossible, `add_expense` fails | ✅ `services.create_category()` |
-| 9.3 | No `add_income` tool | `add_expense` hardcodes `PostingType.EXPENSE` — income impossible | ✅ `services.create_posting()` with `PostingType.INCOME` |
+| 9.1 | No `create_account` tool | Can't set up accounts — step 1 impossible | ✅ Completed |
+| 9.2 | No `create_category` tool | Can't create categories — step 2 impossible, `add_expense` fails | ✅ Completed |
+| 9.3 | No `add_income` tool | `add_expense` hardcodes `PostingType.EXPENSE` — income impossible | ✅ Completed |
 
 ### Important (Severely limits workflow)
 
 | # | Gap | Why limited | Service exists? |
 |---|-----|-------------|-----------------|
-| 9.4 | `add_expense` can't target specific account | With 2+ EUR accounts, always picks first non-savings via `resolve_account_by_currency` | Needs `account_name` param |
-| 9.5 | No `list_categories` tool | AI must guess subcategory names, relies on error messages for discovery | ✅ `services.list_categories()` |
-| 9.6 | No `list_postings` tool | Can't review transaction history — step 5 incomplete | ✅ `services.list_postings()` |
-| 9.7 | No `list_transfers` tool | Can't review transfer history — step 5 incomplete | ✅ `services.list_transfers()` |
+| 9.4 | `add_expense` can't target specific account | With 2+ EUR accounts, always picks first non-savings via `resolve_account_by_currency` | ✅ Completed |
+| 9.5 | No `list_categories` tool | AI must guess subcategory names, relies on error messages for discovery | ✅ Completed |
+| 9.6 | No `list_postings` tool | Can't review transaction history — step 5 incomplete | ✅ Completed |
+| 9.7 | No `list_transfers` tool | Can't review transfer history — step 5 incomplete | ✅ Completed |
 
 ### Nice-to-have (Polish)
 
 | # | Gap | Why |
 |---|-----|-----|
-| 9.8 | `get_spending` missing `reference_date` param | Can't view past periods; `_get_spending_report_impl` already accepts it but tool wrapper doesn't expose it |
-| 9.9 | MCP `instructions` string outdated | Describes only 4 tools; AI won't know about new capabilities |
-| 9.10 | MCP tools lack unit/e2e test coverage for new tools | Existing test patterns in `test_mcp_tools.py` and `test_mcp_api.py` but no coverage for new tools |
+| 9.8 | `get_spending` missing `reference_date` param | ✅ Completed |
+| 9.9 | MCP `instructions` string outdated | ✅ Completed |
+| 9.10 | MCP tools lack unit/e2e test coverage for new tools | ✅ Completed |
 
 ---
 
