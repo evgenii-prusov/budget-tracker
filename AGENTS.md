@@ -121,6 +121,74 @@ bd automatically syncs with git:
 
 For more details, see README.md and docs/QUICKSTART.md.
 
+## Parallel Agents
+
+When spawning multiple agents simultaneously, follow these patterns to avoid conflicts and data loss.
+
+### Isolation
+
+**Always use `isolation=worktree`** for agents that edit files. This gives each agent its own git worktree, preventing concurrent edits from colliding.
+
+```python
+# Good: each agent edits in isolation
+Agent(task="...", isolation="worktree")
+
+# Bad: multiple agents editing the same working tree simultaneously
+Agent(task="...")
+```
+
+**Exception — main repo tasks**: Some operations must run in the main repo, not a worktree:
+- Destructive / git-command tasks: `git worktree remove`, `rm -rf`, branch deletion
+- Editing files in the repo root that worktrees can't see (e.g., `.mcp.json`)
+- Any task that needs to observe the combined state of all parallel changes
+
+### Issue Claiming (Atomic Step)
+
+**Mark all issues `in_progress` before spawning agents**, not after. If you spawn first and claim later, two agents may grab the same issue.
+
+```bash
+# Good: claim atomically, then spawn
+bd update beads-123 --status=in_progress
+bd update beads-124 --status=in_progress
+# ...spawn agents...
+
+# Bad: spawn agents, then try to claim
+```
+
+### Git Staging
+
+**Never use `git add -A` or `git add .`** when parallel agents have been running. Other agents may have left unrelated unstaged changes; bulk staging will accidentally include them.
+
+```bash
+# Good: stage only what this agent changed
+git add backend/app/models.py backend/app/routes.py
+
+# Bad: accidentally includes changes from other agents
+git add -A
+```
+
+### Closing Issues
+
+After each agent's work is verified, close its issue immediately:
+
+```bash
+bd close beads-123 --reason="Feature implemented and tests pass"
+```
+
+Close multiple at once when possible:
+
+```bash
+bd close beads-123 beads-124 beads-125
+```
+
+### Summary Checklist
+
+- [ ] Use `isolation=worktree` for file-editing agents
+- [ ] Run destructive/root-file tasks in main repo, not worktrees
+- [ ] Claim all issues `in_progress` before spawning
+- [ ] Stage specific files, not `git add -A`
+- [ ] Close issues after verifying each agent's output
+
 ## Landing the Plane (Session Completion)
 
 **When ending a work session**, you MUST complete ALL steps below. Work is NOT complete until `git push` succeeds.
