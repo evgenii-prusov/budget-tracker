@@ -574,11 +574,11 @@ def _register_tools(mcp: FastMCP) -> None:
 
     @mcp.tool()
     def create_account(
+        ctx: Context,
         name: str,
         currency: str,
         initial_balance: str = "0.00",
         is_savings: bool = False,
-        ctx: Context | None = None,
     ) -> str:
         """Create a new bank account, checking account, or savings account.
 
@@ -604,10 +604,10 @@ def _register_tools(mcp: FastMCP) -> None:
 
     @mcp.tool()
     def create_category(
+        ctx: Context,
         name: str,
         category_type: str,
         parent_name: str | None = None,
-        ctx: Context | None = None,
     ) -> str:
         """Create a new category or subcategory.
         Parents must be created first before subcategories can be added to them.
@@ -627,14 +627,14 @@ def _register_tools(mcp: FastMCP) -> None:
 
     @mcp.tool()
     def add_expense(
-        amount: str,
+        ctx: Context,
         subcategory: str,
+        amount: str,
         posting_date: str,
         currency: str | None = None,
         account_name: str | None = None,
         payee: str | None = None,
         description: str | None = None,
-        ctx: Context | None = None,
     ) -> str:
         """Record an expense. Subcategory must be an existing expense subcategory name.
         Target account can be found by currency or name.
@@ -675,14 +675,14 @@ def _register_tools(mcp: FastMCP) -> None:
 
     @mcp.tool()
     def add_income(
-        amount: str,
+        ctx: Context,
         subcategory: str,
+        amount: str,
         posting_date: str,
         currency: str | None = None,
         account_name: str | None = None,
         payee: str | None = None,
         description: str | None = None,
-        ctx: Context | None = None,
     ) -> str:
         """Record income. Subcategory must be an existing income subcategory name.
         Target account can be found by currency or name.
@@ -723,13 +723,13 @@ def _register_tools(mcp: FastMCP) -> None:
 
     @mcp.tool()
     def transfer_funds(
+        ctx: Context,
         from_account: str,
         to_account: str,
         amount: str,
         transfer_date: str,
         to_amount: str | None = None,
         description: str | None = None,
-        ctx: Context | None = None,
     ) -> str:
         """Transfer money between accounts. Use account names.
         Amounts can differ for cross-currency transfers.
@@ -772,9 +772,9 @@ def _register_tools(mcp: FastMCP) -> None:
 
     @mcp.tool()
     def get_spending(
+        ctx: Context,
         period: str = "month",
         reference_date: str | None = None,
-        ctx: Context | None = None,
     ) -> str:
         """Get spending aggregated by parent category.
 
@@ -797,8 +797,8 @@ def _register_tools(mcp: FastMCP) -> None:
 
     @mcp.tool()
     def list_accounts(
+        ctx: Context,
         filter: str | None = None,
-        ctx: Context | None = None,
     ) -> str:
         """List all accounts with balances.
 
@@ -810,8 +810,8 @@ def _register_tools(mcp: FastMCP) -> None:
 
     @mcp.tool()
     def list_categories(
+        ctx: Context,
         category_type: str | None = None,
-        ctx: Context | None = None,
     ) -> str:
         """List all categories and subcategories.
 
@@ -823,9 +823,9 @@ def _register_tools(mcp: FastMCP) -> None:
 
     @mcp.tool()
     def list_postings(
+        ctx: Context,
         account_name: str | None = None,
         limit: str = "20",
-        ctx: Context | None = None,
     ) -> str:
         """List recent expenses and income postings.
 
@@ -846,8 +846,8 @@ def _register_tools(mcp: FastMCP) -> None:
 
     @mcp.tool()
     def list_transfers(
+        ctx: Context,
         limit: str = "20",
-        ctx: Context | None = None,
     ) -> str:
         """List recent fund transfers between accounts.
 
@@ -867,8 +867,8 @@ def _register_tools(mcp: FastMCP) -> None:
 
     @mcp.tool()
     def delete_posting(
+        ctx: Context,
         posting_id: str,
-        ctx: Context | None = None,
     ) -> str:
         """Delete a posting (expense or income entry).
 
@@ -880,8 +880,8 @@ def _register_tools(mcp: FastMCP) -> None:
 
     @mcp.tool()
     def delete_transfer(
+        ctx: Context,
         transfer_id: str,
-        ctx: Context | None = None,
     ) -> str:
         """Delete a transfer between two accounts.
 
@@ -893,8 +893,8 @@ def _register_tools(mcp: FastMCP) -> None:
 
     @mcp.tool()
     def delete_account(
+        ctx: Context,
         account_name: str,
-        ctx: Context | None = None,
     ) -> str:
         """Delete an account by its name.
 
@@ -906,9 +906,9 @@ def _register_tools(mcp: FastMCP) -> None:
 
     @mcp.tool()
     def delete_category(
+        ctx: Context,
         name: str,
         category_type: str,
-        ctx: Context | None = None,
     ) -> str:
         """Delete a category by its name and type.
 
