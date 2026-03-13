@@ -1,8 +1,8 @@
 """MCP Server for budget-tracker.
 
-Exposes 11 tools: create_account, create_category, add_expense, add_income,
+Exposes 12 tools: create_account, create_category, add_expense, add_income,
 transfer_funds, get_spending, list_accounts, list_categories, list_postings,
-list_transfers, delete_posting.
+list_transfers, delete_posting, delete_transfer.
 Uses FastMCP with Streamable HTTP transport, mounted on the FastAPI app at /mcp.
 """
 
@@ -28,6 +28,7 @@ from app.domain.exceptions import (
     InvalidCurrencyError,
     InvalidInitialBalanceError,
     PostingNotFoundError,
+    TransferNotFoundError,
 )
 from app.domain.model import CategoryType, PostingType
 from app.mcp.resolvers import (
@@ -487,6 +488,19 @@ def _delete_posting_impl(
     return f"Deleted posting '{posting_id}'."
 
 
+def _delete_transfer_impl(
+    uow: AbstractUnitOfWork,
+    *,
+    transfer_id: str,
+) -> str:
+    try:
+        services.delete_transfer(uow, transfer_id=transfer_id)
+    except TransferNotFoundError as exc:
+        return str(exc)
+
+    return f"Deleted transfer '{transfer_id}'."
+
+
 # ── FastMCP instance & tool registration ──────────────────────────────
 
 
@@ -813,6 +827,19 @@ def _register_tools(mcp: FastMCP) -> None:
         with _uow_from_ctx(ctx) as uow:
             return _delete_posting_impl(uow, posting_id=posting_id)
 
+    @mcp.tool()
+    def delete_transfer(
+        transfer_id: str,
+        ctx: Context | None = None,
+    ) -> str:
+        """Delete a transfer between two accounts.
+
+        Args:
+            transfer_id: ID of the transfer to delete.
+        """
+        with _uow_from_ctx(ctx) as uow:
+            return _delete_transfer_impl(uow, transfer_id=transfer_id)
+
 
 def _create_mcp() -> FastMCP:
     mcp = FastMCP(
@@ -822,7 +849,8 @@ def _create_mcp() -> FastMCP:
             "create accounts, create expense/income categories, record expenses, "
             "record income, transfer funds between accounts, view spending reports, "
             "list accounts with balances, list categories, "
-            "list recent postings, list fund transfers, and delete postings."
+            "list recent postings, list fund transfers, "
+            "delete postings, and delete transfers."
         ),
         auth=_build_auth(),
         lifespan=_mcp_lifespan,

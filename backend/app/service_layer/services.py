@@ -368,6 +368,27 @@ def get_transfer(uow: AbstractUnitOfWork, *, transfer_id: str) -> Transfer:
         return transfer
 
 
-def list_transfers(uow: AbstractUnitOfWork, skip: int = 0, limit: int = 50) -> list[Transfer]:
+def list_transfers(uow: AbstractUnitOfWork, *, skip: int = 0, limit: int = 50) -> list[Transfer]:
     with uow:
-        return uow.transfers.list_all(skip=skip, limit=limit)
+        return uow.transfers.list_all(skip, limit)
+
+
+def delete_transfer(uow: AbstractUnitOfWork, *, transfer_id: str) -> None:
+    with uow:
+        transfer = uow.transfers.get(transfer_id)
+        if transfer is None:
+            from app.domain.exceptions import TransferNotFoundError
+
+            raise TransferNotFoundError(f"Transfer with id '{transfer_id}' not found")
+
+        source_account = uow.accounts.get(transfer.source_account_id)
+        dest_account = uow.accounts.get(transfer.dest_account_id)
+
+        if source_account:
+            source_account.remove_outgoing_transfer(transfer_id)
+        if dest_account:
+            dest_account.remove_incoming_transfer(transfer_id)
+
+        uow.transfers.delete(transfer)
+        uow.commit()
+        logger.info("Deleted transfer id: %s", transfer_id)

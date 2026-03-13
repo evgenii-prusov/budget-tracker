@@ -303,6 +303,18 @@ class Account:
         """Register an incoming transfer."""
         self._incoming_transfers.append(transfer)
 
+    def remove_outgoing_transfer(self, transfer_id: str) -> None:
+        """Remove an outgoing transfer from this account by its ID."""
+        transfer = next((t for t in self._outgoing_transfers if t.transfer_id == transfer_id), None)
+        if transfer:
+            self._outgoing_transfers.remove(transfer)
+
+    def remove_incoming_transfer(self, transfer_id: str) -> None:
+        """Remove an incoming transfer from this account by its ID."""
+        transfer = next((t for t in self._incoming_transfers if t.transfer_id == transfer_id), None)
+        if transfer:
+            self._incoming_transfers.remove(transfer)
+
     @property
     def postings(self) -> list[Posting]:
         return list(self._postings)

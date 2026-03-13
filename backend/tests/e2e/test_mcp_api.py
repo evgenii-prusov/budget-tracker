@@ -84,8 +84,8 @@ def _create_category_hierarchy(client, parent_name, sub_name, category_type="EXP
 
 
 @pytest.mark.asyncio
-async def test_list_tools_returns_eleven(mcp_client):
-    """The MCP server advertises exactly 11 tools."""
+async def test_list_tools_returns_twelve(mcp_client):
+    """The MCP server advertises exactly 12 tools."""
     tools = await mcp_client.list_tools()
     tool_names = {t.name for t in tools}
     assert tool_names == {
@@ -100,6 +100,7 @@ async def test_list_tools_returns_eleven(mcp_client):
         "list_postings",
         "list_transfers",
         "delete_posting",
+        "delete_transfer",
     }
 
 

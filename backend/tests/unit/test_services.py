@@ -42,6 +42,7 @@ from app.service_layer.services import get_posting
 from app.service_layer.services import list_postings
 from app.service_layer.services import update_account_name
 from app.service_layer.services import create_transfer
+from app.service_layer.services import delete_transfer
 from app.service_layer.services import get_transfer
 from app.service_layer.services import list_transfers
 from tests.constants import JAN_01
@@ -82,6 +83,9 @@ class FakeTransferRepository(AbstractTransferRepository):
 
     def get(self, transfer_id: str) -> Transfer | None:
         return next((t for t in self._transfers if t.transfer_id == transfer_id), None)
+
+    def delete(self, transfer: Transfer) -> None:
+        self._transfers.remove(transfer)
 
     def list_all(self, skip: int = 0, limit: int = 50) -> list[Transfer]:
         return list(self._transfers)[skip : skip + limit]
@@ -1219,3 +1223,37 @@ class TestListCategoryHierarchy:
         assert len(children) == 2
         assert c1 in children
         assert c2 in children
+
+
+class TestDeleteTransfer:
+    def test_delete_transfer_success(self):
+        uow = FakeUnitOfWork()
+        acc1 = create_account(uow, name="Source", currency="EUR", initial_balance=Decimal(100))
+        acc2 = create_account(uow, name="Dest", currency="EUR", initial_balance=Decimal(50))
+
+        transfer = create_transfer(
+            uow,
+            source_account_id=acc1.account_id,
+            dest_account_id=acc2.account_id,
+            debit_amount=Decimal(30),
+            credit_amount=Decimal(30),
+            transfer_date=JAN_01,
+        )
+
+        assert acc1.balance == Decimal(70)
+        assert acc2.balance == Decimal(80)
+        uow.committed = False
+
+        delete_transfer(uow, transfer_id=transfer.transfer_id)
+
+        assert uow.committed is True
+        assert acc1.balance == Decimal(100)
+        assert acc2.balance == Decimal(50)
+        assert len(uow.transfers._transfers) == 0
+
+    def test_delete_transfer_not_found(self):
+        uow = FakeUnitOfWork()
+        with pytest.raises(TransferNotFoundError) as exc_info:
+            delete_transfer(uow, transfer_id="nonexistent")
+        assert "Transfer with id 'nonexistent' not found" in str(exc_info.value)
+        assert uow.committed is False
