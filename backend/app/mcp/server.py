@@ -1,7 +1,8 @@
 """MCP Server for budget-tracker.
 
-Exposes 10 tools: create_account, create_category, add_expense, add_income,
-transfer_funds, get_spending, list_accounts, list_categories, list_postings, list_transfers.
+Exposes 11 tools: create_account, create_category, add_expense, add_income,
+transfer_funds, get_spending, list_accounts, list_categories, list_postings,
+list_transfers, delete_posting.
 Uses FastMCP with Streamable HTTP transport, mounted on the FastAPI app at /mcp.
 """
 
@@ -26,6 +27,7 @@ from app.domain.exceptions import (
     InsufficientFundsError,
     InvalidCurrencyError,
     InvalidInitialBalanceError,
+    PostingNotFoundError,
 )
 from app.domain.model import CategoryType, PostingType
 from app.mcp.resolvers import (
@@ -472,6 +474,19 @@ def _list_transfers_impl(
     return "\n".join(lines)
 
 
+def _delete_posting_impl(
+    uow: AbstractUnitOfWork,
+    *,
+    posting_id: str,
+) -> str:
+    try:
+        services.delete_posting(uow, posting_id=posting_id)
+    except PostingNotFoundError as exc:
+        return str(exc)
+
+    return f"Deleted posting '{posting_id}'."
+
+
 # ── FastMCP instance & tool registration ──────────────────────────────
 
 
@@ -785,6 +800,19 @@ def _register_tools(mcp: FastMCP) -> None:
         with _uow_from_ctx(ctx) as uow:
             return _list_transfers_impl(uow, limit=limit_int)
 
+    @mcp.tool()
+    def delete_posting(
+        posting_id: str,
+        ctx: Context | None = None,
+    ) -> str:
+        """Delete a posting (expense or income entry).
+
+        Args:
+            posting_id: ID of the posting to delete.
+        """
+        with _uow_from_ctx(ctx) as uow:
+            return _delete_posting_impl(uow, posting_id=posting_id)
+
 
 def _create_mcp() -> FastMCP:
     mcp = FastMCP(
@@ -794,7 +822,7 @@ def _create_mcp() -> FastMCP:
             "create accounts, create expense/income categories, record expenses, "
             "record income, transfer funds between accounts, view spending reports, "
             "list accounts with balances, list categories, "
-            "list recent postings, and list fund transfers."
+            "list recent postings, list fund transfers, and delete postings."
         ),
         auth=_build_auth(),
         lifespan=_mcp_lifespan,

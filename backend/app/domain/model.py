@@ -310,6 +310,22 @@ class Account:
     def get_posting(self, posting_id: str) -> Posting | None:
         return next((p for p in self._postings if p.posting_id == posting_id), None)
 
+    def remove_posting(self, posting_id: str) -> None:
+        """Remove a posting from this account by its ID.
+
+        Args:
+            posting_id: The ID of the posting to remove
+
+        Raises:
+            PostingNotFoundError: If the posting does not exist on this account
+        """
+        from app.domain.exceptions import PostingNotFoundError
+
+        posting = self.get_posting(posting_id)
+        if posting is None:
+            raise PostingNotFoundError(f"Posting with id '{posting_id}' not found")
+        self._postings.remove(posting)
+
     @property
     def has_postings(self) -> bool:
         return len(self._postings) > 0

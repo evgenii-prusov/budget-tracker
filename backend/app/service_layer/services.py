@@ -201,6 +201,16 @@ def list_postings(
             return all_postings[skip : skip + limit]
 
 
+def delete_posting(uow: AbstractUnitOfWork, *, posting_id: str) -> None:
+    with uow:
+        account = uow.accounts.get_by_posting_id(posting_id)
+        if account is None:
+            raise PostingNotFoundError(f"Posting with id '{posting_id}' not found")
+        account.remove_posting(posting_id)
+        uow.commit()
+        logger.info("Deleted posting id: %s", posting_id)
+
+
 # Category Services
 
 

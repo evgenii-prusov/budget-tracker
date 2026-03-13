@@ -37,6 +37,7 @@ from app.service_layer.services import get_category
 from app.service_layer.services import list_parent_categories
 from app.service_layer.services import list_subcategories
 from app.service_layer.services import create_posting
+from app.service_layer.services import delete_posting
 from app.service_layer.services import get_posting
 from app.service_layer.services import list_postings
 from app.service_layer.services import update_account_name
@@ -793,6 +794,73 @@ class TestListPostings:
 
         assert len(postings) == 1
         assert postings[0] == p1
+
+
+class TestDeletePosting:
+    def test_delete_posting_success(self):
+        uow = FakeUnitOfWork()
+        account = create_account(
+            uow,
+            name="Test Account",
+            currency="EUR",
+            initial_balance=Decimal(100),
+        )
+        parent = create_category(uow, name="Food", category_type=CategoryType.EXPENSE)
+        category = create_category(
+            uow, name="Groceries", category_type=CategoryType.EXPENSE, parent_id=parent.category_id
+        )
+        posting = create_posting(
+            uow,
+            account_id=account.account_id,
+            amount=Decimal(50),
+            posting_date=JAN_01,
+            posting_type=PostingType.EXPENSE,
+            category_id=category.category_id,
+        )
+        uow.committed = False
+
+        delete_posting(uow, posting_id=posting.posting_id)
+
+        assert uow.committed is True
+        assert account.posting_count == 0
+        postings = list_postings(uow, account_id=account.account_id)
+        assert len(postings) == 0
+
+    def test_delete_posting_not_found(self):
+        uow = FakeUnitOfWork()
+        with pytest.raises(PostingNotFoundError) as exc_info:
+            delete_posting(uow, posting_id="nonexistent-id")
+
+        assert "Posting with id 'nonexistent-id' not found" in str(exc_info.value)
+        assert uow.committed is False
+
+    def test_delete_posting_restores_balance(self):
+        uow = FakeUnitOfWork()
+        account = create_account(
+            uow,
+            name="Test Account",
+            currency="EUR",
+            initial_balance=Decimal(100),
+        )
+        parent = create_category(uow, name="Food", category_type=CategoryType.EXPENSE)
+        category = create_category(
+            uow, name="Groceries", category_type=CategoryType.EXPENSE, parent_id=parent.category_id
+        )
+        posting = create_posting(
+            uow,
+            account_id=account.account_id,
+            amount=Decimal(30),
+            posting_date=JAN_01,
+            posting_type=PostingType.EXPENSE,
+            category_id=category.category_id,
+        )
+        assert account.balance == Decimal(70)
+        uow.committed = False
+
+        delete_posting(uow, posting_id=posting.posting_id)
+
+        assert account.balance == Decimal(100)
+        assert uow.committed is True
 
 
 class TestTransferServices:

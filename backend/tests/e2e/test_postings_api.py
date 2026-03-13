@@ -343,3 +343,75 @@ def test_list_postings_endpoint_filtered(client, test_data):
     assert len(data) == 1
     for posting in data:
         assert posting["account_id"] == account_id
+
+
+def test_delete_posting_success(client, test_data):
+    account_id = test_data["account_id"]
+    category_id = test_data["category_id"]
+
+    # Create posting
+    posting_data = {
+        "account_id": account_id,
+        "amount": "50.00",
+        "posting_date": JAN_01.isoformat(),
+        "posting_type": "EXPENSE",
+        "category_id": category_id,
+    }
+
+    create_response = client.post("/postings/", json=posting_data)
+    assert create_response.status_code == 201
+    posting_id = create_response.json()["posting_id"]
+
+    # Verify posting was created
+    get_response = client.get(f"/postings/{posting_id}")
+    assert get_response.status_code == 200
+
+    # Delete posting
+    delete_response = client.delete(f"/postings/{posting_id}")
+    assert delete_response.status_code == 204
+    assert delete_response.content == b""
+
+    # Verify posting is deleted
+    get_response = client.get(f"/postings/{posting_id}")
+    assert get_response.status_code == 404
+
+
+def test_delete_posting_not_found(client):
+    response = client.delete("/postings/non-existent-id")
+    assert response.status_code == 404
+    assert "Posting with id 'non-existent-id' not found" in response.json()["detail"]
+
+
+def test_delete_posting_restores_account_balance(client, test_data):
+    account_id = test_data["account_id"]
+    category_id = test_data["category_id"]
+
+    # Get initial balance
+    account_response = client.get(f"/accounts/{account_id}")
+    initial_balance = Decimal(account_response.json()["balance"])
+
+    # Create posting
+    posting_data = {
+        "account_id": account_id,
+        "amount": "30.00",
+        "posting_date": JAN_01.isoformat(),
+        "posting_type": "EXPENSE",
+        "category_id": category_id,
+    }
+
+    create_response = client.post("/postings/", json=posting_data)
+    posting_id = create_response.json()["posting_id"]
+
+    # Verify balance changed
+    account_after_posting = client.get(f"/accounts/{account_id}")
+    balance_after_posting = Decimal(account_after_posting.json()["balance"])
+    assert balance_after_posting == initial_balance - Decimal("30.00")
+
+    # Delete posting
+    delete_response = client.delete(f"/postings/{posting_id}")
+    assert delete_response.status_code == 204
+
+    # Verify balance restored
+    account_after_delete = client.get(f"/accounts/{account_id}")
+    balance_after_delete = Decimal(account_after_delete.json()["balance"])
+    assert balance_after_delete == initial_balance
