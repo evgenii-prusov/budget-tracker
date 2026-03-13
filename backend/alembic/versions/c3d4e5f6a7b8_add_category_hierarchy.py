@@ -40,7 +40,7 @@ def upgrade() -> None:
     op.alter_column("category", "category_type", server_default=None)
 
     # Drop old unique constraint on name and add composite unique
-    op.drop_constraint("uq_category_name", "category", type_="unique")
+    op.drop_constraint("category_name_key", "category", type_="unique")
     op.create_unique_constraint("uq_category_parent_name", "category", ["parent_id", "name"])
     # Partial index to enforce uniqueness among root categories (parent_id IS NULL)
     op.create_index(
