@@ -192,6 +192,7 @@ class Account:
         currency: str,
         initial_balance: Decimal = Decimal(0),
         is_savings: bool = False,
+        description: str | None = None,
     ):
         if not isinstance(initial_balance, Decimal):
             raise TypeError(
@@ -206,6 +207,7 @@ class Account:
         self.currency = currency
         self.initial_balance = initial_balance
         self.is_savings = is_savings
+        self.description = description
         self._postings: list[Posting] = []
         self._outgoing_transfers: list[Transfer] = []
         self._incoming_transfers: list[Transfer] = []
