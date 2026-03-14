@@ -39,19 +39,32 @@ def list_accounts(uow: AbstractUnitOfWork, *, skip: int = 0, limit: int = 50) ->
         return uow.accounts.list_all(skip=skip, limit=limit)
 
 
-def update_account_name(uow: AbstractUnitOfWork, *, account_id: str, new_name: str) -> Account:
+def update_account(
+    uow: AbstractUnitOfWork,
+    *,
+    account_id: str,
+    name: str | None = None,
+    description: str | None = None,
+    update_description: bool = False,
+) -> Account:
     with uow:
         account = uow.accounts.get(account_id)
         if account is None:
             raise AccountNotFoundError(f"Account with id '{account_id}' not found")
 
-        existing_account = uow.accounts.get_by_name(new_name)
-        if existing_account and existing_account.account_id != account_id:
-            raise DuplicateAccountNameError(f"Account with name '{new_name}' already exists")
+        if name is not None:
+            existing_account = uow.accounts.get_by_name(name)
+            if existing_account and existing_account.account_id != account_id:
+                raise DuplicateAccountNameError(f"Account with name '{name}' already exists")
+            account.name = name
 
-        account.name = new_name
+        if update_description:
+            if description and len(description) > 500:
+                raise ValueError("Description is too long (max 500 characters)")
+            account.description = description
+
         uow.commit()
-        logger.info("Updated account name for id: %s to '%s'", account_id, new_name)
+        logger.info("Updated account id: %s", account_id)
         return account
 
 
@@ -69,6 +82,9 @@ def create_account(
             raise InvalidInitialBalanceError(
                 f"Initial balance cannot be negative, got {initial_balance}"
             )
+
+        if description and len(description) > 500:
+            raise ValueError("Description is too long (max 500 characters)")
 
         existing_account = uow.accounts.get_by_name(name)
         if existing_account:
@@ -92,20 +108,6 @@ def create_account(
         )
 
         return new_account
-
-
-def update_account_description(
-    uow: AbstractUnitOfWork, *, account_id: str, description: str | None
-) -> Account:
-    with uow:
-        account = uow.accounts.get(account_id)
-        if account is None:
-            raise AccountNotFoundError(f"Account with id '{account_id}' not found")
-
-        account.description = description
-        uow.commit()
-        logger.info("Updated account description for id: %s", account_id)
-        return account
 
 
 def delete_account(uow: AbstractUnitOfWork, *, account_id: str) -> None:
