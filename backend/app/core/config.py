@@ -14,6 +14,11 @@ def get_database_url() -> str:
     return database_url
 
 
+def get_cors_origins() -> list[str]:
+    raw = os.getenv("CORS_ORIGINS", "http://localhost:5173")
+    return [origin.strip() for origin in raw.split(",")]
+
+
 def get_api_key() -> str:
     api_key = os.getenv("API_KEY")
     if not api_key:
