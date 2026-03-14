@@ -424,9 +424,9 @@ def _list_postings_impl(
         cat_info = f"[{cat.name}]" if cat else "[No Category]"
         payee_info = f"Payee: {p.payee}" if p.payee else ""
 
-        # Format: 2025-01-15  EXPENSE  42.50 EUR  [Groceries]  Payee: Lidl  (Cash EUR)
+        # Format: [id]  2025-01-15  EXPENSE  42.50 EUR  [Groceries]  Payee: Lidl  (Cash EUR)
         line = (
-            f"{p.posting_date}  {p.posting_type:<7}  {abs(p.amount):>10.2f} "
+            f"[{p.posting_id}]  {p.posting_date}  {p.posting_type:<7}  {abs(p.amount):>10.2f} "
             f"{acc.currency if acc else '':<3}  {cat_info:<15}  "
             f"{payee_info:<20}  {acc_info}"
         )
@@ -476,7 +476,9 @@ def _list_transfers_impl(
             amt_str = f"{t.debit_amount} {source_curr} → {t.credit_amount} {dest_curr}"
 
         desc = f" ({t.description})" if t.description else ""
-        lines.append(f"{t.transfer_date}  {source_name} → {dest_name}  {amt_str}{desc}")
+        lines.append(
+            f"[{t.transfer_id}]  {t.transfer_date}  {source_name} → {dest_name}  {amt_str}{desc}"
+        )
 
     return "\n".join(lines)
 

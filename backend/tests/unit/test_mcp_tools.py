@@ -736,6 +736,23 @@ class TestListPostingsImpl:
         assert "Lidl" in result
         assert "Cash EUR" in result
 
+    def test_list_postings_includes_posting_id(self):
+        uow = _setup_expense_uow()
+        acc = uow.accounts.list_all()[0]
+        cat = [c for c in uow.categories.list_all() if c.parent_id is not None][0]
+        _add_expense_impl(
+            uow,
+            amount=Decimal("10"),
+            account_name=acc.name,
+            subcategory=cat.name,
+            posting_date=JAN_01,
+        )
+
+        # Grab the posting_id that was created
+        posting = acc.postings[0]
+        result = _list_postings_impl(uow)
+        assert posting.posting_id in result
+
     def test_list_postings_account_filter(self):
         uow = _setup_expense_uow()
         acc1 = uow.accounts.list_all()[0]  # Cash EUR
@@ -804,6 +821,21 @@ class TestListTransfersImpl:
         assert "Cash EUR → Savings EUR" in result
         assert "200" in result
         assert "EUR" in result
+
+    def test_list_transfers_includes_transfer_id(self):
+        uow = FakeUnitOfWork()
+        src = Account(None, "Cash EUR", "EUR", Decimal("1000"))
+        dst = Account(None, "Savings EUR", "EUR", Decimal("5000"))
+        uow.accounts.add(src)
+        uow.accounts.add(dst)
+
+        transfer = Transfer(
+            None, src.account_id, dst.account_id, Decimal("200"), Decimal("200"), JAN_01
+        )
+        uow.transfers.add(transfer)
+
+        result = _list_transfers_impl(uow)
+        assert transfer.transfer_id in result
 
     def test_list_transfers_cross_currency(self):
         uow = FakeUnitOfWork()
