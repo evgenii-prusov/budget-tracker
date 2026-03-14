@@ -9,6 +9,7 @@ from app.api.routers import transfers
 from app.api.routers import reports
 from app.core.logging_config import setup_logging
 from app.api.middleware import LoggingMiddleware
+from app.core.config import get_cors_origins
 from app.core.db import Database
 from app.mcp.server import create_mcp_app
 
@@ -40,7 +41,7 @@ app.mount("/mcp", mcp_app)
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],  # React dev server port
+    allow_origins=get_cors_origins(),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
