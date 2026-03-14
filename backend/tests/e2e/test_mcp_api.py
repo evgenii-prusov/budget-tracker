@@ -84,8 +84,8 @@ def _create_category_hierarchy(client, parent_name, sub_name, category_type="EXP
 
 
 @pytest.mark.asyncio
-async def test_list_tools_returns_fourteen(mcp_client):
-    """The MCP server advertises exactly 14 tools."""
+async def test_list_tools_returns_sixteen(mcp_client):
+    """The MCP server advertises exactly 16 tools."""
     tools = await mcp_client.list_tools()
     tool_names = {t.name for t in tools}
     assert tool_names == {
@@ -103,6 +103,8 @@ async def test_list_tools_returns_fourteen(mcp_client):
         "delete_transfer",
         "delete_account",
         "delete_category",
+        "update_account",
+        "update_category",
     }
 
 
@@ -199,6 +201,44 @@ async def test_create_account_duplicate_error(mcp_client):
 
 
 @pytest.mark.asyncio
+async def test_update_account(mcp_client):
+    """Test updating account name and description via MCP tool."""
+    await mcp_client.call_tool(
+        "create_account",
+        {
+            "name": "To Be Updated",
+            "currency": "EUR",
+            "description": "Old description",
+        },
+    )
+
+    # Update both name and description
+    result = await mcp_client.call_tool(
+        "update_account",
+        {
+            "account_name": "To Be Updated",
+            "new_name": "Updated Name",
+            "description": "New description",
+        },
+    )
+    assert "Updated account 'To Be Updated'" in result.content[0].text
+
+    # Verify the update via list_accounts
+    list_result = await mcp_client.call_tool("list_accounts", {})
+    text = list_result.content[0].text
+    assert "Updated Name" in text
+    assert "New description" in text
+    assert "To Be Updated" not in text
+
+    # Try to update non-existent account
+    result_not_found = await mcp_client.call_tool(
+        "update_account",
+        {"account_name": "Non Existent"},
+    )
+    assert "No account named" in result_not_found.content[0].text
+
+
+@pytest.mark.asyncio
 async def test_create_category_roundtrip(mcp_client, client):
     """Create parent then subcategory via MCP, verify via REST API."""
     # 1. Create parent category via MCP
@@ -231,6 +271,47 @@ async def test_create_category_roundtrip(mcp_client, client):
     parent = next((c for c in categories if c["category_id"] == flights["parent_id"]), None)
     assert parent is not None
     assert parent["name"] == "Travel"
+
+
+@pytest.mark.asyncio
+async def test_update_category(mcp_client):
+    """Test updating category name via MCP tool."""
+    # 1. Create a parent category
+    await mcp_client.call_tool(
+        "create_category", {"name": "Old Parent", "category_type": "expense"}
+    )
+
+    # 2. Update it
+    result = await mcp_client.call_tool(
+        "update_category",
+        {"name": "Old Parent", "category_type": "expense", "new_name": "New Parent"},
+    )
+    assert "Updated expense category 'Old Parent' to 'New Parent'" in result.content[0].text
+
+    # 3. Verify via list_categories
+    list_result = await mcp_client.call_tool("list_categories", {"category_type": "expense"})
+    text = list_result.content[0].text
+    assert "New Parent" in text
+    assert "Old Parent" not in text
+
+    # 4. Create and update a subcategory
+    await mcp_client.call_tool(
+        "create_category", {"name": "Sub", "category_type": "expense", "parent_name": "New Parent"}
+    )
+    result_sub = await mcp_client.call_tool(
+        "update_category",
+        {"name": "New Parent/Sub", "category_type": "expense", "new_name": "New Sub"},
+    )
+    assert "Updated expense category 'New Parent/Sub' to 'New Sub'" in result_sub.content[0].text
+
+    # 5. Verify subcategory update
+    list_result_sub = await mcp_client.call_tool("list_categories", {"category_type": "expense"})
+    text_sub = list_result_sub.content[0].text
+    assert "New Parent" in text_sub
+    assert "New Sub" in text_sub
+    # Check that 'Sub' is not present as a standalone word/name in the lines
+    sub_lines = [line.strip() for line in text_sub.split("\n") if line.strip().startswith("-")]
+    assert "- Sub" not in sub_lines
 
 
 @pytest.mark.asyncio
