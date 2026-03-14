@@ -15,9 +15,11 @@
 #   3. backend/.env  (DATABASE_URL, app runtime config)
 #
 # Variables used:
-#   DATABASE_URL   — Neon pooled connection string
-#   API_KEY        — API authentication key
-#   CORS_ORIGINS   — Comma-separated allowed origins (optional, defaults to localhost)
+#   DATABASE_URL              — Neon pooled connection string
+#   API_KEY                   — REST API authentication key (MCP uses OAuth instead)
+#   CORS_ORIGINS              — Comma-separated allowed origins (optional, defaults to localhost)
+#   OAUTH_OWNER_PASSWORD_HASH — bcrypt hash of owner password for MCP OAuth login
+#   MCP_BASE_URL              — Full public URL of MCP endpoint (auto-derived if not set)
 #
 # Prerequisites:
 #   - az CLI installed and logged in (az login)
@@ -53,6 +55,7 @@ load_env ".env"           # higher priority: deploy-time secrets (API_KEY, GITHU
 
 : "${DATABASE_URL:?DATABASE_URL is required — add it to .env or backend/.env}"
 : "${API_KEY:?API_KEY is required — add it to .env or backend/.env}"
+: "${OAUTH_OWNER_PASSWORD_HASH:?OAUTH_OWNER_PASSWORD_HASH is required — generate with: python -c \"import bcrypt; print(bcrypt.hashpw(b'YOUR_PASSWORD', bcrypt.gensalt()).decode())\"}"
 
 CORS_ORIGINS="${CORS_ORIGINS:-http://localhost:5173}"
 
@@ -103,13 +106,15 @@ az containerapp create \
     --secrets \
         "database-url=${DATABASE_URL}" \
         "api-key=${API_KEY}" \
+        "oauth-owner-password-hash=${OAUTH_OWNER_PASSWORD_HASH}" \
     --env-vars \
         "DATABASE_URL=secretref:database-url" \
         "API_KEY=secretref:api-key" \
+        "OAUTH_OWNER_PASSWORD_HASH=secretref:oauth-owner-password-hash" \
         "CORS_ORIGINS=${CORS_ORIGINS}"
 
 # ---------------------------------------------------------------------------
-# Done
+# Set MCP_BASE_URL (derived from the provisioned FQDN)
 # ---------------------------------------------------------------------------
 FQDN=$(az containerapp show \
     --name "$APP_NAME" \
@@ -117,9 +122,22 @@ FQDN=$(az containerapp show \
     --query "properties.configuration.ingress.fqdn" \
     --output tsv)
 
+MCP_BASE_URL="${MCP_BASE_URL:-https://${FQDN}/mcp}"
+
+echo ""
+echo "==> Setting MCP_BASE_URL=${MCP_BASE_URL} ..."
+az containerapp update \
+    --name "$APP_NAME" \
+    --resource-group "$RESOURCE_GROUP" \
+    --set-env-vars "MCP_BASE_URL=${MCP_BASE_URL}"
+
+# ---------------------------------------------------------------------------
+# Done
+# ---------------------------------------------------------------------------
 echo ""
 echo "==> Infrastructure provisioned successfully."
 echo "    App URL (placeholder): https://${FQDN}"
+echo "    MCP OAuth: ${MCP_BASE_URL}"
 echo ""
 echo "Next steps:"
 echo "  1. Set GITHUB_TOKEN (PAT with write:packages + read:packages scopes)"

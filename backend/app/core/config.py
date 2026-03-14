@@ -27,3 +27,17 @@ def get_api_key() -> str:
     if not api_key:
         raise ValueError("API_KEY environment variable is required")
     return api_key
+
+
+def get_mcp_base_url() -> str:
+    url = os.getenv("MCP_BASE_URL")
+    if not url:
+        raise ValueError("MCP_BASE_URL environment variable is required")
+    return url
+
+
+def get_oauth_owner_password_hash() -> str:
+    pw_hash = os.getenv("OAUTH_OWNER_PASSWORD_HASH")
+    if not pw_hash:
+        raise ValueError("OAUTH_OWNER_PASSWORD_HASH environment variable is required")
+    return pw_hash

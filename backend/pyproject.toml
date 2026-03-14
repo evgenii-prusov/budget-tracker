@@ -10,6 +10,7 @@ dependencies = [
     "psycopg2-binary>=2.9.9",
     "alembic>=1.15.0",
     "fastmcp>=2.0.0",
+    "bcrypt>=4.0.0",
 ]
 
 [dependency-groups]
@@ -51,4 +52,4 @@ skip_covered = false
 directory = "htmlcov"
 
 [tool.ty]
-rules = { invalid-argument-type = "ignore" }
+rules = { invalid-argument-type = "ignore", invalid-method-override = "ignore" }

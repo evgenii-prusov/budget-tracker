@@ -12,7 +12,7 @@ import pytest_asyncio
 
 from fastmcp import Client, FastMCP
 
-from app.mcp.server import _BearerTokenVerifier, _register_tools
+from app.mcp.server import _register_tools
 
 
 @pytest.fixture
@@ -25,7 +25,11 @@ def mock_db(session):
 
 @pytest.fixture
 def mcp_server(mock_db):
-    """A FastMCP instance wired to the test database."""
+    """A FastMCP instance wired to the test database.
+
+    Uses no auth for in-memory Client testing (auth is tested separately
+    in test_mcp_oauth.py via HTTP).
+    """
 
     @asynccontextmanager
     async def test_lifespan(server):
@@ -33,7 +37,6 @@ def mcp_server(mock_db):
 
     mcp = FastMCP(
         "Budget Tracker Test",
-        auth=_BearerTokenVerifier(),
         lifespan=test_lifespan,
     )
     _register_tools(mcp)

@@ -5,28 +5,23 @@ from decimal import Decimal
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
-from app.adapters.orm import metadata
-from app.adapters.orm import start_mappers
-from app.adapters.orm import mapper_registry
-from app.domain.model import Account
-from app.domain.model import Posting
-from app.domain.model import PostingType
-from app.main import app
-from app.api.dependencies import get_db_session
-from fastapi.testclient import TestClient
 from tests.constants import JAN_01, JAN_02, JAN_03, TEST_API_KEY
 
+# Set env vars BEFORE importing app modules (which trigger module-level side effects).
+# Force-set API_KEY (may differ from shell env); use setdefault for OAuth vars.
+os.environ["API_KEY"] = TEST_API_KEY
+os.environ.setdefault("MCP_BASE_URL", "http://localhost:8000/mcp")
+os.environ.setdefault(
+    "OAUTH_OWNER_PASSWORD_HASH",
+    "$2b$12$6FQtafu8y3qr8QlpySKC0eBSjp97K0aLabTrguTBJoocKizymv1xy",
+)
 
-@pytest.fixture(scope="session", autouse=True)
-def set_api_key():
-    """Override API_KEY for the entire test session regardless of the outer environment."""
-    original = os.environ.get("API_KEY")
-    os.environ["API_KEY"] = TEST_API_KEY
-    yield
-    if original is None:
-        os.environ.pop("API_KEY", None)
-    else:
-        os.environ["API_KEY"] = original
+from app.adapters.orm import metadata, start_mappers, mapper_registry  # noqa: E402
+from app.mcp.oauth_provider import oauth_tables_metadata  # noqa: E402
+from app.domain.model import Account, Posting, PostingType  # noqa: E402
+from app.main import app  # noqa: E402
+from app.api.dependencies import get_db_session  # noqa: E402
+from fastapi.testclient import TestClient  # noqa: E402
 
 
 @pytest.fixture(scope="session")
@@ -37,6 +32,7 @@ def postgres_engine():
     with PostgresContainer("postgres:17") as pg:
         engine = create_engine(pg.get_connection_url())
         metadata.create_all(engine)
+        oauth_tables_metadata.create_all(engine)
 
         mapper_registry.dispose()
         start_mappers()
