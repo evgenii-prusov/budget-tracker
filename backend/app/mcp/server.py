@@ -1070,4 +1070,4 @@ def _create_mcp() -> FastMCP:
 def create_mcp_app():
     """Create the ASGI app for mounting on FastAPI."""
     mcp = _create_mcp()
-    return mcp.http_app(path="/", transport="sse")
+    return mcp.http_app(path="/", transport="streamable-http")
