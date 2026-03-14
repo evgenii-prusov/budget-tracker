@@ -1,8 +1,8 @@
 {
   "mcpServers": {
     "budget-tracker": {
-      "type": "sse",
-      "url": "http://localhost:8000/mcp",
+      "type": "streamable-http",
+      "url": "http://localhost:8000/mcp/",
       "headers": {
         "Authorization": "Bearer ${API_KEY}"
       }
