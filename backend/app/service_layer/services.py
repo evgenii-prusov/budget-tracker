@@ -377,8 +377,6 @@ def delete_transfer(uow: AbstractUnitOfWork, *, transfer_id: str) -> None:
     with uow:
         transfer = uow.transfers.get(transfer_id)
         if transfer is None:
-            from app.domain.exceptions import TransferNotFoundError
-
             raise TransferNotFoundError(f"Transfer with id '{transfer_id}' not found")
 
         source_account = uow.accounts.get(transfer.source_account_id)
