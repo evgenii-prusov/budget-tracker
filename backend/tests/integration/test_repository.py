@@ -392,6 +392,32 @@ def test_get_by_name_scoped_to_parent(session):
     assert repo.get_by_name("Snacks", parent_id=None) is None
 
 
+def test_account_description_is_persisted_and_loaded(session):
+    repo = SqlAlchemyAccountRepository(session)
+    account = Account(
+        "desc-1", "Described Account", "EUR", Decimal(0), description="My main account"
+    )
+    repo.add(account)
+    session.commit()
+    session.expunge_all()  # force reload from DB, not identity map
+
+    loaded = repo.get("desc-1")
+    assert loaded is not None
+    assert loaded.description == "My main account"
+
+
+def test_account_description_defaults_to_none(session):
+    repo = SqlAlchemyAccountRepository(session)
+    account = Account("desc-2", "No Desc Account", "EUR", Decimal(0))
+    repo.add(account)
+    session.commit()
+    session.expunge_all()  # force reload from DB, not identity map
+
+    loaded = repo.get("desc-2")
+    assert loaded is not None
+    assert loaded.description is None
+
+
 def test_category_count_postings(session):
     account_repo = SqlAlchemyAccountRepository(session)
     category_repo = SqlAlchemyCategoryRepository(session)

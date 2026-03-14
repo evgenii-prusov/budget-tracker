@@ -15,6 +15,7 @@ accounts = Table(
     Column("currency", String(3), nullable=False),
     Column("initial_balance", Numeric(precision=15, scale=2), nullable=False),
     Column("is_savings", Boolean, nullable=False, server_default="false"),
+    Column("description", String(500), nullable=True),
 )
 
 categories = Table(
