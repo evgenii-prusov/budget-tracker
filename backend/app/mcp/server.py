@@ -518,7 +518,11 @@ def _update_account_impl(
     account_name: str,
     new_name: str | None = None,
     description: str | None = None,
+    update_description: bool = False,
 ) -> str:
+    if new_name is None and not update_description:
+        return f"No updates provided for account '{account_name}'."
+
     try:
         account = resolve_account_by_name(uow, account_name)
     except ValueError as exc:
@@ -530,7 +534,7 @@ def _update_account_impl(
             account_id=account.account_id,
             name=new_name,
             description=description,
-            update_description=description is not None,
+            update_description=update_description,
         )
     except (AccountNotFoundError, DuplicateAccountNameError) as exc:
         return str(exc)
@@ -538,11 +542,9 @@ def _update_account_impl(
     parts = []
     if new_name is not None:
         parts.append(f"name to '{new_name}'")
-    if description is not None:
-        parts.append(f"description to '{description}'")
-
-    if not parts:
-        return f"No updates provided for account '{account_name}'."
+    if update_description:
+        desc_val = f"'{description}'" if description is not None else "null"
+        parts.append(f"description to {desc_val}")
 
     return f"Updated account '{account_name}' {' and '.join(parts)}."
 
@@ -573,9 +575,9 @@ def _update_category_impl(
     new_name: str,
 ) -> str:
     try:
-        category_type = CategoryType[category_type_str.upper()]
-    except (KeyError, AttributeError):
-        return f"Invalid category type '{category_type_str}'. Use 'EXPENSE' or 'INCOME'."
+        category_type = CategoryType(category_type_str.upper())
+    except (ValueError, KeyError, AttributeError):
+        return f"Invalid category type: '{category_type_str}'. Use 'expense' or 'income'."
 
     try:
         # Check if it's a subcategory (name contains '/')
@@ -976,6 +978,7 @@ def _register_tools(mcp: FastMCP) -> None:
         account_name: str,
         new_name: str | None = None,
         description: str | None = None,
+        update_description: bool = False,
     ) -> str:
         """Update an existing account's name or description.
 
@@ -983,6 +986,7 @@ def _register_tools(mcp: FastMCP) -> None:
             account_name: Name of the account to update.
             new_name: Optional new name for the account.
             description: Optional new description for the account.
+            update_description: Set to true if providing a description (even null).
         """
         with _uow_from_ctx(ctx) as uow:
             return _update_account_impl(
@@ -990,6 +994,7 @@ def _register_tools(mcp: FastMCP) -> None:
                 account_name=account_name,
                 new_name=new_name,
                 description=description,
+                update_description=update_description,
             )
 
     @mcp.tool()
@@ -1016,7 +1021,7 @@ def _register_tools(mcp: FastMCP) -> None:
 
         Args:
             name: Current name of the category (e.g., 'Food' or 'Food/Groceries').
-            category_type: Type of category ('EXPENSE' or 'INCOME').
+            category_type: Type of category ('expense' or 'income').
             new_name: The new name for the category.
         """
         with _uow_from_ctx(ctx) as uow:
