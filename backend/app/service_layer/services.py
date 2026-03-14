@@ -201,6 +201,15 @@ def list_postings(
             return all_postings[skip : skip + limit]
 
 
+def delete_posting(uow: AbstractUnitOfWork, *, posting_id: str) -> None:
+    with uow:
+        found = uow.accounts.delete_posting_by_id(posting_id)
+        if not found:
+            raise PostingNotFoundError(f"Posting with id '{posting_id}' not found")
+        uow.commit()
+        logger.info("Deleted posting id: %s", posting_id)
+
+
 # Category Services
 
 
@@ -358,6 +367,25 @@ def get_transfer(uow: AbstractUnitOfWork, *, transfer_id: str) -> Transfer:
         return transfer
 
 
-def list_transfers(uow: AbstractUnitOfWork, skip: int = 0, limit: int = 50) -> list[Transfer]:
+def list_transfers(uow: AbstractUnitOfWork, *, skip: int = 0, limit: int = 50) -> list[Transfer]:
     with uow:
-        return uow.transfers.list_all(skip=skip, limit=limit)
+        return uow.transfers.list_all(skip, limit)
+
+
+def delete_transfer(uow: AbstractUnitOfWork, *, transfer_id: str) -> None:
+    with uow:
+        transfer = uow.transfers.get(transfer_id)
+        if transfer is None:
+            raise TransferNotFoundError(f"Transfer with id '{transfer_id}' not found")
+
+        source_account = uow.accounts.get(transfer.source_account_id)
+        dest_account = uow.accounts.get(transfer.dest_account_id)
+
+        if source_account:
+            source_account.remove_outgoing_transfer(transfer_id)
+        if dest_account:
+            dest_account.remove_incoming_transfer(transfer_id)
+
+        uow.transfers.delete(transfer)
+        uow.commit()
+        logger.info("Deleted transfer id: %s", transfer_id)

@@ -82,3 +82,38 @@ def resolve_parent_category_by_name(
     type_hint = f" (type={category_type.value})" if category_type is not None else ""
     available = ", ".join(c.name for c in parents)
     raise ValueError(f"No parent category named '{name}'{type_hint}. Available: [{available}]")
+
+
+def resolve_subcategory_by_parent_and_name(
+    uow: AbstractUnitOfWork,
+    parent_name: str,
+    sub_name: str,
+    category_type: CategoryType | None = None,
+) -> Category:
+    """Find a subcategory by parent name and subcategory name (case-insensitive).
+
+    More precise than resolve_subcategory_by_name when the same subcategory
+    name appears under multiple parents.
+    """
+    all_categories = uow.categories.list_all(skip=0, limit=500)
+
+    parents = [
+        c for c in all_categories if c.parent_id is None and c.name.lower() == parent_name.lower()
+    ]
+    if category_type is not None:
+        parents = [c for c in parents if c.category_type == category_type]
+
+    if not parents:
+        type_hint = f" (type={category_type.value})" if category_type is not None else ""
+        raise ValueError(f"No parent category named '{parent_name}'{type_hint}.")
+
+    parent = parents[0]
+    matches = [
+        c
+        for c in all_categories
+        if c.parent_id == parent.category_id and c.name.lower() == sub_name.lower()
+    ]
+    if not matches:
+        raise ValueError(f"No subcategory named '{sub_name}' under '{parent_name}'.")
+
+    return matches[0]

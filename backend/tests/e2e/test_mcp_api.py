@@ -84,8 +84,8 @@ def _create_category_hierarchy(client, parent_name, sub_name, category_type="EXP
 
 
 @pytest.mark.asyncio
-async def test_list_tools_returns_ten(mcp_client):
-    """The MCP server advertises exactly 10 tools."""
+async def test_list_tools_returns_fourteen(mcp_client):
+    """The MCP server advertises exactly 14 tools."""
     tools = await mcp_client.list_tools()
     tool_names = {t.name for t in tools}
     assert tool_names == {
@@ -99,6 +99,10 @@ async def test_list_tools_returns_ten(mcp_client):
         "list_categories",
         "list_postings",
         "list_transfers",
+        "delete_posting",
+        "delete_transfer",
+        "delete_account",
+        "delete_category",
     }
 
 
@@ -479,6 +483,126 @@ async def test_add_expense_insufficient_funds(mcp_client, client):
     )
     text = result.content[0].text
     assert "insufficient" in text.lower() or "Insufficient" in text
+
+
+# ── Deletion tool tests ──────────────────────────────────────────────
+
+
+@pytest.mark.asyncio
+async def test_delete_posting_roundtrip(mcp_client, client):
+    """Create account + expense via REST, delete posting via MCP."""
+    account_id = _create_account(client, "Cash EUR", "EUR", "1000.00")
+
+    # Add expense via REST
+    posting_resp = client.post(
+        "/postings/",
+        json={
+            "account_id": account_id,
+            "amount": "42.50",
+            "posting_date": "2025-01-15",
+            "posting_type": "EXPENSE",
+        },
+    )
+    assert posting_resp.status_code == 201
+    posting_id = posting_resp.json()["posting_id"]
+
+    result = await mcp_client.call_tool("delete_posting", {"posting_id": posting_id})
+    text = result.content[0].text
+    assert posting_id in text
+
+    # Verify deleted via REST
+    assert client.get(f"/postings/{posting_id}").status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_delete_posting_not_found(mcp_client):
+    """Deleting a nonexistent posting returns a friendly error."""
+    result = await mcp_client.call_tool("delete_posting", {"posting_id": "nonexistent-id"})
+    text = result.content[0].text
+    assert "nonexistent-id" in text
+    assert "not found" in text.lower()
+
+
+@pytest.mark.asyncio
+async def test_delete_transfer_roundtrip(mcp_client, client):
+    """Create accounts + transfer via REST, delete transfer via MCP."""
+    src_id = _create_account(client, "Source EUR", "EUR", "1000.00")
+    dst_id = _create_account(client, "Dest EUR", "EUR", "500.00")
+
+    transfer_resp = client.post(
+        "/transfers/",
+        json={
+            "source_account_id": src_id,
+            "dest_account_id": dst_id,
+            "debit_amount": "100.00",
+            "credit_amount": "100.00",
+            "transfer_date": "2025-01-15",
+        },
+    )
+    assert transfer_resp.status_code == 201
+    transfer_id = transfer_resp.json()["transfer_id"]
+
+    result = await mcp_client.call_tool("delete_transfer", {"transfer_id": transfer_id})
+    text = result.content[0].text
+    assert transfer_id in text
+
+    # Verify deleted via REST
+    assert client.get(f"/transfers/{transfer_id}").status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_delete_transfer_not_found(mcp_client):
+    """Deleting a nonexistent transfer returns a friendly error."""
+    result = await mcp_client.call_tool("delete_transfer", {"transfer_id": "nonexistent-id"})
+    text = result.content[0].text
+    assert "nonexistent-id" in text
+    assert "not found" in text.lower()
+
+
+@pytest.mark.asyncio
+async def test_delete_account_roundtrip(mcp_client, client):
+    """Create account via REST (no postings/transfers), delete via MCP."""
+    _create_account(client, "Empty Account", "EUR", "0.00")
+
+    result = await mcp_client.call_tool("delete_account", {"account_name": "Empty Account"})
+    text = result.content[0].text
+    assert "Empty Account" in text
+
+    # Verify deleted — account should no longer appear in list
+    list_result = await mcp_client.call_tool("list_accounts", {})
+    assert "Empty Account" not in list_result.content[0].text
+
+
+@pytest.mark.asyncio
+async def test_delete_account_not_found(mcp_client):
+    """Deleting a nonexistent account returns a friendly error."""
+    result = await mcp_client.call_tool("delete_account", {"account_name": "Ghost Account"})
+    text = result.content[0].text
+    assert "Ghost Account" in text
+    assert "No account named" in text
+
+
+@pytest.mark.asyncio
+async def test_delete_category_roundtrip(mcp_client, client):
+    """Create a parent category via REST, delete via MCP."""
+    client.post("/categories/", json={"name": "Temp Category", "category_type": "EXPENSE"})
+
+    result = await mcp_client.call_tool(
+        "delete_category", {"name": "Temp Category", "category_type": "EXPENSE"}
+    )
+    text = result.content[0].text
+    assert "Temp Category" in text
+
+
+@pytest.mark.asyncio
+async def test_delete_category_not_found(mcp_client):
+    """Deleting a nonexistent category returns a friendly error."""
+    result = await mcp_client.call_tool(
+        "delete_category", {"name": "Ghost Category", "category_type": "EXPENSE"}
+    )
+    text = result.content[0].text
+    assert "Ghost Category" in text
+    assert "No parent category named" in text
 
 
 # ── Auth tests (HTTP-level) ──────────────────────────────────────────

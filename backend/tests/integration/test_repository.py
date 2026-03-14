@@ -113,9 +113,9 @@ def test_get_balance_uses_eager_loading(session):
     assert loaded.balance == Decimal(70)
 
 
-def test_repository_delete_account_with_postings_raises_integrity_error(session):
-    """Deleting an account that still has postings raises IntegrityError (FK constraint)."""
-    from sqlalchemy.exc import IntegrityError
+def test_repository_delete_account_deletes_postings_due_to_cascade(session):
+    """Deleting an account that still has postings succeeds because of cascade delete."""
+    from sqlalchemy import select
 
     account = Account("acc-1", "Test", "USD", Decimal(100))
     account.record_posting(
@@ -130,9 +130,13 @@ def test_repository_delete_account_with_postings_raises_integrity_error(session)
     repo = SqlAlchemyAccountRepository(session)
     loaded_account = repo.get("acc-1")
     repo.delete(loaded_account)
+    session.commit()
 
-    with pytest.raises(IntegrityError):
-        session.commit()
+    # Verify both account and postings are gone
+    assert repo.get("acc-1") is None
+    from app.adapters.orm import postings
+
+    assert session.execute(select(postings).where(postings.c.account_id == "acc-1")).all() == []
 
 
 def test_repository_get_by_posting_id(session):

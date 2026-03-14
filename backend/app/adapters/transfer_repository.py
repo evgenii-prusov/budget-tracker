@@ -20,6 +20,9 @@ class SqlAlchemyTransferRepository(AbstractTransferRepository):
             .one_or_none()
         )
 
+    def delete(self, transfer: Transfer) -> None:
+        self.session.delete(transfer)
+
     def list_all(self, skip: int = 0, limit: int = 50) -> list[Transfer]:
         return list(
             self.session.execute(

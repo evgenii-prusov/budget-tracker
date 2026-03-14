@@ -1,7 +1,8 @@
 """MCP Server for budget-tracker.
 
-Exposes 10 tools: create_account, create_category, add_expense, add_income,
-transfer_funds, get_spending, list_accounts, list_categories, list_postings, list_transfers.
+Exposes 14 tools: create_account, create_category, add_expense, add_income,
+transfer_funds, get_spending, list_accounts, list_categories, list_postings,
+list_transfers, delete_posting, delete_transfer, delete_account, delete_category.
 Uses FastMCP with Streamable HTTP transport, mounted on the FastAPI app at /mcp.
 """
 
@@ -19,13 +20,20 @@ from app.adapters.unit_of_work import SqlAlchemyUnitOfWork
 from app.core.config import get_api_key
 from app.core.db import Database
 from app.domain.exceptions import (
+    AccountHasPostingsError,
+    AccountHasTransfersError,
+    AccountNotFoundError,
+    CategoryHasChildrenError,
     CategoryHierarchyError,
+    CategoryInUseError,
     CategoryNotFoundError,
     DuplicateAccountNameError,
     DuplicateCategoryNameError,
     InsufficientFundsError,
     InvalidCurrencyError,
     InvalidInitialBalanceError,
+    PostingNotFoundError,
+    TransferNotFoundError,
 )
 from app.domain.model import CategoryType, PostingType
 from app.mcp.resolvers import (
@@ -33,6 +41,7 @@ from app.mcp.resolvers import (
     resolve_account_by_name,
     resolve_parent_category_by_name,
     resolve_subcategory_by_name,
+    resolve_subcategory_by_parent_and_name,
 )
 from app.service_layer import services
 from app.service_layer.reports import get_spending_report
@@ -472,6 +481,81 @@ def _list_transfers_impl(
     return "\n".join(lines)
 
 
+def _delete_posting_impl(
+    uow: AbstractUnitOfWork,
+    *,
+    posting_id: str,
+) -> str:
+    try:
+        services.delete_posting(uow, posting_id=posting_id)
+    except PostingNotFoundError as exc:
+        return str(exc)
+
+    return f"Deleted posting '{posting_id}'."
+
+
+def _delete_transfer_impl(
+    uow: AbstractUnitOfWork,
+    *,
+    transfer_id: str,
+) -> str:
+    try:
+        services.delete_transfer(uow, transfer_id=transfer_id)
+    except TransferNotFoundError as exc:
+        return str(exc)
+
+    return f"Deleted transfer '{transfer_id}'."
+
+
+def _delete_account_impl(
+    uow: AbstractUnitOfWork,
+    *,
+    account_name: str,
+) -> str:
+    try:
+        account = resolve_account_by_name(uow, account_name)
+    except ValueError as exc:
+        return str(exc)
+
+    try:
+        services.delete_account(uow, account_id=account.account_id)
+    except (AccountHasPostingsError, AccountHasTransfersError, AccountNotFoundError) as exc:
+        return str(exc)
+
+    return f"Deleted account '{account_name}'."
+
+
+def _delete_category_impl(
+    uow: AbstractUnitOfWork,
+    *,
+    name: str,
+    category_type_str: str,
+) -> str:
+    try:
+        category_type = CategoryType[category_type_str.upper()]
+    except (KeyError, AttributeError):
+        return f"Invalid category type '{category_type_str}'. Use 'EXPENSE' or 'INCOME'."
+
+    try:
+        # Check if it's a subcategory (name contains '/')
+        if "/" in name:
+            parent_name, sub_name = name.split("/", 1)
+            category = resolve_subcategory_by_parent_and_name(
+                uow, parent_name.strip(), sub_name.strip(), category_type
+            )
+        else:
+            category = resolve_parent_category_by_name(uow, name, category_type)
+    except ValueError as exc:
+        return str(exc)
+
+    try:
+        services.delete_category(uow, category_id=category.category_id)
+    except (CategoryHasChildrenError, CategoryInUseError, CategoryNotFoundError) as exc:
+        return str(exc)
+
+    return f"Deleted {category_type_str} category '{name}'."
+
+
 # ── FastMCP instance & tool registration ──────────────────────────────
 
 
@@ -494,11 +578,11 @@ def _register_tools(mcp: FastMCP) -> None:
 
     @mcp.tool()
     def create_account(
+        ctx: Context,
         name: str,
         currency: str,
         initial_balance: str = "0.00",
         is_savings: bool = False,
-        ctx: Context | None = None,
     ) -> str:
         """Create a new bank account, checking account, or savings account.
 
@@ -524,10 +608,10 @@ def _register_tools(mcp: FastMCP) -> None:
 
     @mcp.tool()
     def create_category(
+        ctx: Context,
         name: str,
         category_type: str,
         parent_name: str | None = None,
-        ctx: Context | None = None,
     ) -> str:
         """Create a new category or subcategory.
         Parents must be created first before subcategories can be added to them.
@@ -547,14 +631,14 @@ def _register_tools(mcp: FastMCP) -> None:
 
     @mcp.tool()
     def add_expense(
-        amount: str,
+        ctx: Context,
         subcategory: str,
+        amount: str,
         posting_date: str,
         currency: str | None = None,
         account_name: str | None = None,
         payee: str | None = None,
         description: str | None = None,
-        ctx: Context | None = None,
     ) -> str:
         """Record an expense. Subcategory must be an existing expense subcategory name.
         Target account can be found by currency or name.
@@ -595,14 +679,14 @@ def _register_tools(mcp: FastMCP) -> None:
 
     @mcp.tool()
     def add_income(
-        amount: str,
+        ctx: Context,
         subcategory: str,
+        amount: str,
         posting_date: str,
         currency: str | None = None,
         account_name: str | None = None,
         payee: str | None = None,
         description: str | None = None,
-        ctx: Context | None = None,
     ) -> str:
         """Record income. Subcategory must be an existing income subcategory name.
         Target account can be found by currency or name.
@@ -643,13 +727,13 @@ def _register_tools(mcp: FastMCP) -> None:
 
     @mcp.tool()
     def transfer_funds(
+        ctx: Context,
         from_account: str,
         to_account: str,
         amount: str,
         transfer_date: str,
         to_amount: str | None = None,
         description: str | None = None,
-        ctx: Context | None = None,
     ) -> str:
         """Transfer money between accounts. Use account names.
         Amounts can differ for cross-currency transfers.
@@ -692,9 +776,9 @@ def _register_tools(mcp: FastMCP) -> None:
 
     @mcp.tool()
     def get_spending(
+        ctx: Context,
         period: str = "month",
         reference_date: str | None = None,
-        ctx: Context | None = None,
     ) -> str:
         """Get spending aggregated by parent category.
 
@@ -717,8 +801,8 @@ def _register_tools(mcp: FastMCP) -> None:
 
     @mcp.tool()
     def list_accounts(
+        ctx: Context,
         filter: str | None = None,
-        ctx: Context | None = None,
     ) -> str:
         """List all accounts with balances.
 
@@ -730,8 +814,8 @@ def _register_tools(mcp: FastMCP) -> None:
 
     @mcp.tool()
     def list_categories(
+        ctx: Context,
         category_type: str | None = None,
-        ctx: Context | None = None,
     ) -> str:
         """List all categories and subcategories.
 
@@ -743,9 +827,9 @@ def _register_tools(mcp: FastMCP) -> None:
 
     @mcp.tool()
     def list_postings(
+        ctx: Context,
         account_name: str | None = None,
         limit: str = "20",
-        ctx: Context | None = None,
     ) -> str:
         """List recent expenses and income postings.
 
@@ -766,8 +850,8 @@ def _register_tools(mcp: FastMCP) -> None:
 
     @mcp.tool()
     def list_transfers(
+        ctx: Context,
         limit: str = "20",
-        ctx: Context | None = None,
     ) -> str:
         """List recent fund transfers between accounts.
 
@@ -785,6 +869,60 @@ def _register_tools(mcp: FastMCP) -> None:
         with _uow_from_ctx(ctx) as uow:
             return _list_transfers_impl(uow, limit=limit_int)
 
+    @mcp.tool()
+    def delete_posting(
+        ctx: Context,
+        posting_id: str,
+    ) -> str:
+        """Delete a posting (expense or income entry).
+
+        Args:
+            posting_id: ID of the posting to delete.
+        """
+        with _uow_from_ctx(ctx) as uow:
+            return _delete_posting_impl(uow, posting_id=posting_id)
+
+    @mcp.tool()
+    def delete_transfer(
+        ctx: Context,
+        transfer_id: str,
+    ) -> str:
+        """Delete a transfer between two accounts.
+
+        Args:
+            transfer_id: ID of the transfer to delete.
+        """
+        with _uow_from_ctx(ctx) as uow:
+            return _delete_transfer_impl(uow, transfer_id=transfer_id)
+
+    @mcp.tool()
+    def delete_account(
+        ctx: Context,
+        account_name: str,
+    ) -> str:
+        """Delete an account by its name.
+
+        Args:
+            account_name: Name of the account to delete.
+        """
+        with _uow_from_ctx(ctx) as uow:
+            return _delete_account_impl(uow, account_name=account_name)
+
+    @mcp.tool()
+    def delete_category(
+        ctx: Context,
+        name: str,
+        category_type: str,
+    ) -> str:
+        """Delete a category by its name and type.
+
+        Args:
+            name: Name of the category (e.g., 'Food' or 'Food/Groceries').
+            category_type: Type of category ('EXPENSE' or 'INCOME').
+        """
+        with _uow_from_ctx(ctx) as uow:
+            return _delete_category_impl(uow, name=name, category_type_str=category_type)
+
 
 def _create_mcp() -> FastMCP:
     mcp = FastMCP(
@@ -794,7 +932,9 @@ def _create_mcp() -> FastMCP:
             "create accounts, create expense/income categories, record expenses, "
             "record income, transfer funds between accounts, view spending reports, "
             "list accounts with balances, list categories, "
-            "list recent postings, and list fund transfers."
+            "list recent postings, list fund transfers, "
+            "delete postings, delete transfers, "
+            "delete accounts, and delete categories."
         ),
         auth=_build_auth(),
         lifespan=_mcp_lifespan,

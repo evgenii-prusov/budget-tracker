@@ -18,6 +18,7 @@ from app.domain.exceptions import PostingNotFoundError
 from app.domain.model import PostingType
 from app.service_layer.unit_of_work import AbstractUnitOfWork
 from app.service_layer.services import create_posting
+from app.service_layer.services import delete_posting
 from app.service_layer.services import get_posting
 from app.service_layer.services import list_postings
 
@@ -79,5 +80,16 @@ def get_posting_endpoint(
 ):
     try:
         return get_posting(uow, posting_id=posting_id)
+    except PostingNotFoundError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+
+
+@router.delete("/{posting_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_posting_endpoint(
+    posting_id: str,
+    uow: UoWDep,
+):
+    try:
+        delete_posting(uow, posting_id=posting_id)
     except PostingNotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))

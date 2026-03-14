@@ -13,5 +13,9 @@ class AbstractTransferRepository(abc.ABC):
         raise NotImplementedError()
 
     @abc.abstractmethod
+    def delete(self, transfer: Transfer) -> None:
+        raise NotImplementedError()
+
+    @abc.abstractmethod
     def list_all(self, skip: int = 0, limit: int = 50) -> list[Transfer]:
         raise NotImplementedError()
