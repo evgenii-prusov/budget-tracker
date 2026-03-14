@@ -11,6 +11,7 @@ import secrets
 import time
 from urllib.parse import urlencode
 
+import bcrypt
 import sqlalchemy as sa
 from mcp.server.auth.provider import (
     AccessToken,
@@ -109,6 +110,15 @@ class PostgresOAuthProvider(OAuthProvider):
     def set_engine(self, engine: Engine) -> None:
         """Set the SQLAlchemy engine (called during lifespan init)."""
         self._engine = engine
+
+    def verify_password(self, password: str) -> bool:
+        """Check a plaintext password against the stored bcrypt hash."""
+        if not password:
+            return False
+        return bcrypt.checkpw(
+            password.encode("utf-8"),
+            self._owner_password_hash.encode("utf-8"),
+        )
 
     @property
     def _db(self) -> Engine:

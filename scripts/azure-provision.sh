@@ -16,7 +16,7 @@
 #
 # Variables used:
 #   DATABASE_URL              — Neon pooled connection string
-#   API_KEY                   — API authentication key
+#   API_KEY                   — REST API authentication key (MCP uses OAuth instead)
 #   CORS_ORIGINS              — Comma-separated allowed origins (optional, defaults to localhost)
 #   OAUTH_OWNER_PASSWORD_HASH — bcrypt hash of owner password for MCP OAuth login
 #   MCP_BASE_URL              — Full public URL of MCP endpoint (auto-derived if not set)

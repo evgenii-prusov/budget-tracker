@@ -126,5 +126,5 @@ deploy-status:
 	az containerapp show \
 		--name budget-tracker \
 		--resource-group budget-tracker-rg \
-		--query "{status:properties.runningStatus, replicas:properties.latestRevisionFqdn, url:properties.configuration.ingress.fqdn}" \
+		--query "{status:properties.runningStatus, revision:properties.latestRevisionFqdn, url:properties.configuration.ingress.fqdn}" \
 		--output table

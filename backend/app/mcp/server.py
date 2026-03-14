@@ -636,8 +636,8 @@ _oauth_provider: PostgresOAuthProvider | None = None
 async def _mcp_lifespan(server):
     db = Database()
     db.init()
-    # Give the OAuth provider its DB engine now that we have one
-    if _oauth_provider is not None:
+    # Give the OAuth provider its DB engine if not already set (e.g. by tests)
+    if _oauth_provider is not None and _oauth_provider._engine is None:
         _oauth_provider.set_engine(db.engine)
     try:
         yield {"db": db}

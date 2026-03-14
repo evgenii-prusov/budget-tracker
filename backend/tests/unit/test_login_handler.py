@@ -4,6 +4,7 @@ Tests cover:
 - GET /login renders an HTML form with hidden fields
 - POST /login with correct password redirects with authorization code
 - POST /login with wrong password re-renders form with error
+- POST /login validates client_id and redirect_uri
 """
 
 import pytest
@@ -59,6 +60,18 @@ def _login_params():
     }
 
 
+async def _register_test_client(provider, redirect_uri="http://localhost:3000/callback"):
+    from mcp.shared.auth import OAuthClientInformationFull
+
+    await provider.register_client(
+        OAuthClientInformationFull(
+            client_id="test-client",
+            client_secret="secret",
+            redirect_uris=[redirect_uri],
+        )
+    )
+
+
 # ── GET /login ───────────────────────────────────────────────────────
 
 
@@ -74,21 +87,17 @@ def test_get_login_renders_form(login_client):
     assert 'value="test-state"' in body
 
 
+def test_get_login_form_uses_relative_action(login_client):
+    resp = login_client.get("/login", params=_login_params())
+    assert 'action="login"' in resp.text
+
+
 # ── POST /login with correct password ────────────────────────────────
 
 
 @pytest.mark.asyncio
 async def test_post_login_correct_password_redirects(login_client, provider):
-    from mcp.shared.auth import OAuthClientInformationFull
-
-    # Register the client first (so code creation can find it)
-    await provider.register_client(
-        OAuthClientInformationFull(
-            client_id="test-client",
-            client_secret="secret",
-            redirect_uris=["http://localhost:3000/callback"],
-        )
-    )
+    await _register_test_client(provider)
 
     resp = login_client.post(
         "/login",
@@ -108,7 +117,10 @@ async def test_post_login_correct_password_redirects(login_client, provider):
 # ── POST /login with wrong password ──────────────────────────────────
 
 
-def test_post_login_wrong_password_shows_error(login_client):
+@pytest.mark.asyncio
+async def test_post_login_wrong_password_shows_error(login_client, provider):
+    await _register_test_client(provider)
+
     resp = login_client.post(
         "/login",
         data={
@@ -123,7 +135,10 @@ def test_post_login_wrong_password_shows_error(login_client):
     assert "<form" in body  # form is re-rendered
 
 
-def test_post_login_empty_password_shows_error(login_client):
+@pytest.mark.asyncio
+async def test_post_login_empty_password_shows_error(login_client, provider):
+    await _register_test_client(provider)
+
     resp = login_client.post(
         "/login",
         data={
@@ -134,3 +149,38 @@ def test_post_login_empty_password_shows_error(login_client):
     )
     assert resp.status_code == 200
     assert "Invalid password" in resp.text
+
+
+# ── POST /login with unknown client ──────────────────────────────────
+
+
+def test_post_login_unknown_client_shows_error(login_client):
+    resp = login_client.post(
+        "/login",
+        data={
+            **_login_params(),
+            "password": "test-password",
+        },
+        follow_redirects=False,
+    )
+    assert resp.status_code == 200
+    assert "Unknown client" in resp.text
+
+
+# ── POST /login with invalid redirect_uri ─────────────────────────────
+
+
+@pytest.mark.asyncio
+async def test_post_login_invalid_redirect_uri_shows_error(login_client, provider):
+    await _register_test_client(provider, redirect_uri="http://localhost:3000/other")
+
+    resp = login_client.post(
+        "/login",
+        data={
+            **_login_params(),
+            "password": "test-password",
+        },
+        follow_redirects=False,
+    )
+    assert resp.status_code == 200
+    assert "Invalid redirect URI" in resp.text
