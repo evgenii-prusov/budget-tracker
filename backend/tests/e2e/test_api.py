@@ -698,3 +698,83 @@ def test_list_accounts_includes_balance(client):
     balances = {a["name"]: Decimal(a["balance"]) for a in data}
     assert balances["Account One"] == Decimal("50")
     assert balances["Account Two"] == Decimal("200")
+
+
+def test_update_account_reject_empty_body(client):
+    """AccountUpdate must reject empty PATCH body {} with 422."""
+    create_response = client.post(
+        "/accounts",
+        json={"name": "Test Account", "currency": "EUR", "initial_balance": "100"},
+    )
+    account_id = create_response.json()["account_id"]
+
+    response = client.patch(f"/accounts/{account_id}", json={})
+    assert response.status_code == 422
+
+
+def test_update_account_reject_null_name(client):
+    """AccountUpdate must reject explicit name=null with 422."""
+    create_response = client.post(
+        "/accounts",
+        json={"name": "Test Account", "currency": "EUR", "initial_balance": "100"},
+    )
+    account_id = create_response.json()["account_id"]
+
+    response = client.patch(f"/accounts/{account_id}", json={"name": None})
+    assert response.status_code == 422
+
+
+def test_create_account_description_too_long_rejected(client):
+    """create_account must reject description > 500 chars with 422."""
+    long_description = "a" * 501
+    response = client.post(
+        "/accounts",
+        json={
+            "name": "Long Desc Account",
+            "currency": "EUR",
+            "initial_balance": "0",
+            "description": long_description,
+        },
+    )
+    assert response.status_code == 422
+
+
+def test_update_account_description_too_long_rejected(client):
+    """update_account must reject description > 500 chars with 422."""
+    create_response = client.post(
+        "/accounts",
+        json={"name": "Test Account", "currency": "EUR", "initial_balance": "100"},
+    )
+    account_id = create_response.json()["account_id"]
+
+    long_description = "a" * 501
+    response = client.patch(
+        f"/accounts/{account_id}",
+        json={"description": long_description},
+    )
+    assert response.status_code == 422
+
+
+def test_update_account_is_atomic(client, monkeypatch):
+    """Combined name+description PATCH is atomic (rollback on failure)."""
+
+    def mock_update_account(*args, **kwargs):
+        raise Exception("Simulated service failure before commit")
+
+    monkeypatch.setattr("app.api.routers.accounts.update_account", mock_update_account)
+
+    create_response = client.post(
+        "/accounts",
+        json={"name": "Original Name", "currency": "EUR", "initial_balance": "100"},
+    )
+    account_id = create_response.json()["account_id"]
+
+    with pytest.raises(Exception, match="Simulated service failure before commit"):
+        client.patch(
+            f"/accounts/{account_id}",
+            json={"name": "New Name", "description": "New Description"},
+        )
+
+    # Check if name was NOT persisted
+    response = client.get(f"/accounts/{account_id}")
+    assert response.json()["name"] == "Original Name"

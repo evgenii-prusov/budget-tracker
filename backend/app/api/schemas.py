@@ -1,7 +1,7 @@
 from decimal import Decimal
 from datetime import date
 
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, Field, ConfigDict, model_validator
 
 from app.domain.model import CategoryType, PostingType
 
@@ -17,7 +17,7 @@ class AccountCreate(BaseModel):
     currency: str
     initial_balance: Decimal = Decimal(0)
     is_savings: bool = False
-    description: str | None = None
+    description: str | None = Field(None, max_length=500)
 
 
 class AccountUpdate(BaseModel):
@@ -28,7 +28,16 @@ class AccountUpdate(BaseModel):
         pattern=r"^[A-Za-z0-9]+(?:[ _-][A-Za-z0-9]+)*$",
         description="New account name (3-100 characters, must start with alphanumeric)",
     )
-    description: str | None = None
+    description: str | None = Field(None, max_length=500)
+
+    @model_validator(mode="before")
+    @classmethod
+    def check_at_least_one_field(cls, data: dict) -> dict:
+        if not data:
+            raise ValueError("At least one field must be provided for update")
+        if "name" in data and data["name"] is None:
+            raise ValueError("Account name cannot be null")
+        return data
 
 
 class AccountResponse(BaseModel):

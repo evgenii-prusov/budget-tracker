@@ -19,8 +19,7 @@ from app.service_layer.services import create_account
 from app.service_layer.services import delete_account
 from app.service_layer.services import get_account
 from app.service_layer.services import list_accounts as list_accounts_service
-from app.service_layer.services import update_account_name
-from app.service_layer.services import update_account_description
+from app.service_layer.services import update_account
 
 
 router = APIRouter()
@@ -53,6 +52,8 @@ def create_account_endpoint(account: AccountCreate, uow: UoWDep):
         raise HTTPException(status_code=409, detail=str(exc))
     except (InvalidInitialBalanceError, InvalidCurrencyError) as exc:
         raise HTTPException(status_code=400, detail=str(exc))
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
 
     return new_account
 
@@ -61,21 +62,19 @@ def create_account_endpoint(account: AccountCreate, uow: UoWDep):
 def update_account_endpoint(account_id: str, account_update: AccountUpdate, uow: UoWDep):
     fields = account_update.model_fields_set
     try:
-        account = None
-        if "name" in fields and account_update.name is not None:
-            account = update_account_name(
-                uow=uow, account_id=account_id, new_name=account_update.name
-            )
-        if "description" in fields:
-            account = update_account_description(
-                uow=uow, account_id=account_id, description=account_update.description
-            )
-        if account is None:
-            account = get_account(uow=uow, account_id=account_id)
+        account = update_account(
+            uow=uow,
+            account_id=account_id,
+            name=account_update.name if "name" in fields else None,
+            description=account_update.description if "description" in fields else None,
+            update_description="description" in fields,
+        )
     except AccountNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc))
     except DuplicateAccountNameError as exc:
         raise HTTPException(status_code=409, detail=str(exc))
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
 
     return account
 

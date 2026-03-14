@@ -40,8 +40,7 @@ from app.service_layer.services import create_posting
 from app.service_layer.services import delete_posting
 from app.service_layer.services import get_posting
 from app.service_layer.services import list_postings
-from app.service_layer.services import update_account_name
-from app.service_layer.services import update_account_description
+from app.service_layer.services import update_account
 from app.service_layer.services import create_transfer
 from app.service_layer.services import delete_transfer
 from app.service_layer.services import get_transfer
@@ -268,10 +267,10 @@ class TestUpdateAccountName:
         )
         uow.committed = False
 
-        updated_account = update_account_name(
+        updated_account = update_account(
             uow,
             account_id=account.account_id,
-            new_name="New Name",
+            name="New Name",
         )
 
         assert updated_account.name == "New Name"
@@ -294,10 +293,10 @@ class TestUpdateAccountName:
         uow.committed = False
 
         with pytest.raises(DuplicateAccountNameError) as exc_info:
-            update_account_name(
+            update_account(
                 uow,
                 account_id=account1.account_id,
-                new_name="Account 2",
+                name="Account 2",
             )
 
         assert "already exists" in str(exc_info.value)
@@ -307,10 +306,10 @@ class TestUpdateAccountName:
     def test_update_account_name_not_found_raises_error(self):
         uow = FakeUnitOfWork()
         with pytest.raises(AccountNotFoundError) as exc_info:
-            update_account_name(
+            update_account(
                 uow,
                 account_id="nonexistent-id",
-                new_name="New Name",
+                name="New Name",
             )
 
         assert "not found" in str(exc_info.value)
@@ -351,10 +350,11 @@ class TestUpdateAccountDescription:
         )
         uow.committed = False
 
-        updated = update_account_description(
+        updated = update_account(
             uow,
             account_id=account.account_id,
             description="Updated description",
+            update_description=True,
         )
 
         assert updated.description == "Updated description"
@@ -371,10 +371,11 @@ class TestUpdateAccountDescription:
         )
         uow.committed = False
 
-        updated = update_account_description(
+        updated = update_account(
             uow,
             account_id=account.account_id,
             description=None,
+            update_description=True,
         )
 
         assert updated.description is None
@@ -383,10 +384,11 @@ class TestUpdateAccountDescription:
     def test_update_account_description_not_found_raises_error(self):
         uow = FakeUnitOfWork()
         with pytest.raises(AccountNotFoundError):
-            update_account_description(
+            update_account(
                 uow,
                 account_id="nonexistent-id",
                 description="Some description",
+                update_description=True,
             )
         assert uow.committed is False
 
