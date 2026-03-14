@@ -14,10 +14,10 @@ from decimal import Decimal, InvalidOperation
 from typing import TYPE_CHECKING
 
 from fastmcp import Context, FastMCP
-from fastmcp.server.auth import AccessToken, TokenVerifier
 
 from app.adapters.unit_of_work import SqlAlchemyUnitOfWork
-from app.core.config import get_api_key
+from app.core.config import get_mcp_base_url, get_oauth_owner_password_hash
+from app.mcp.oauth_provider import PostgresOAuthProvider
 from app.core.db import Database
 from app.domain.exceptions import (
     AccountHasPostingsError,
@@ -52,19 +52,7 @@ if TYPE_CHECKING:
 
 # ── Auth ──────────────────────────────────────────────────────────────
 
-
-class _BearerTokenVerifier(TokenVerifier):
-    """Validates a static Bearer API key. Reads API_KEY lazily at verification time."""
-
-    async def verify_token(self, token: str) -> AccessToken | None:
-        api_key = get_api_key()
-        if token == api_key:
-            return AccessToken(
-                token=token,
-                client_id="budget-tracker-user",
-                scopes=["all"],
-            )
-        return None
+# OAuth provider is constructed lazily in _build_auth() below.
 
 
 # ── UoW helper ────────────────────────────────────────────────────────
@@ -633,14 +621,24 @@ def _delete_category_impl(
 # ── FastMCP instance & tool registration ──────────────────────────────
 
 
-def _build_auth() -> _BearerTokenVerifier:
-    return _BearerTokenVerifier()
+def _build_auth() -> PostgresOAuthProvider:
+    return PostgresOAuthProvider(
+        owner_password_hash=get_oauth_owner_password_hash(),
+        base_url=get_mcp_base_url(),
+    )
+
+
+# Store a module-level reference so the lifespan can inject the engine
+_oauth_provider: PostgresOAuthProvider | None = None
 
 
 @asynccontextmanager
 async def _mcp_lifespan(server):
     db = Database()
     db.init()
+    # Give the OAuth provider its DB engine now that we have one
+    if _oauth_provider is not None:
+        _oauth_provider.set_engine(db.engine)
     try:
         yield {"db": db}
     finally:
@@ -1048,7 +1046,10 @@ def _register_tools(mcp: FastMCP) -> None:
             return _delete_category_impl(uow, name=name, category_type_str=category_type)
 
 
-def _create_mcp() -> FastMCP:
+def _create_mcp() -> tuple[FastMCP, PostgresOAuthProvider]:
+    global _oauth_provider
+    auth = _build_auth()
+    _oauth_provider = auth
     mcp = FastMCP(
         "Budget Tracker",
         instructions=(
@@ -1060,14 +1061,19 @@ def _create_mcp() -> FastMCP:
             "delete postings, delete transfers, "
             "delete accounts, and delete categories."
         ),
-        auth=_build_auth(),
+        auth=auth,
         lifespan=_mcp_lifespan,
     )
     _register_tools(mcp)
-    return mcp
+    return mcp, auth
 
 
 def create_mcp_app():
-    """Create the ASGI app for mounting on FastAPI."""
-    mcp = _create_mcp()
-    return mcp.http_app(path="/", transport="sse")
+    """Create the ASGI app for mounting on FastAPI.
+
+    Returns (starlette_app, oauth_provider) so main.py can mount
+    well-known routes at root and add the login route.
+    """
+    mcp, auth = _create_mcp()
+    http_app = mcp.http_app(path="/", transport="streamable-http")
+    return http_app, auth
