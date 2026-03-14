@@ -1,6 +1,7 @@
 .PHONY: help install run test coverage check format lint typecheck sync clean \
         db-up db-down db-migrate db-revision db-seed \
-        docker-build docker-up docker-down docker-logs dev-up dev-down
+        docker-build docker-up docker-down docker-logs dev-up dev-down \
+        azure-provision deploy deploy-logs deploy-status
 
 help:
 	@echo "Budget Tracker - Available Commands"
@@ -28,6 +29,12 @@ help:
 	@echo "make docker-up       - Start Postgres + backend via Docker Compose"
 	@echo "make docker-down     - Stop and remove all Docker Compose services"
 	@echo "make docker-logs     - Tail logs from all Docker Compose services"
+	@echo ""
+	@echo "Azure Container Apps"
+	@echo "make azure-provision - One-time: create Azure infra (rg, env, app)"
+	@echo "make deploy          - Build, push image to ghcr.io, update Azure app"
+	@echo "make deploy-logs     - Tail live logs from the Azure container app"
+	@echo "make deploy-status   - Show running status and URL of the Azure app"
 
 install:
 	cd backend && uv sync
@@ -92,3 +99,28 @@ docker-down:
 
 docker-logs:
 	docker compose logs -f
+
+# ---------------------------------------------------------------------------
+# Azure Container Apps
+# ---------------------------------------------------------------------------
+# Requires: az CLI (az login), GITHUB_TOKEN env var (PAT: write:packages + read:packages)
+# Resource group: budget-tracker-rg  |  App: budget-tracker
+
+azure-provision:
+	bash scripts/azure-provision.sh
+
+deploy:
+	bash scripts/azure-deploy.sh
+
+deploy-logs:
+	az containerapp logs show \
+		--name budget-tracker \
+		--resource-group budget-tracker-rg \
+		--follow
+
+deploy-status:
+	az containerapp show \
+		--name budget-tracker \
+		--resource-group budget-tracker-rg \
+		--query "{status:properties.runningStatus, replicas:properties.latestRevisionFqdn, url:properties.configuration.ingress.fqdn}" \
+		--output table
