@@ -73,6 +73,14 @@ class FakeAccountRepository(AbstractAccountRepository):
     def delete(self, account: Account) -> None:
         self._accounts.remove(account)
 
+    def delete_posting_by_id(self, posting_id: str) -> bool:
+        for acc in self._accounts:
+            posting = acc.get_posting(posting_id)
+            if posting is not None:
+                acc.remove_posting(posting_id)
+                return True
+        return False
+
 
 class FakeTransferRepository(AbstractTransferRepository):
     def __init__(self):

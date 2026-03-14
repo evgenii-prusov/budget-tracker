@@ -27,3 +27,8 @@ class AbstractAccountRepository(abc.ABC):
     @abc.abstractmethod
     def delete(self, account: Account) -> None:
         raise NotImplementedError()
+
+    @abc.abstractmethod
+    def delete_posting_by_id(self, posting_id: str) -> bool:
+        """Delete a posting directly by ID. Returns True if found and deleted, False otherwise."""
+        raise NotImplementedError()

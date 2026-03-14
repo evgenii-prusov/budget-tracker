@@ -1,4 +1,5 @@
-from sqlalchemy import select
+from sqlalchemy import delete, select
+from sqlalchemy.engine import CursorResult
 from sqlalchemy.orm import Session, selectinload
 
 from app.domain.model import Account
@@ -73,3 +74,9 @@ class SqlAlchemyAccountRepository(AbstractAccountRepository):
 
     def delete(self, account: Account) -> None:
         self.session.delete(account)
+
+    def delete_posting_by_id(self, posting_id: str) -> bool:
+        result: CursorResult = self.session.execute(  # type: ignore[assignment]
+            delete(postings).where(postings.c.posting_id == posting_id)
+        )
+        return result.rowcount > 0

@@ -203,10 +203,9 @@ def list_postings(
 
 def delete_posting(uow: AbstractUnitOfWork, *, posting_id: str) -> None:
     with uow:
-        account = uow.accounts.get_by_posting_id(posting_id)
-        if account is None:
+        found = uow.accounts.delete_posting_by_id(posting_id)
+        if not found:
             raise PostingNotFoundError(f"Posting with id '{posting_id}' not found")
-        account.remove_posting(posting_id)
         uow.commit()
         logger.info("Deleted posting id: %s", posting_id)
 
