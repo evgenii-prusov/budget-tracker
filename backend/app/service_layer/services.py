@@ -62,6 +62,7 @@ def create_account(
     currency: str,
     initial_balance: Decimal,
     is_savings: bool = False,
+    description: str | None = None,
 ) -> Account:
     with uow:
         if initial_balance < 0:
@@ -79,6 +80,7 @@ def create_account(
             currency=currency,
             initial_balance=initial_balance,
             is_savings=is_savings,
+            description=description,
         )
         uow.accounts.add(new_account)
         uow.commit()
@@ -90,6 +92,20 @@ def create_account(
         )
 
         return new_account
+
+
+def update_account_description(
+    uow: AbstractUnitOfWork, *, account_id: str, description: str | None
+) -> Account:
+    with uow:
+        account = uow.accounts.get(account_id)
+        if account is None:
+            raise AccountNotFoundError(f"Account with id '{account_id}' not found")
+
+        account.description = description
+        uow.commit()
+        logger.info("Updated account description for id: %s", account_id)
+        return account
 
 
 def delete_account(uow: AbstractUnitOfWork, *, account_id: str) -> None:
