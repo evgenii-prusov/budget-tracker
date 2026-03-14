@@ -1,12 +1,12 @@
 .PHONY: help install run test coverage check format lint typecheck sync clean \
         db-up db-down db-migrate db-revision db-seed \
-        docker-build docker-up docker-down docker-logs
+        docker-build docker-up docker-down docker-logs dev-up dev-down
 
 help:
 	@echo "Budget Tracker - Available Commands"
 	@echo "===================================="
 	@echo "make install         - Install all dependencies"
-	@echo "make run             - Start backend server"
+	@echo "make run             - Start backend server (local dev)"
 	@echo "make test            - Run all tests  (V=1 for verbose)"
 	@echo "make coverage        - Run tests with coverage  (HTML=1 for html report)"
 	@echo "make check           - Run prek checks on all files"
@@ -16,17 +16,17 @@ help:
 	@echo "make sync            - Sync with remote master branch"
 	@echo "make clean           - Remove generated files"
 	@echo ""
-	@echo "Development database"
-	@echo "make db-up           - Start Postgres (dev)"
-	@echo "make db-down         - Stop Postgres (dev)"
+	@echo "Development (local backend + Docker Postgres)"
+	@echo "make dev-up          - Start Postgres only (for local dev)"
+	@echo "make dev-down        - Stop Postgres only"
 	@echo "make db-migrate      - Run Alembic migrations"
 	@echo "make db-revision     - Create new migration (msg=\"description\")"
 	@echo "make db-seed         - Seed database with sample data"
 	@echo ""
-	@echo "Docker (production)"
+	@echo "Production (fully Dockerised)"
 	@echo "make docker-build    - Build the backend Docker image"
 	@echo "make docker-up       - Start Postgres + backend via Docker Compose"
-	@echo "make docker-down     - Stop and remove Docker Compose services"
+	@echo "make docker-down     - Stop and remove all Docker Compose services"
 	@echo "make docker-logs     - Tail logs from all Docker Compose services"
 
 install:
@@ -62,11 +62,15 @@ clean:
 	find . -type d -name __pycache__ -exec rm -rf {} +
 	find . -type f -name "*.pyc" -delete
 
-db-up:
+dev-up:
 	docker compose up -d postgres
 
-db-down:
-	docker compose down
+dev-down:
+	docker compose stop postgres
+
+db-up: dev-up
+
+db-down: dev-down
 
 db-migrate:
 	cd backend && uv run alembic upgrade head
