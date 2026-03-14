@@ -41,6 +41,7 @@ from app.service_layer.services import delete_posting
 from app.service_layer.services import get_posting
 from app.service_layer.services import list_postings
 from app.service_layer.services import update_account_name
+from app.service_layer.services import update_account_description
 from app.service_layer.services import create_transfer
 from app.service_layer.services import delete_transfer
 from app.service_layer.services import get_transfer
@@ -313,6 +314,80 @@ class TestUpdateAccountName:
             )
 
         assert "not found" in str(exc_info.value)
+        assert uow.committed is False
+
+
+class TestCreateAccountDescription:
+    def test_create_account_with_description(self):
+        uow = FakeUnitOfWork()
+        account = create_account(
+            uow,
+            name="My Account",
+            currency="USD",
+            initial_balance=Decimal(0),
+            description="My main spending account",
+        )
+        assert account.description == "My main spending account"
+
+    def test_create_account_description_defaults_to_none(self):
+        uow = FakeUnitOfWork()
+        account = create_account(
+            uow,
+            name="My Account",
+            currency="USD",
+            initial_balance=Decimal(0),
+        )
+        assert account.description is None
+
+
+class TestUpdateAccountDescription:
+    def test_update_account_description_success(self):
+        uow = FakeUnitOfWork()
+        account = create_account(
+            uow,
+            name="My Account",
+            currency="USD",
+            initial_balance=Decimal(0),
+        )
+        uow.committed = False
+
+        updated = update_account_description(
+            uow,
+            account_id=account.account_id,
+            description="Updated description",
+        )
+
+        assert updated.description == "Updated description"
+        assert uow.committed is True
+
+    def test_update_account_description_to_none(self):
+        uow = FakeUnitOfWork()
+        account = create_account(
+            uow,
+            name="My Account",
+            currency="USD",
+            initial_balance=Decimal(0),
+            description="Old description",
+        )
+        uow.committed = False
+
+        updated = update_account_description(
+            uow,
+            account_id=account.account_id,
+            description=None,
+        )
+
+        assert updated.description is None
+        assert uow.committed is True
+
+    def test_update_account_description_not_found_raises_error(self):
+        uow = FakeUnitOfWork()
+        with pytest.raises(AccountNotFoundError):
+            update_account_description(
+                uow,
+                account_id="nonexistent-id",
+                description="Some description",
+            )
         assert uow.committed is False
 
 
