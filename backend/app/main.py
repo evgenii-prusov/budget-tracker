@@ -33,7 +33,25 @@ async def lifespan(app: FastAPI):
     app.state.db.dispose()
 
 
+class _McpSlashMiddleware:
+    """Rewrite /mcp to /mcp/ so the Mount matches without a 307 redirect.
+
+    Starlette's Mount returns a 307 for bare mount paths (e.g. /mcp → /mcp/).
+    Many OAuth clients (including Claude.ai) drop the Authorization header on
+    redirects, breaking authenticated MCP requests.
+    """
+
+    def __init__(self, app):
+        self.app = app
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] == "http" and scope["path"] == "/mcp":
+            scope["path"] = "/mcp/"
+        await self.app(scope, receive, send)
+
+
 app = FastAPI(lifespan=lifespan)
+app.add_middleware(_McpSlashMiddleware)
 app.add_middleware(LoggingMiddleware)
 app.include_router(accounts.router, dependencies=[Depends(verify_api_key)])
 app.include_router(categories.router, dependencies=[Depends(verify_api_key)])
