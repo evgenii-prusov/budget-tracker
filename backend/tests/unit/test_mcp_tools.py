@@ -14,6 +14,8 @@ from app.mcp.server import (
     _add_income_impl,
     _create_account_impl,
     _create_category_impl,
+    _delete_account_impl,
+    _delete_category_impl,
     _get_spending_report_impl,
     _list_accounts_impl,
     _list_categories_impl,
@@ -863,3 +865,78 @@ class TestListTransfersImpl:
         lines = result.split("\n")
         assert "2025-01-05" in lines[0]
         assert "2025-01-01" in lines[1]
+
+
+class TestDeleteAccountImpl:
+    def test_delete_account_success(self):
+        uow = FakeUnitOfWork()
+        uow.accounts.add(Account(None, "Cash EUR", "EUR", Decimal("0")))
+
+        result = _delete_account_impl(uow, account_name="Cash EUR")
+
+        assert result == "Deleted account 'Cash EUR'."
+
+    def test_delete_account_not_found_returns_friendly_message(self):
+        uow = FakeUnitOfWork()
+
+        result = _delete_account_impl(uow, account_name="Nonexistent")
+
+        assert "Nonexistent" in result
+        assert "No account named" in result
+
+    def test_delete_account_with_postings_returns_error(self):
+        from app.domain.model import PostingType
+
+        uow = FakeUnitOfWork()
+        account = Account(None, "Cash EUR", "EUR", Decimal("100"))
+        uow.accounts.add(account)
+        account.record_posting(
+            Decimal("50"), JAN_01, posting_type=PostingType.INCOME, category_id=None
+        )
+
+        result = _delete_account_impl(uow, account_name="Cash EUR")
+
+        assert "posting" in result.lower() or "Cash EUR" in result
+
+
+class TestDeleteCategoryImpl:
+    def test_delete_parent_category_success(self):
+        uow = FakeUnitOfWork()
+        uow.categories.add(Category(None, "Food", CategoryType.EXPENSE, None))
+
+        result = _delete_category_impl(uow, name="Food", category_type_str="EXPENSE")
+
+        assert result == "Deleted EXPENSE category 'Food'."
+
+    def test_delete_subcategory_by_parent_slash_name(self):
+        uow = FakeUnitOfWork()
+        parent = Category(None, "Food", CategoryType.EXPENSE, None)
+        uow.categories.add(parent)
+        uow.categories.add(Category(None, "Groceries", CategoryType.EXPENSE, parent.category_id))
+
+        result = _delete_category_impl(uow, name="Food/Groceries", category_type_str="EXPENSE")
+
+        assert result == "Deleted EXPENSE category 'Food/Groceries'."
+
+    def test_delete_category_not_found_returns_friendly_message(self):
+        uow = FakeUnitOfWork()
+
+        result = _delete_category_impl(uow, name="Nonexistent", category_type_str="EXPENSE")
+
+        assert "Nonexistent" in result
+        assert "No parent category named" in result
+
+    def test_delete_subcategory_parent_not_found(self):
+        uow = FakeUnitOfWork()
+
+        result = _delete_category_impl(uow, name="Food/Groceries", category_type_str="EXPENSE")
+
+        assert "Food" in result
+
+    def test_delete_category_invalid_type_returns_friendly_message(self):
+        uow = FakeUnitOfWork()
+
+        result = _delete_category_impl(uow, name="Food", category_type_str="INVALID")
+
+        assert "Invalid category type" in result
+        assert "INVALID" in result

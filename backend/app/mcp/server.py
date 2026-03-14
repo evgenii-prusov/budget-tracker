@@ -41,6 +41,7 @@ from app.mcp.resolvers import (
     resolve_account_by_name,
     resolve_parent_category_by_name,
     resolve_subcategory_by_name,
+    resolve_subcategory_by_parent_and_name,
 )
 from app.service_layer import services
 from app.service_layer.reports import get_spending_report
@@ -511,9 +512,10 @@ def _delete_account_impl(
     *,
     account_name: str,
 ) -> str:
-    account = resolve_account_by_name(uow, account_name)
-    if not account:
-        return f"Account '{account_name}' not found."
+    try:
+        account = resolve_account_by_name(uow, account_name)
+    except ValueError as exc:
+        return str(exc)
 
     try:
         services.delete_account(uow, account_id=account.account_id)
@@ -534,15 +536,17 @@ def _delete_category_impl(
     except (KeyError, AttributeError):
         return f"Invalid category type '{category_type_str}'. Use 'EXPENSE' or 'INCOME'."
 
-    # Check if it's a subcategory (name contains '/')
-    if "/" in name:
-        _, sub_name = name.split("/", 1)
-        category = resolve_subcategory_by_name(uow, sub_name, category_type)
-    else:
-        category = resolve_parent_category_by_name(uow, name, category_type)
-
-    if not category:
-        return f"{category_type_str.capitalize()} category '{name}' not found."
+    try:
+        # Check if it's a subcategory (name contains '/')
+        if "/" in name:
+            parent_name, sub_name = name.split("/", 1)
+            category = resolve_subcategory_by_parent_and_name(
+                uow, parent_name.strip(), sub_name.strip(), category_type
+            )
+        else:
+            category = resolve_parent_category_by_name(uow, name, category_type)
+    except ValueError as exc:
+        return str(exc)
 
     try:
         services.delete_category(uow, category_id=category.category_id)
