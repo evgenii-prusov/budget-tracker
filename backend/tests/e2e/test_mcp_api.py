@@ -219,6 +219,7 @@ async def test_update_account(mcp_client):
             "account_name": "To Be Updated",
             "new_name": "Updated Name",
             "description": "New description",
+            "update_description": True,
         },
     )
     assert "Updated account 'To Be Updated'" in result.content[0].text
@@ -233,9 +234,58 @@ async def test_update_account(mcp_client):
     # Try to update non-existent account
     result_not_found = await mcp_client.call_tool(
         "update_account",
-        {"account_name": "Non Existent"},
+        {"account_name": "Non Existent", "new_name": "New Name"},
     )
     assert "No account named" in result_not_found.content[0].text
+
+
+@pytest.mark.asyncio
+async def test_update_account_clear_description(mcp_client):
+    """Test clearing an account's description via update_description=True."""
+    await mcp_client.call_tool(
+        "create_account",
+        {
+            "name": "Clear Desc",
+            "currency": "USD",
+            "description": "Has description",
+        },
+    )
+
+    # Clear description
+    result = await mcp_client.call_tool(
+        "update_account",
+        {
+            "account_name": "Clear Desc",
+            "description": None,
+            "update_description": True,
+        },
+    )
+    assert "description to null" in result.content[0].text
+
+    # Verify via list_accounts
+    list_result = await mcp_client.call_tool("list_accounts", {})
+    text = list_result.content[0].text
+    # We check that the specific line for this account doesn't show the description
+    # list_accounts formats description as " (Old description)" or similar.
+    # In server.py: lines.append(f"  • {acc.name}: {acc.balance} {acc.currency}{desc_str}")
+    # where desc_str = f" ({acc.description})" if acc.description else ""
+    assert "Clear Desc:" in text
+    assert "(Has description)" not in text
+
+
+@pytest.mark.asyncio
+async def test_update_account_no_op(mcp_client):
+    """Test calling update_account with no changes provided."""
+    await mcp_client.call_tool(
+        "create_account",
+        {"name": "No Op", "currency": "EUR"},
+    )
+
+    result = await mcp_client.call_tool(
+        "update_account",
+        {"account_name": "No Op"},
+    )
+    assert "No updates provided" in result.content[0].text
 
 
 @pytest.mark.asyncio
