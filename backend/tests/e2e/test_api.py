@@ -593,6 +593,91 @@ def test_account_balance_reflects_postings(client):
     assert Decimal(data["balance"]) == Decimal("70")
 
 
+def test_create_account_with_description(client):
+    """POST with description stores and returns it."""
+    response = client.post(
+        "/accounts",
+        json={
+            "name": "My Account",
+            "currency": "EUR",
+            "initial_balance": "0",
+            "description": "My main spending account",
+        },
+    )
+    assert response.status_code == 201
+    data = response.json()
+    assert data["description"] == "My main spending account"
+
+
+def test_create_account_description_defaults_to_none(client):
+    """POST without description returns null description."""
+    response = client.post(
+        "/accounts",
+        json={"name": "My Account", "currency": "EUR", "initial_balance": "0"},
+    )
+    assert response.status_code == 201
+    assert response.json()["description"] is None
+
+
+def test_update_account_description_only(client):
+    """PATCH with only description updates it without touching name."""
+    create_resp = client.post(
+        "/accounts",
+        json={"name": "My Account", "currency": "EUR", "initial_balance": "0"},
+    )
+    account_id = create_resp.json()["account_id"]
+
+    response = client.patch(
+        f"/accounts/{account_id}",
+        json={"description": "A fresh description"},
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["description"] == "A fresh description"
+    assert data["name"] == "My Account"  # unchanged
+
+
+def test_update_account_name_preserves_description(client):
+    """PATCH with only name does not clear an existing description."""
+    create_resp = client.post(
+        "/accounts",
+        json={
+            "name": "My Account",
+            "currency": "EUR",
+            "initial_balance": "0",
+            "description": "Keep me",
+        },
+    )
+    account_id = create_resp.json()["account_id"]
+
+    response = client.patch(
+        f"/accounts/{account_id}",
+        json={"name": "Renamed Account"},
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["name"] == "Renamed Account"
+    assert data["description"] == "Keep me"  # preserved
+
+
+def test_update_account_name_and_description(client):
+    """PATCH with both name and description updates both."""
+    create_resp = client.post(
+        "/accounts",
+        json={"name": "Original", "currency": "EUR", "initial_balance": "0"},
+    )
+    account_id = create_resp.json()["account_id"]
+
+    response = client.patch(
+        f"/accounts/{account_id}",
+        json={"name": "Updated", "description": "New description"},
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["name"] == "Updated"
+    assert data["description"] == "New description"
+
+
 def test_list_accounts_includes_balance(client):
     """GET /accounts returns balance field for each account."""
     client.post(

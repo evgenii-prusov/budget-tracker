@@ -20,6 +20,7 @@ from app.service_layer.services import delete_account
 from app.service_layer.services import get_account
 from app.service_layer.services import list_accounts as list_accounts_service
 from app.service_layer.services import update_account_name
+from app.service_layer.services import update_account_description
 
 
 router = APIRouter()
@@ -57,17 +58,26 @@ def create_account_endpoint(account: AccountCreate, uow: UoWDep):
 
 
 @router.patch("/accounts/{account_id}", response_model=AccountResponse)
-def update_account_name_endpoint(account_id: str, account_update: AccountUpdate, uow: UoWDep):
+def update_account_endpoint(account_id: str, account_update: AccountUpdate, uow: UoWDep):
+    fields = account_update.model_fields_set
     try:
-        updated_account = update_account_name(
-            uow=uow, account_id=account_id, new_name=account_update.name
-        )
+        account = None
+        if "name" in fields and account_update.name is not None:
+            account = update_account_name(
+                uow=uow, account_id=account_id, new_name=account_update.name
+            )
+        if "description" in fields:
+            account = update_account_description(
+                uow=uow, account_id=account_id, description=account_update.description
+            )
+        if account is None:
+            account = get_account(uow=uow, account_id=account_id)
     except AccountNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc))
     except DuplicateAccountNameError as exc:
         raise HTTPException(status_code=409, detail=str(exc))
 
-    return updated_account
+    return account
 
 
 @router.delete("/accounts/{account_id}", status_code=204)
