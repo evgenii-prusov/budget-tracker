@@ -300,6 +300,37 @@ class TestCreateAccountImpl:
         )
         assert "negative" in result.lower()
 
+    def test_create_account_with_description(self):
+        uow = FakeUnitOfWork()
+        result = _create_account_impl(
+            uow,
+            name="My Account",
+            currency="EUR",
+            initial_balance=Decimal("0"),
+            description="My main spending account",
+        )
+        assert "Created account 'My Account'" in result
+        acc = uow.accounts.get_by_name("My Account")
+        assert acc is not None
+        assert acc.description == "My main spending account"
+
+
+class TestListAccountsImplDescription:
+    def test_shows_description_when_present(self):
+        uow = FakeUnitOfWork()
+        uow.accounts.add(
+            Account(None, "Cash EUR", "EUR", Decimal("1000"), description="Day-to-day spending")
+        )
+        result = _list_accounts_impl(uow)
+        assert "Day-to-day spending" in result
+
+    def test_no_description_shown_when_absent(self):
+        uow = FakeUnitOfWork()
+        uow.accounts.add(Account(None, "Cash EUR", "EUR", Decimal("1000")))
+        result = _list_accounts_impl(uow)
+        assert "Cash EUR" in result
+        # Just verify it doesn't crash and shows the account name
+
 
 class TestAddExpenseImpl:
     def test_records_expense_by_currency(self):

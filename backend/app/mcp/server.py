@@ -91,6 +91,7 @@ def _create_account_impl(
     currency: str,
     initial_balance: Decimal,
     is_savings: bool = False,
+    description: str | None = None,
 ) -> str:
     try:
         account = services.create_account(
@@ -99,6 +100,7 @@ def _create_account_impl(
             currency=currency,
             initial_balance=initial_balance,
             is_savings=is_savings,
+            description=description,
         )
     except (DuplicateAccountNameError, InvalidInitialBalanceError, InvalidCurrencyError) as exc:
         return str(exc)
@@ -323,7 +325,8 @@ def _list_accounts_impl(
     lines = []
     for acc in accounts:
         tag = " [savings]" if acc.is_savings else ""
-        lines.append(f"• {acc.name}: {acc.balance} {acc.currency}{tag}")
+        desc = f" — {acc.description}" if acc.description else ""
+        lines.append(f"• {acc.name}: {acc.balance} {acc.currency}{tag}{desc}")
     return "\n".join(lines)
 
 
@@ -585,6 +588,7 @@ def _register_tools(mcp: FastMCP) -> None:
         currency: str,
         initial_balance: str = "0.00",
         is_savings: bool = False,
+        description: str | None = None,
     ) -> str:
         """Create a new bank account, checking account, or savings account.
 
@@ -593,6 +597,7 @@ def _register_tools(mcp: FastMCP) -> None:
             currency: ISO currency code (e.g. 'EUR', 'USD', 'GBP').
             initial_balance: Starting balance as a decimal string (e.g. '1000.00').
             is_savings: Whether this is a savings account (true/false).
+            description: Optional free-text description of the account's purpose.
         """
         try:
             balance = Decimal(initial_balance)
@@ -606,6 +611,7 @@ def _register_tools(mcp: FastMCP) -> None:
                 currency=currency,
                 initial_balance=balance,
                 is_savings=is_savings,
+                description=description,
             )
 
     @mcp.tool()
