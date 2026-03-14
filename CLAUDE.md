@@ -5,6 +5,21 @@ This project uses **bd** (beads) for issue tracking. Run `bd onboard` to get sta
 ## Development Methodology
 - Follow TDD (Test-Driven Development): write tests first, verify they fail, then write implementation to make them pass.
 
+## Issue Tracking Workflow
+
+### Multi-task features → use an EPIC
+When implementing a feature that spans multiple tasks (domain → ORM → service → API → MCP etc.), always:
+1. **Create an EPIC first**: `bd create --title="Feature name" --type=epic`
+2. **Create sub-tasks** and link them to the EPIC: `bd dep add <task-id> <epic-id>` (task depends on epic being in-progress)
+3. **Close sub-tasks** as they are done (after code is committed)
+4. **Keep the EPIC open** (`in_progress`) until the PR is merged
+5. **Close the EPIC** only after PR merge: `bd close <epic-id> --reason="PR #N merged"`
+
+### Never close tracking before PR merge
+- Sub-tasks can be closed when their code is committed and pushed
+- The EPIC must remain `in_progress` while the PR is open (CI may fail, review comments may require changes)
+- After PR merge: close the EPIC
+
 ## Python Execution
 - All python commands must be executed via `uv` (e.g., `uv run python`, `uv run pytest`).
 

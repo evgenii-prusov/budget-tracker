@@ -104,6 +104,22 @@ bd close bd-42 --reason "Completed" --json
 
 **IMPORTANT**: Do NOT close issues when creating a PR. The issue must stay `in_progress` until the PR is merged to master. CI may fail or reviewers may request changes — closing prematurely loses that tracking.
 
+### Multi-Task Features → Use an EPIC
+
+When a feature requires multiple tasks (e.g., domain → ORM → service → API → MCP), always:
+
+1. **Create the EPIC first**: `bd create --title="Add X feature" --type=epic`
+2. **Create sub-tasks** and link them as dependents of the EPIC:
+   ```bash
+   bd create --title="Domain model change" --type=task
+   bd dep add <task-id> <epic-id>   # task depends on epic (epic blocks task)
+   ```
+3. **Close sub-tasks** as their code is committed and pushed (before PR merge is fine)
+4. **Keep the EPIC `in_progress`** while the PR is open — review comments may require changes
+5. **Close the EPIC** only after the PR is merged: `bd close <epic-id> --reason "PR #N merged"`
+
+This ensures there is always one open issue representing the in-flight PR, even after all sub-tasks are done.
+
 ### Auto-Sync
 
 bd automatically syncs with git:
