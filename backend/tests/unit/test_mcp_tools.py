@@ -16,6 +16,8 @@ from app.mcp.server import (
     _create_category_impl,
     _delete_account_impl,
     _delete_category_impl,
+    _delete_posting_impl,
+    _delete_transfer_impl,
     _get_spending_report_impl,
     _list_accounts_impl,
     _list_categories_impl,
@@ -940,3 +942,54 @@ class TestDeleteCategoryImpl:
 
         assert "Invalid category type" in result
         assert "INVALID" in result
+
+
+class TestDeletePostingImpl:
+    def test_delete_posting_success(self):
+        from app.domain.model import PostingType
+
+        uow = FakeUnitOfWork()
+        account = Account(None, "Cash EUR", "EUR", Decimal("100"))
+        uow.accounts.add(account)
+        posting = account.record_posting(
+            Decimal("50"), JAN_01, posting_type=PostingType.EXPENSE, category_id=None
+        )
+
+        result = _delete_posting_impl(uow, posting_id=posting.posting_id)
+
+        assert posting.posting_id in result
+        assert account.get_posting(posting.posting_id) is None
+
+    def test_delete_posting_not_found_returns_friendly_message(self):
+        uow = FakeUnitOfWork()
+
+        result = _delete_posting_impl(uow, posting_id="nonexistent-id")
+
+        assert "nonexistent-id" in result
+        assert "not found" in result.lower()
+
+
+class TestDeleteTransferImpl:
+    def test_delete_transfer_success(self):
+        uow = FakeUnitOfWork()
+        src = Account(None, "Cash EUR", "EUR", Decimal("1000"))
+        dst = Account(None, "Savings EUR", "EUR", Decimal("500"))
+        uow.accounts.add(src)
+        uow.accounts.add(dst)
+        transfer = Transfer(
+            None, src.account_id, dst.account_id, Decimal("100"), Decimal("100"), JAN_01
+        )
+        uow.transfers.add(transfer)
+
+        result = _delete_transfer_impl(uow, transfer_id=transfer.transfer_id)
+
+        assert transfer.transfer_id in result
+        assert uow.transfers.get(transfer.transfer_id) is None
+
+    def test_delete_transfer_not_found_returns_friendly_message(self):
+        uow = FakeUnitOfWork()
+
+        result = _delete_transfer_impl(uow, transfer_id="nonexistent-id")
+
+        assert "nonexistent-id" in result
+        assert "not found" in result.lower()
