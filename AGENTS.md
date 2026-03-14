@@ -99,7 +99,10 @@ bd close bd-42 --reason "Completed" --json
 3. **Work on it**: Implement, test, document
 4. **Discover new work?** Create linked issue:
    - `bd create "Found bug" --description="Details about what was found" -p 1 --deps discovered-from:<parent-id>`
-5. **Complete**: `bd close <id> --reason "Done"`
+5. **Push & create PR**: `git push` + `gh pr create` — issue stays `in_progress`
+6. **Close only after PR merge**: `bd close <id> --reason "PR #N merged"`
+
+**IMPORTANT**: Do NOT close issues when creating a PR. The issue must stay `in_progress` until the PR is merged to master. CI may fail or reviewers may request changes — closing prematurely loses that tracking.
 
 ### Auto-Sync
 
@@ -115,6 +118,7 @@ bd automatically syncs with git:
 - ✅ Always use `--json` flag for programmatic use
 - ✅ Link discovered work with `discovered-from` dependencies
 - ✅ Check `bd ready` before asking "what should I work on?"
+- ✅ Close issues only after PR is merged to master, not at PR creation
 - ❌ Do NOT create markdown TODO lists
 - ❌ Do NOT use external issue trackers
 - ❌ Do NOT duplicate tracking systems
@@ -169,10 +173,10 @@ git add -A
 
 ### Closing Issues
 
-After each agent's work is verified, close its issue immediately:
+**Do NOT close issues at PR creation time.** Issues stay `in_progress` until the PR is merged to master. Only then:
 
 ```bash
-bd close beads-123 --reason="Feature implemented and tests pass"
+bd close beads-123 --reason="PR #42 merged"
 ```
 
 Close multiple at once when possible:
@@ -187,7 +191,7 @@ bd close beads-123 beads-124 beads-125
 - [ ] Run destructive/root-file tasks in main repo, not worktrees
 - [ ] Claim all issues `in_progress` before spawning
 - [ ] Stage specific files, not `git add -A`
-- [ ] Close issues after verifying each agent's output
+- [ ] Close issues only after PR is merged, not at PR creation
 
 ## Landing the Plane (Session Completion)
 
@@ -197,7 +201,7 @@ bd close beads-123 beads-124 beads-125
 
 1. **File issues for remaining work** - Create issues for anything that needs follow-up
 2. **Run quality gates** (if code changed) - Tests, linters, builds
-3. **Update issue status** - Close finished work, update in-progress items
+3. **Update issue status** - Close only merged PRs, keep open PRs as in-progress
 4. **PUSH TO REMOTE** - This is MANDATORY:
    ```bash
    git pull --rebase
