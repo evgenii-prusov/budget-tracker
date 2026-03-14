@@ -325,7 +325,7 @@ def _list_accounts_impl(
     lines = []
     for acc in accounts:
         tag = " [savings]" if acc.is_savings else ""
-        desc = f" — {acc.description}" if acc.description else ""
+        desc = f" (Description: {acc.description})" if acc.description else ""
         lines.append(f"• {acc.name}: {acc.balance} {acc.currency}{tag}{desc}")
     return "\n".join(lines)
 
@@ -812,7 +812,7 @@ def _register_tools(mcp: FastMCP) -> None:
         ctx: Context,
         filter: str | None = None,
     ) -> str:
-        """List all accounts with balances.
+        """List all accounts with balances, types, and descriptions.
 
         Args:
             filter: Use 'savings' to show only savings accounts.
