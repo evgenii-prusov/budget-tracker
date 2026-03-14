@@ -221,3 +221,24 @@ def test_record_posting_payee_description_default_none(acc_eur: Account):
     )
     assert posting.payee is None
     assert posting.description is None
+
+
+def test_account_description_default_none():
+    account = Account(
+        account_id="acc1",
+        name="Test Account",
+        currency="EUR",
+        initial_balance=Decimal(100),
+    )
+    assert account.description is None
+
+
+def test_account_description_set():
+    account = Account(
+        account_id="acc1",
+        name="Test Account",
+        currency="EUR",
+        initial_balance=Decimal(100),
+        description="My main spending account",
+    )
+    assert account.description == "My main spending account"
