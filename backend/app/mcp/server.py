@@ -512,6 +512,41 @@ def _delete_transfer_impl(
     return f"Deleted transfer '{transfer_id}'."
 
 
+def _update_account_impl(
+    uow: AbstractUnitOfWork,
+    *,
+    account_name: str,
+    new_name: str | None = None,
+    description: str | None = None,
+) -> str:
+    try:
+        account = resolve_account_by_name(uow, account_name)
+    except ValueError as exc:
+        return str(exc)
+
+    try:
+        services.update_account(
+            uow,
+            account_id=account.account_id,
+            name=new_name,
+            description=description,
+            update_description=description is not None,
+        )
+    except (AccountNotFoundError, DuplicateAccountNameError) as exc:
+        return str(exc)
+
+    parts = []
+    if new_name is not None:
+        parts.append(f"name to '{new_name}'")
+    if description is not None:
+        parts.append(f"description to '{description}'")
+
+    if not parts:
+        return f"No updates provided for account '{account_name}'."
+
+    return f"Updated account '{account_name}' {' and '.join(parts)}."
+
+
 def _delete_account_impl(
     uow: AbstractUnitOfWork,
     *,
@@ -528,6 +563,38 @@ def _delete_account_impl(
         return str(exc)
 
     return f"Deleted account '{account_name}'."
+
+
+def _update_category_impl(
+    uow: AbstractUnitOfWork,
+    *,
+    name: str,
+    category_type_str: str,
+    new_name: str,
+) -> str:
+    try:
+        category_type = CategoryType[category_type_str.upper()]
+    except (KeyError, AttributeError):
+        return f"Invalid category type '{category_type_str}'. Use 'EXPENSE' or 'INCOME'."
+
+    try:
+        # Check if it's a subcategory (name contains '/')
+        if "/" in name:
+            parent_name, sub_name = name.split("/", 1)
+            category = resolve_subcategory_by_parent_and_name(
+                uow, parent_name.strip(), sub_name.strip(), category_type
+            )
+        else:
+            category = resolve_parent_category_by_name(uow, name, category_type)
+    except ValueError as exc:
+        return str(exc)
+
+    try:
+        services.update_category_name(uow, category_id=category.category_id, new_name=new_name)
+    except (CategoryNotFoundError, DuplicateCategoryNameError) as exc:
+        return str(exc)
+
+    return f"Updated {category_type_str} category '{name}' to '{new_name}'."
 
 
 def _delete_category_impl(
@@ -904,6 +971,28 @@ def _register_tools(mcp: FastMCP) -> None:
             return _delete_transfer_impl(uow, transfer_id=transfer_id)
 
     @mcp.tool()
+    def update_account(
+        ctx: Context,
+        account_name: str,
+        new_name: str | None = None,
+        description: str | None = None,
+    ) -> str:
+        """Update an existing account's name or description.
+
+        Args:
+            account_name: Name of the account to update.
+            new_name: Optional new name for the account.
+            description: Optional new description for the account.
+        """
+        with _uow_from_ctx(ctx) as uow:
+            return _update_account_impl(
+                uow,
+                account_name=account_name,
+                new_name=new_name,
+                description=description,
+            )
+
+    @mcp.tool()
     def delete_account(
         ctx: Context,
         account_name: str,
@@ -915,6 +1004,28 @@ def _register_tools(mcp: FastMCP) -> None:
         """
         with _uow_from_ctx(ctx) as uow:
             return _delete_account_impl(uow, account_name=account_name)
+
+    @mcp.tool()
+    def update_category(
+        ctx: Context,
+        name: str,
+        category_type: str,
+        new_name: str,
+    ) -> str:
+        """Update an existing category's name.
+
+        Args:
+            name: Current name of the category (e.g., 'Food' or 'Food/Groceries').
+            category_type: Type of category ('EXPENSE' or 'INCOME').
+            new_name: The new name for the category.
+        """
+        with _uow_from_ctx(ctx) as uow:
+            return _update_category_impl(
+                uow,
+                name=name,
+                category_type_str=category_type,
+                new_name=new_name,
+            )
 
     @mcp.tool()
     def delete_category(
