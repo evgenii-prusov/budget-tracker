@@ -2,29 +2,35 @@
 
 FastAPI backend for the Budget Tracker application.
 
-## Quick Start
+## Quick Start (Dev Mode)
+
+Dev mode runs the backend locally (with hot reload) against a Dockerised Postgres.
+This is the right mode for day-to-day development.
 
 ```bash
 # Install dependencies
 uv sync
 
-# Start Postgres
-make db-up
+# Start Postgres only (no backend container)
+make dev-up
 
 # Run migrations
 make db-migrate
 
-# Run development server
+# Run development server (hot reload)
 make run
 ```
+
+> **Important:** use `make dev-up` (not `make docker-up`) for dev. `docker-up` also
+> starts a backend container that will conflict with `make run` on port 8000.
 
 ## Database
 
 The app uses PostgreSQL. A Docker Compose file is provided at the project root.
 
 ```bash
-# Start Postgres
-make db-up
+# Start Postgres (dev)
+make dev-up
 
 # Run migrations
 make db-migrate
@@ -33,7 +39,7 @@ make db-migrate
 make db-revision msg="add foo column"
 
 # Stop Postgres
-make db-down
+make dev-down
 ```
 
 Copy `.env.example` to `.env` and adjust if needed:
@@ -44,8 +50,8 @@ API_KEY=change-me
 
 ## Production (Docker)
 
-The project ships a production Dockerfile and a `docker-compose.yml` that starts
-Postgres and the backend together.
+Prod mode runs everything in Docker — Postgres and the backend container together.
+Use this for production deployments or to test the built image locally.
 
 ### Prerequisites
 
@@ -65,23 +71,34 @@ make docker-build
 make docker-up
 ```
 
-The backend will be available at `http://localhost:8000`.  
+The backend will be available at `http://localhost:8000`.
 Pass the API key in every request via the `Authorization: Bearer <token>` header.
 
 ### Day-to-day commands
 
 ```bash
-# Start services
+# Start all services
 make docker-up
 
-# Stop services (data is preserved in the postgres volume)
+# Stop and remove all services (data is preserved in the postgres volume)
 make docker-down
 
 # Tail logs
 make docker-logs
 
-# Rebuild after code changes
+# Rebuild after code changes, then restart
 make docker-build && make docker-up
+```
+
+### Switching back to dev mode
+
+```bash
+# Stop all Docker services (including the backend container)
+make docker-down
+
+# Start only Postgres, then run the local server
+make dev-up
+make run
 ```
 
 ### Passing configuration
