@@ -28,6 +28,29 @@ def test_get_cors_origins_multiple_values(monkeypatch):
     ]
 
 
+def test_get_cors_origins_trailing_comma_ignored(monkeypatch):
+    monkeypatch.setenv("CORS_ORIGINS", "https://myapp.azurecontainerapps.io,")
+    from app.core.config import get_cors_origins
+
+    assert get_cors_origins() == ["https://myapp.azurecontainerapps.io"]
+
+
+def test_get_cors_origins_empty_string_raises(monkeypatch):
+    monkeypatch.setenv("CORS_ORIGINS", "")
+    from app.core.config import get_cors_origins
+
+    with pytest.raises(ValueError, match="CORS_ORIGINS"):
+        get_cors_origins()
+
+
+def test_get_cors_origins_whitespace_only_raises(monkeypatch):
+    monkeypatch.setenv("CORS_ORIGINS", "   ,  ")
+    from app.core.config import get_cors_origins
+
+    with pytest.raises(ValueError, match="CORS_ORIGINS"):
+        get_cors_origins()
+
+
 def test_get_api_key_returns_value(monkeypatch):
     monkeypatch.setenv("API_KEY", "my-secret")
     from app.core.config import get_api_key
