@@ -18,6 +18,19 @@
 
 set -euo pipefail
 
+# Load .env files (env vars take priority over file values)
+load_env() {
+    local file="$1"
+    if [[ -f "$file" ]]; then
+        set -a
+        # shellcheck disable=SC1090
+        source "$file"
+        set +a
+    fi
+}
+load_env "backend/.env"
+load_env ".env"
+
 RESOURCE_GROUP="budget-tracker-rg"
 APP_NAME="budget-tracker"
 GITHUB_USER="evgenii-prusov"

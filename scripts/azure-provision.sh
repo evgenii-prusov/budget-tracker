@@ -9,7 +9,12 @@
 # Usage:
 #   ./scripts/azure-provision.sh
 #
-# Secrets are read from environment variables or backend/.env:
+# Secrets are loaded in priority order:
+#   1. Environment variables (highest priority)
+#   2. .env  (project root — GITHUB_TOKEN, API_KEY, etc.)
+#   3. backend/.env  (DATABASE_URL, app runtime config)
+#
+# Variables used:
 #   DATABASE_URL   — Neon pooled connection string
 #   API_KEY        — API authentication key
 #   CORS_ORIGINS   — Comma-separated allowed origins (optional, defaults to localhost)
@@ -29,20 +34,25 @@ REGISTRY="ghcr.io"
 IMAGE="${REGISTRY}/${GITHUB_USER}/budget-tracker:latest"
 
 # ---------------------------------------------------------------------------
-# Load secrets from backend/.env if not already in environment
+# Load secrets: root .env first, then backend/.env (env vars take priority)
 # ---------------------------------------------------------------------------
-if [[ -z "${DATABASE_URL:-}" || -z "${API_KEY:-}" ]]; then
-    if [[ -f backend/.env ]]; then
-        echo "Loading secrets from backend/.env ..."
+load_env() {
+    local file="$1"
+    if [[ -f "$file" ]]; then
+        echo "Loading $file ..."
         set -a
-        # shellcheck disable=SC1091
-        source backend/.env
+        # shellcheck disable=SC1090
+        source "$file"
         set +a
     fi
-fi
+}
 
-: "${DATABASE_URL:?DATABASE_URL is required — set it in the environment or backend/.env}"
-: "${API_KEY:?API_KEY is required — set it in the environment or backend/.env}"
+# Load in reverse priority so higher-priority sources win on re-export
+load_env "backend/.env"   # lowest priority: app runtime defaults
+load_env ".env"           # higher priority: deploy-time secrets (API_KEY, GITHUB_TOKEN)
+
+: "${DATABASE_URL:?DATABASE_URL is required — add it to .env or backend/.env}"
+: "${API_KEY:?API_KEY is required — add it to .env or backend/.env}"
 
 CORS_ORIGINS="${CORS_ORIGINS:-http://localhost:5173}"
 
