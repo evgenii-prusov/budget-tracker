@@ -1,7 +1,7 @@
 .PHONY: help install run test coverage check format lint typecheck sync clean \
         db-up db-down db-migrate db-revision db-seed \
         docker-build docker-up docker-down docker-logs dev-up dev-down \
-        azure-provision deploy deploy-logs deploy-status
+        azure-provision azure-teardown deploy deploy-logs deploy-status
 
 help:
 	@echo "Budget Tracker - Available Commands"
@@ -32,6 +32,7 @@ help:
 	@echo ""
 	@echo "Azure Container Apps"
 	@echo "make azure-provision - One-time: create Azure infra (rg, env, app)"
+	@echo "make azure-teardown  - Delete all Azure infra (irreversible, Neon untouched)"
 	@echo "make deploy          - Build, push image to ghcr.io, update Azure app"
 	@echo "make deploy-logs     - Tail live logs from the Azure container app"
 	@echo "make deploy-status   - Show running status and URL of the Azure app"
@@ -108,6 +109,9 @@ docker-logs:
 
 azure-provision:
 	bash scripts/azure-provision.sh
+
+azure-teardown:
+	bash scripts/azure-teardown.sh
 
 deploy:
 	bash scripts/azure-deploy.sh
