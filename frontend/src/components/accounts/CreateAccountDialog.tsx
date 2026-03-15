@@ -102,7 +102,7 @@ export function CreateAccountDialog({
 
           <div className="space-y-2">
             <Label htmlFor="account-currency">Currency</Label>
-            <Select value={currency} onValueChange={setCurrency}>
+            <Select value={currency} onValueChange={(val) => { if (val) setCurrency(val); }}>
               <SelectTrigger id="account-currency" className="w-full">
                 <SelectValue />
               </SelectTrigger>
