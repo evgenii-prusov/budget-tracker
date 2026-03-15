@@ -106,6 +106,7 @@ def _create_category_impl(
     name: str,
     category_type_str: str,
     parent_name: str | None = None,
+    description: str | None = None,
 ) -> str:
     # 1. Map category_type string to enum
     try:
@@ -129,6 +130,7 @@ def _create_category_impl(
             name=name,
             category_type=category_type,
             parent_id=parent_id,
+            description=description,
         )
     except (DuplicateCategoryNameError, CategoryHierarchyError, CategoryNotFoundError) as exc:
         return str(exc)
@@ -348,22 +350,26 @@ def _list_categories_impl(
     if expense_parents:
         lines.append("Expense categories:")
         for p in expense_parents:
-            lines.append(f"  • {p.name}")
+            desc = f" — {p.description}" if p.description else ""
+            lines.append(f"  • {p.name}{desc}")
             # Use pre-loaded p.children instead of redundant service calls
             subs = sorted(p.children, key=lambda c: c.name)
             for s in subs:
-                lines.append(f"    - {s.name}")
+                s_desc = f" — {s.description}" if s.description else ""
+                lines.append(f"    - {s.name}{s_desc}")
 
     if income_parents:
         if lines:
             lines.append("")
         lines.append("Income categories:")
         for p in income_parents:
-            lines.append(f"  • {p.name}")
+            desc = f" — {p.description}" if p.description else ""
+            lines.append(f"  • {p.name}{desc}")
             # Use pre-loaded p.children instead of redundant service calls
             subs = sorted(p.children, key=lambda c: c.name)
             for s in subs:
-                lines.append(f"    - {s.name}")
+                s_desc = f" — {s.description}" if s.description else ""
+                lines.append(f"    - {s.name}{s_desc}")
 
     return "\n".join(lines)
 
@@ -560,8 +566,13 @@ def _update_category_impl(
     *,
     name: str,
     category_type_str: str,
-    new_name: str,
+    new_name: str | None = None,
+    description: str | None = None,
+    update_description: bool = False,
 ) -> str:
+    if new_name is None and not update_description:
+        return f"No updates provided for category '{name}'."
+
     try:
         category_type = CategoryType(category_type_str.upper())
     except (ValueError, KeyError, AttributeError):
@@ -580,11 +591,24 @@ def _update_category_impl(
         return str(exc)
 
     try:
-        services.update_category_name(uow, category_id=category.category_id, new_name=new_name)
+        services.update_category(
+            uow,
+            category_id=category.category_id,
+            name=new_name,
+            description=description,
+            update_description=update_description,
+        )
     except (CategoryNotFoundError, DuplicateCategoryNameError) as exc:
         return str(exc)
 
-    return f"Updated {category_type_str} category '{name}' to '{new_name}'."
+    parts = []
+    if new_name is not None:
+        parts.append(f"name to '{new_name}'")
+    if update_description:
+        desc_val = f"'{description}'" if description is not None else "null"
+        parts.append(f"description to {desc_val}")
+
+    return f"Updated {category_type_str} category '{name}' {' and '.join(parts)}."
 
 
 def _delete_category_impl(
@@ -687,6 +711,7 @@ def _register_tools(mcp: FastMCP) -> None:
         name: str,
         category_type: str,
         parent_name: str | None = None,
+        description: str | None = None,
     ) -> str:
         """Create a new category or subcategory.
         Parents must be created first before subcategories can be added to them.
@@ -695,6 +720,7 @@ def _register_tools(mcp: FastMCP) -> None:
             name: Name of the new category.
             category_type: 'expense' or 'income'.
             parent_name: Optional name of the parent category.
+            description: Optional free-text description of the category's purpose.
         """
         with _uow_from_ctx(ctx) as uow:
             return _create_category_impl(
@@ -702,6 +728,7 @@ def _register_tools(mcp: FastMCP) -> None:
                 name=name,
                 category_type_str=category_type,
                 parent_name=parent_name,
+                description=description,
             )
 
     @mcp.tool()
@@ -1013,14 +1040,18 @@ def _register_tools(mcp: FastMCP) -> None:
         ctx: Context,
         name: str,
         category_type: str,
-        new_name: str,
+        new_name: str | None = None,
+        description: str | None = None,
+        update_description: bool = False,
     ) -> str:
-        """Update an existing category's name.
+        """Update an existing category's name or description.
 
         Args:
             name: Current name of the category (e.g., 'Food' or 'Food/Groceries').
             category_type: Type of category ('expense' or 'income').
-            new_name: The new name for the category.
+            new_name: Optional new name for the category.
+            description: Optional new description for the category.
+            update_description: Set to true if providing a description (even null).
         """
         with _uow_from_ctx(ctx) as uow:
             return _update_category_impl(
@@ -1028,6 +1059,8 @@ def _register_tools(mcp: FastMCP) -> None:
                 name=name,
                 category_type_str=category_type,
                 new_name=new_name,
+                description=description,
+                update_description=update_description,
             )
 
     @mcp.tool()

@@ -5,6 +5,7 @@ from app.domain.exceptions import CategoryInUseError
 from app.service_layer.services import create_category
 from app.service_layer.services import list_categories
 from app.service_layer.services import update_category_name
+from app.service_layer.services import update_category
 from app.service_layer.services import delete_category
 from tests.unit.test_services import FakeUnitOfWork
 from app.domain.model import Account
@@ -42,6 +43,23 @@ class TestCategoryDomain:
         assert cat.parent_id == "cat-1"
         assert cat.category_type == CategoryType.EXPENSE
 
+    def test_create_category_with_description(self):
+        cat = Category(
+            category_id="cat-d1",
+            name="Food",
+            category_type=CategoryType.EXPENSE,
+            description="Monthly groceries",
+        )
+        assert cat.description == "Monthly groceries"
+
+    def test_create_category_description_defaults_to_none(self):
+        cat = Category(
+            category_id="cat-d2",
+            name="Food",
+            category_type=CategoryType.EXPENSE,
+        )
+        assert cat.description is None
+
     def test_category_default_parent_id_is_none(self):
         cat = Category(
             category_id="cat-3",
@@ -59,6 +77,14 @@ class TestCreateCategory:
         assert category.category_type == CategoryType.EXPENSE
         assert uow.committed is True
         assert len(uow.categories._categories) == 1
+
+    def test_create_category_with_description(self):
+        uow = FakeUnitOfWork()
+        category = create_category(
+            uow, name="Groceries", category_type=CategoryType.EXPENSE, description="Some desc"
+        )
+        assert category.description == "Some desc"
+        assert uow.committed is True
 
     def test_create_category_duplicate_name_raises_error(self):
         uow = FakeUnitOfWork()
@@ -139,3 +165,40 @@ class TestDeleteCategory:
         with pytest.raises(CategoryInUseError):
             delete_category(uow, category_id=c1.category_id)
         assert len(uow.categories._categories) == 1
+
+
+class TestUpdateCategoryDescription:
+    def test_update_category_description(self):
+        uow = FakeUnitOfWork()
+        category = create_category(uow, name="Food", category_type=CategoryType.EXPENSE)
+        updated = update_category(
+            uow, category_id=category.category_id, description="New desc", update_description=True
+        )
+        assert updated.description == "New desc"
+        assert uow.committed is True
+
+    def test_update_category_clear_description(self):
+        uow = FakeUnitOfWork()
+        category = create_category(
+            uow, name="Food", category_type=CategoryType.EXPENSE, description="Old desc"
+        )
+        updated = update_category(
+            uow,
+            category_id=category.category_id,
+            description=None,
+            update_description=True,
+        )
+        assert updated.description is None
+
+    def test_update_category_name_and_description(self):
+        uow = FakeUnitOfWork()
+        category = create_category(uow, name="Food", category_type=CategoryType.EXPENSE)
+        updated = update_category(
+            uow,
+            category_id=category.category_id,
+            name="Groceries",
+            description="Weekly groceries",
+            update_description=True,
+        )
+        assert updated.name == "Groceries"
+        assert updated.description == "Weekly groceries"

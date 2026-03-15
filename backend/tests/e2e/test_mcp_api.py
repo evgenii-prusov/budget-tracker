@@ -339,7 +339,7 @@ async def test_update_category(mcp_client):
         "update_category",
         {"name": "Old Parent", "category_type": "expense", "new_name": "New Parent"},
     )
-    assert "Updated expense category 'Old Parent' to 'New Parent'" in result.content[0].text
+    assert "Updated expense category 'Old Parent' name to 'New Parent'" in result.content[0].text
 
     # 3. Verify via list_categories
     list_result = await mcp_client.call_tool("list_categories", {"category_type": "expense"})
@@ -355,7 +355,8 @@ async def test_update_category(mcp_client):
         "update_category",
         {"name": "New Parent/Sub", "category_type": "expense", "new_name": "New Sub"},
     )
-    assert "Updated expense category 'New Parent/Sub' to 'New Sub'" in result_sub.content[0].text
+    text_sub_update = result_sub.content[0].text
+    assert "Updated expense category 'New Parent/Sub' name to 'New Sub'" in text_sub_update
 
     # 5. Verify subcategory update
     list_result_sub = await mcp_client.call_tool("list_categories", {"category_type": "expense"})
@@ -365,6 +366,70 @@ async def test_update_category(mcp_client):
     # Check that 'Sub' is not present as a standalone word/name in the lines
     sub_lines = [line.strip() for line in text_sub.split("\n") if line.strip().startswith("-")]
     assert "- Sub" not in sub_lines
+
+
+@pytest.mark.asyncio
+async def test_create_category_with_description(mcp_client, client):
+    """Create a category with description via MCP, verify in output and REST API."""
+    result = await mcp_client.call_tool(
+        "create_category",
+        {"name": "Housing", "category_type": "expense", "description": "Rent and utilities"},
+    )
+    text = result.content[0].text
+    assert "Created EXPENSE parent category 'Housing'" in text
+
+    # Verify description via REST API
+    resp = client.get("/categories/")
+    categories = resp.json()
+    housing = next((c for c in categories if c["name"] == "Housing"), None)
+    assert housing is not None
+    assert housing["description"] == "Rent and utilities"
+
+
+@pytest.mark.asyncio
+async def test_list_categories_shows_description(mcp_client):
+    """Categories with descriptions show them in list output."""
+    await mcp_client.call_tool(
+        "create_category",
+        {"name": "Food", "category_type": "expense", "description": "All food expenses"},
+    )
+    await mcp_client.call_tool(
+        "create_category",
+        {
+            "name": "Drinks",
+            "category_type": "expense",
+            "parent_name": "Food",
+            "description": "Beverages only",
+        },
+    )
+
+    result = await mcp_client.call_tool("list_categories", {"category_type": "expense"})
+    text = result.content[0].text
+    assert "All food expenses" in text
+    assert "Beverages only" in text
+
+
+@pytest.mark.asyncio
+async def test_update_category_description(mcp_client):
+    """Update a category's description via MCP tool."""
+    await mcp_client.call_tool("create_category", {"name": "Transport", "category_type": "expense"})
+
+    result = await mcp_client.call_tool(
+        "update_category",
+        {
+            "name": "Transport",
+            "category_type": "expense",
+            "description": "Public and private transport",
+            "update_description": True,
+        },
+    )
+    text = result.content[0].text
+    assert "Updated" in text
+    assert "Transport" in text
+
+    # Verify via list
+    list_result = await mcp_client.call_tool("list_categories", {"category_type": "expense"})
+    assert "Public and private transport" in list_result.content[0].text
 
 
 @pytest.mark.asyncio

@@ -237,8 +237,12 @@ def create_category(
     name: str,
     category_type: CategoryType,
     parent_id: str | None = None,
+    description: str | None = None,
 ) -> Category:
     with uow:
+        if description and len(description) > 500:
+            raise ValueError("Description is too long (max 500 characters)")
+
         if parent_id is not None:
             parent = uow.categories.get(parent_id)
             if parent is None:
@@ -262,6 +266,7 @@ def create_category(
             name=name,
             category_type=category_type,
             parent_id=parent_id,
+            description=description,
         )
         uow.categories.add(new_category)
         uow.commit()
@@ -294,6 +299,35 @@ def update_category_name(uow: AbstractUnitOfWork, *, category_id: str, new_name:
 
         category.name = new_name
         uow.commit()
+        return category
+
+
+def update_category(
+    uow: AbstractUnitOfWork,
+    *,
+    category_id: str,
+    name: str | None = None,
+    description: str | None = None,
+    update_description: bool = False,
+) -> Category:
+    with uow:
+        category = uow.categories.get(category_id)
+        if category is None:
+            raise CategoryNotFoundError(f"Category with id '{category_id}' not found")
+
+        if name is not None:
+            existing_category = uow.categories.get_by_name(name, parent_id=category.parent_id)
+            if existing_category and existing_category.category_id != category_id:
+                raise DuplicateCategoryNameError(f"Category with name '{name}' already exists")
+            category.name = name
+
+        if update_description:
+            if description and len(description) > 500:
+                raise ValueError("Description is too long (max 500 characters)")
+            category.description = description
+
+        uow.commit()
+        logger.info("Updated category id: %s", category_id)
         return category
 
 

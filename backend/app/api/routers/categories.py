@@ -20,7 +20,7 @@ from app.service_layer.services import get_category
 from app.service_layer.services import list_categories
 from app.service_layer.services import list_parent_categories
 from app.service_layer.services import list_subcategories
-from app.service_layer.services import update_category_name
+from app.service_layer.services import update_category
 from app.service_layer.services import delete_category
 
 
@@ -67,6 +67,7 @@ def create_category_endpoint(category: CategoryCreate, uow: UoWDep):
             name=category.name,
             category_type=category.category_type,
             parent_id=category.parent_id,
+            description=category.description,
         )
     except DuplicateCategoryNameError as exc:
         raise HTTPException(status_code=409, detail=str(exc))
@@ -81,10 +82,12 @@ def create_category_endpoint(category: CategoryCreate, uow: UoWDep):
 @router.patch("/categories/{category_id}", response_model=CategoryResponse)
 def update_category_endpoint(category_id: str, category_update: CategoryUpdate, uow: UoWDep):
     try:
-        updated_category = update_category_name(
+        updated_category = update_category(
             uow=uow,
             category_id=category_id,
-            new_name=category_update.name,
+            name=category_update.name,
+            description=category_update.description,
+            update_description="description" in (category_update.model_fields_set or set()),
         )
     except CategoryNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc))

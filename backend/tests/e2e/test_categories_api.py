@@ -275,6 +275,74 @@ def test_delete_parent_with_children_fails(client: TestClient):
     assert "has child categories" in response.json()["detail"]
 
 
+# --- Category Description E2E Tests ---
+
+
+def test_create_category_with_description(client: TestClient):
+    response = client.post(
+        "/categories",
+        json={"name": "Food", "category_type": "EXPENSE", "description": "All food expenses"},
+    )
+    assert response.status_code == 201
+    data = response.json()
+    assert data["description"] == "All food expenses"
+
+
+def test_create_category_without_description_returns_null(client: TestClient):
+    response = client.post("/categories", json={"name": "Travel", "category_type": "EXPENSE"})
+    assert response.status_code == 201
+    assert response.json()["description"] is None
+
+
+def test_get_category_returns_description(client: TestClient):
+    cat = client.post(
+        "/categories",
+        json={"name": "Food", "category_type": "EXPENSE", "description": "All food expenses"},
+    ).json()
+    response = client.get(f"/categories/{cat['category_id']}")
+    assert response.status_code == 200
+    assert response.json()["description"] == "All food expenses"
+
+
+def test_update_category_description(client: TestClient):
+    cat = client.post("/categories", json={"name": "Food", "category_type": "EXPENSE"}).json()
+    response = client.patch(f"/categories/{cat['category_id']}", json={"description": "Updated"})
+    assert response.status_code == 200
+    assert response.json()["description"] == "Updated"
+
+
+def test_update_category_name_and_description(client: TestClient):
+    cat = client.post("/categories", json={"name": "Food", "category_type": "EXPENSE"}).json()
+    response = client.patch(
+        f"/categories/{cat['category_id']}",
+        json={"name": "Groceries", "description": "Weekly groceries"},
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["name"] == "Groceries"
+    assert data["description"] == "Weekly groceries"
+
+
+def test_list_parent_categories_includes_description(client: TestClient):
+    client.post(
+        "/categories",
+        json={"name": "Food", "category_type": "EXPENSE", "description": "Food expenses"},
+    )
+    response = client.get("/categories/parents")
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data) == 1
+    assert data[0]["description"] == "Food expenses"
+
+
+def test_create_category_description_too_long_returns_422(client: TestClient):
+    response = client.post(
+        "/categories",
+        json={"name": "Food", "category_type": "EXPENSE", "description": "x" * 501},
+    )
+    assert response.status_code == 422
+
+
 def test_create_posting_with_parent_category_fails(client: TestClient):
     parent = client.post("/categories", json={"name": "Food", "category_type": "EXPENSE"}).json()
     acc = client.post(

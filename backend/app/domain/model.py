@@ -53,11 +53,13 @@ class Category:
         name: str,
         category_type: CategoryType,
         parent_id: str | None = None,
+        description: str | None = None,
     ):
         self.category_id = category_id or str(uuid4())
         self.name = name
         self.category_type = category_type
         self.parent_id = parent_id
+        self.description = description
         self.children = []
 
     def __repr__(self) -> str:
