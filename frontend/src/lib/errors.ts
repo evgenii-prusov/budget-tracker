@@ -1,5 +1,5 @@
 export function parseApiError(error: unknown): string {
-  // Handle errors with a `body` property (e.g., ApiError from client.ts)
+  // Handle errors with a `body` property containing backend error detail
   if (
     error != null &&
     typeof error === "object" &&
