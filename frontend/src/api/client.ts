@@ -71,6 +71,12 @@ import type {
   SpendingReportResponse,
 } from "./types";
 
+export async function validateApiKey(key: string): Promise<void> {
+  await request<unknown>("/accounts?limit=1", {
+    headers: { Authorization: `Bearer ${key}` },
+  });
+}
+
 export const api = {
   accounts: {
     list: (skip = 0, limit = 50) =>
