@@ -16,6 +16,7 @@ import type {
   CategoryWithChildrenResponse,
   PostingCreate,
   PostingResponse,
+  ReportPeriod,
   TransferCreate,
   TransferResponse,
   SpendingReportResponse,
@@ -202,9 +203,9 @@ export function useDeleteTransfer() {
 // --- Reports ---
 
 export function useSpendingReport(
-  period: string,
+  period: ReportPeriod,
   referenceDate?: string,
-  excludeSavings?: boolean,
+  excludeSavings: boolean = true,
 ) {
   return useQuery<SpendingReportResponse>({
     queryKey: queryKeys.reports.spending(period, referenceDate, excludeSavings),

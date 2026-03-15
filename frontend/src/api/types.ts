@@ -100,6 +100,8 @@ export interface TransferResponse {
 
 // --- Reports ---
 
+export type ReportPeriod = "week" | "month" | "year";
+
 export interface CategorySpendingResponse {
   parent_category_id: string;
   parent_category_name: string;
@@ -108,7 +110,7 @@ export interface CategorySpendingResponse {
 }
 
 export interface SpendingReportResponse {
-  period: string;
+  period: ReportPeriod;
   start_date: string;
   end_date: string;
   rows: CategorySpendingResponse[];

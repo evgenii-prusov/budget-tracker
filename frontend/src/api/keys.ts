@@ -1,3 +1,5 @@
+import type { ReportPeriod } from "./types";
+
 export const queryKeys = {
   accounts: {
     all: ["accounts"] as const,
@@ -20,9 +22,9 @@ export const queryKeys = {
   },
   reports: {
     spending: (
-      period: string,
+      period: ReportPeriod,
       referenceDate?: string,
-      excludeSavings?: boolean,
+      excludeSavings: boolean = true,
     ) =>
       ["reports", "spending", { period, referenceDate, excludeSavings }] as const,
   },
