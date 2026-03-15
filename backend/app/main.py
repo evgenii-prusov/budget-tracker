@@ -50,6 +50,19 @@ for route in well_known_routes:
 # Mount MCP server (OAuth 2.1 protected, includes login routes)
 app.mount("/mcp", mcp_app)
 
+
+@app.middleware("http")
+async def _rewrite_mcp_trailing_slash(request, call_next):
+    """Rewrite /mcp to /mcp/ so Starlette doesn't 307-redirect.
+
+    Claude Web sends POST /mcp (no trailing slash) and drops the
+    Authorization header when following a 307 redirect.
+    """
+    if request.url.path == "/mcp":
+        request.scope["path"] = "/mcp/"
+    return await call_next(request)
+
+
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
