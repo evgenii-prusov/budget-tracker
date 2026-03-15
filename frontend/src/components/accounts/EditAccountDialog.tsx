@@ -43,6 +43,7 @@ export function EditAccountDialog({
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     if (!account) return;
+    if (name.trim().length < 3) return;
 
     updateAccount.mutate(
       {
