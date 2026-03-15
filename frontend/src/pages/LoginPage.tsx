@@ -12,6 +12,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
+import { ApiError, validateApiKey } from "@/api/client";
 import { parseApiError } from "@/lib/errors";
 import { showToast } from "@/lib/toast";
 
@@ -33,25 +34,17 @@ export default function LoginPage() {
 
     setIsPending(true);
     try {
-      const response = await fetch("/api/accounts?limit=1", {
-        headers: { Authorization: `Bearer ${trimmed}` },
-      });
-
-      if (!response.ok) {
-        const body = await response.json().catch(() => null);
-        if (response.status === 401) {
-          setError("Invalid API key");
-        } else {
-          setError(parseApiError({ body }));
-        }
-        return;
-      }
-
+      await validateApiKey(trimmed);
       localStorage.setItem("api_key", trimmed);
       navigate("/accounts", { replace: true });
     } catch (err) {
-      showToast.error("Unable to connect to the server");
-      setError(parseApiError(err));
+      if (err instanceof ApiError && err.status === 401) {
+        setError("Invalid API key");
+      } else if (err instanceof ApiError) {
+        setError(parseApiError(err));
+      } else {
+        showToast.error("Unable to connect to the server");
+      }
     } finally {
       setIsPending(false);
     }
@@ -80,10 +73,13 @@ export default function LoginPage() {
                 onChange={(e) => setApiKey(e.target.value)}
                 disabled={isPending}
                 aria-invalid={!!error}
+                aria-describedby={error ? "api-key-error" : undefined}
                 autoFocus
               />
               {error && (
-                <p className="text-sm text-destructive">{error}</p>
+                <p id="api-key-error" role="alert" className="text-sm text-destructive">
+                  {error}
+                </p>
               )}
             </div>
             <Button type="submit" className="w-full" disabled={isPending}>
