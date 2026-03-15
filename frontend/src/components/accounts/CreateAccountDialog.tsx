@@ -53,6 +53,7 @@ export function CreateAccountDialog({
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
+    if (name.trim().length < 3) return;
     createAccount.mutate(
       {
         name: name.trim(),
@@ -96,9 +97,9 @@ export function CreateAccountDialog({
           </div>
 
           <div className="space-y-2">
-            <Label>Currency</Label>
+            <Label htmlFor="account-currency">Currency</Label>
             <Select value={currency} onValueChange={setCurrency}>
-              <SelectTrigger className="w-full">
+              <SelectTrigger id="account-currency" className="w-full">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>

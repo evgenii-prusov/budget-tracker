@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router-dom";
+import type { KeyboardEvent } from "react";
 import { Pencil, Trash2, PiggyBank } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -26,6 +27,17 @@ export function AccountsTable({
 }: AccountsTableProps) {
   const navigate = useNavigate();
 
+  const navigateToPostings = (accountId: string) => {
+    navigate(`/postings?account_id=${accountId}`);
+  };
+
+  const handleRowKeyDown = (e: KeyboardEvent, accountId: string) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      navigateToPostings(accountId);
+    }
+  };
+
   return (
     <Table>
       <TableHeader>
@@ -42,9 +54,10 @@ export function AccountsTable({
           <TableRow
             key={account.account_id}
             className="cursor-pointer"
-            onClick={() =>
-              navigate(`/postings?account_id=${account.account_id}`)
-            }
+            role="link"
+            tabIndex={0}
+            onClick={() => navigateToPostings(account.account_id)}
+            onKeyDown={(e) => handleRowKeyDown(e, account.account_id)}
           >
             <TableCell className="font-medium">{account.name}</TableCell>
             <TableCell>{account.currency}</TableCell>

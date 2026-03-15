@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, Wallet } from "lucide-react";
+import { Plus, Wallet, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PageLoader } from "@/components/shared/PageLoader";
 import { EmptyState } from "@/components/shared/EmptyState";
@@ -13,7 +13,7 @@ import { parseApiError } from "@/lib/errors";
 import { showToast } from "@/lib/toast";
 
 export default function AccountsPage() {
-  const { data: accounts, isLoading } = useAccounts();
+  const { data: accounts, isLoading, isError, error, refetch } = useAccounts();
   const deleteAccount = useDeleteAccount();
 
   const [createOpen, setCreateOpen] = useState(false);
@@ -36,6 +36,17 @@ export default function AccountsPage() {
   };
 
   if (isLoading) return <PageLoader />;
+
+  if (isError) {
+    return (
+      <EmptyState
+        icon={AlertCircle}
+        title="Failed to load accounts"
+        description={parseApiError(error)}
+        action={{ label: "Retry", onClick: () => refetch() }}
+      />
+    );
+  }
 
   return (
     <div className="space-y-4">
