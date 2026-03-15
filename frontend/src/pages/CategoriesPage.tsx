@@ -48,7 +48,11 @@ export default function CategoriesPage() {
         onCreateNew={() => setCreateOpen(true)}
       />
 
-      <CreateCategoryDialog open={createOpen} onOpenChange={setCreateOpen} />
+      <CreateCategoryDialog
+        open={createOpen}
+        onOpenChange={setCreateOpen}
+        categories={categories ?? []}
+      />
 
       <EditCategoryDialog
         category={editTarget}

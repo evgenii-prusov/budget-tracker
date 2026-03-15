@@ -43,6 +43,10 @@ export function CreateAccountDialog({
 
   const createAccount = useCreateAccount();
 
+  const handleCurrencyChange = (val: string | null) => {
+    if (val) setCurrency(val);
+  };
+
   const resetForm = () => {
     setName("");
     setCurrency("USD");
@@ -102,7 +106,7 @@ export function CreateAccountDialog({
 
           <div className="space-y-2">
             <Label htmlFor="account-currency">Currency</Label>
-            <Select value={currency} onValueChange={(val) => { if (val) setCurrency(val); }}>
+            <Select value={currency} onValueChange={handleCurrencyChange}>
               <SelectTrigger id="account-currency" className="w-full">
                 <SelectValue />
               </SelectTrigger>
