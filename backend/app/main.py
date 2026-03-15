@@ -23,6 +23,24 @@ mcp_app.routes.insert(1, Route("/login", _post_login, methods=["POST"]))
 mcp_app.state.oauth_provider = oauth_provider
 
 
+class _McpTrailingSlashMiddleware:
+    """Rewrite /mcp → /mcp/ at the ASGI scope level to avoid 307 redirects.
+
+    Claude Web sends POST /mcp (no trailing slash) and drops the Authorization
+    header when following a redirect. Pure ASGI avoids BaseHTTPMiddleware
+    streaming limitations.
+    """
+
+    def __init__(self, app):
+        self.app = app
+
+    async def __call__(self, scope, receive, send):
+        if scope.get("type") == "http" and scope.get("path") == "/mcp":
+            scope["path"] = "/mcp/"
+            scope["raw_path"] = b"/mcp/"
+        await self.app(scope, receive, send)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     setup_logging()
@@ -34,6 +52,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(lifespan=lifespan)
+app.add_middleware(_McpTrailingSlashMiddleware)
 app.add_middleware(LoggingMiddleware)
 app.include_router(accounts.router, dependencies=[Depends(verify_api_key)])
 app.include_router(categories.router, dependencies=[Depends(verify_api_key)])
@@ -49,19 +68,6 @@ for route in well_known_routes:
 
 # Mount MCP server (OAuth 2.1 protected, includes login routes)
 app.mount("/mcp", mcp_app)
-
-
-@app.middleware("http")
-async def _rewrite_mcp_trailing_slash(request, call_next):
-    """Rewrite /mcp to /mcp/ so Starlette doesn't 307-redirect.
-
-    Claude Web sends POST /mcp (no trailing slash) and drops the
-    Authorization header when following a 307 redirect.
-    """
-    if request.url.path == "/mcp":
-        request.scope["path"] = "/mcp/"
-    return await call_next(request)
-
 
 # Add CORS middleware
 app.add_middleware(

@@ -215,8 +215,10 @@ def test_mcp_post_without_trailing_slash_no_redirect(oauth_client):
         },
         follow_redirects=False,
     )
-    # Should get 401 (no token) — NOT 307 redirect
-    assert resp.status_code != 307, "POST /mcp must not redirect; Claude Web loses auth headers"
+    # Should get 401 (no token) — NOT any redirect (Starlette can use 307 or 308)
+    assert resp.status_code not in (301, 302, 303, 307, 308), (
+        "POST /mcp must not redirect; Claude Web loses auth headers on any redirect"
+    )
     assert resp.status_code == 401
 
 
