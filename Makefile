@@ -1,6 +1,7 @@
 .PHONY: help install run test coverage check format lint typecheck sync clean \
         db-up db-down db-migrate db-revision db-seed \
         docker-build docker-up docker-down docker-logs dev-up dev-down \
+        fe-install fe-dev fe-build fe-lint fe-preview \
         azure-provision azure-teardown deploy deploy-logs deploy-status
 
 help:
@@ -24,6 +25,13 @@ help:
 	@echo "make db-revision     - Create new migration (msg=\"description\")"
 	@echo "make db-seed         - Seed database with sample data"
 	@echo ""
+	@echo "Frontend"
+	@echo "make fe-install      - Install frontend dependencies"
+	@echo "make fe-dev          - Start frontend dev server (port 5173)"
+	@echo "make fe-build        - Production build (output: frontend/dist/)"
+	@echo "make fe-lint         - Lint frontend code"
+	@echo "make fe-preview      - Preview production build locally"
+	@echo ""
 	@echo "Production (fully Dockerised)"
 	@echo "make docker-build    - Build the backend Docker image"
 	@echo "make docker-up       - Start Postgres + backend via Docker Compose"
@@ -39,6 +47,7 @@ help:
 
 install:
 	cd backend && uv sync
+	cd frontend && npm ci
 
 run:
 	cd backend && uv run --env-file .env fastapi dev app/main.py
@@ -67,6 +76,7 @@ sync:
 
 clean:
 	cd backend && rm -rf .pytest_cache htmlcov .coverage .ruff_cache
+	cd frontend && rm -rf dist node_modules/.vite
 	find . -type d -name __pycache__ -exec rm -rf {} +
 	find . -type f -name "*.pyc" -delete
 
@@ -88,6 +98,29 @@ db-revision:
 
 db-seed:
 	cd backend && uv run python -m scripts.seed
+
+# ---------------------------------------------------------------------------
+# Frontend
+# ---------------------------------------------------------------------------
+
+fe-install:
+	cd frontend && npm ci
+
+fe-dev:
+	cd frontend && npm run dev
+
+fe-build:
+	cd frontend && npm run build
+
+fe-lint:
+	cd frontend && npm run lint
+
+fe-preview:
+	cd frontend && npm run preview
+
+# ---------------------------------------------------------------------------
+# Docker
+# ---------------------------------------------------------------------------
 
 docker-build:
 	docker compose build backend
