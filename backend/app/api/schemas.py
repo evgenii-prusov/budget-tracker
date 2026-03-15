@@ -61,15 +61,24 @@ class CategoryCreate(BaseModel):
     )
     category_type: CategoryType
     parent_id: str | None = None
+    description: str | None = Field(None, max_length=500)
 
 
 class CategoryUpdate(BaseModel):
-    name: str = Field(
-        ...,
+    name: str | None = Field(
+        None,
         min_length=2,
         max_length=100,
         description="New category name",
     )
+    description: str | None = Field(None, max_length=500)
+
+    @model_validator(mode="before")
+    @classmethod
+    def check_at_least_one_field(cls, data: dict) -> dict:
+        if not data:
+            raise ValueError("At least one field must be provided for update")
+        return data
 
 
 class CategoryResponse(BaseModel):
@@ -79,6 +88,7 @@ class CategoryResponse(BaseModel):
     name: str
     category_type: CategoryType
     parent_id: str | None
+    description: str | None = None
 
 
 class CategoryWithChildrenResponse(BaseModel):
@@ -88,6 +98,7 @@ class CategoryWithChildrenResponse(BaseModel):
     name: str
     category_type: CategoryType
     parent_id: str | None
+    description: str | None = None
     children: list[CategoryResponse] = []
 
 

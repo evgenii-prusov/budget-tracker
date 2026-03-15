@@ -25,6 +25,7 @@ categories = Table(
     Column("name", String(255), nullable=False),
     Column("parent_id", String(36), ForeignKey("category.category_id"), nullable=True),
     Column("category_type", String(20), nullable=False),
+    Column("description", String(500), nullable=True),
     UniqueConstraint("parent_id", "name", name="uq_category_parent_name"),
 )
 
