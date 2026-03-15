@@ -6,10 +6,14 @@
 #   GITHUB_TOKEN=<pat> TAG=v1.2.3 ./scripts/azure-deploy.sh
 #
 # Required env vars:
-#   GITHUB_TOKEN   — GitHub PAT with write:packages + read:packages scopes
+#   GITHUB_TOKEN   — GitHub PAT with write:packages + read:packages scopes (used for docker push)
 #
 # Optional env vars:
-#   TAG            — Docker image tag (default: latest)
+#   TAG              — Docker image tag (default: latest)
+#   GHCR_READ_TOKEN  — GitHub PAT with read:packages scope only, used as the Azure Container Apps
+#                      registry pull credential. Defaults to GITHUB_TOKEN if not set. Prefer
+#                      supplying a separate read-only PAT so the long-lived Azure credential does
+#                      not carry unnecessary write access.
 #
 # Prerequisites:
 #   - Docker running locally
@@ -44,6 +48,9 @@ FULL_IMAGE="${IMAGE_NAME}:${TAG}"
 # ---------------------------------------------------------------------------
 : "${GITHUB_TOKEN:?GITHUB_TOKEN is required — create a PAT with write:packages + read:packages scopes}"
 
+# Use a read-only PAT for the Azure pull credential if one is provided; fall back to GITHUB_TOKEN.
+GHCR_READ_TOKEN="${GHCR_READ_TOKEN:-$GITHUB_TOKEN}"
+
 echo ""
 echo "==> Logging in to ${REGISTRY} ..."
 echo "$GITHUB_TOKEN" | docker login "$REGISTRY" -u "$GITHUB_USER" --password-stdin
@@ -68,13 +75,15 @@ docker push "$FULL_IMAGE"
 echo ""
 echo "==> Updating container app: ${APP_NAME} (image: ${FULL_IMAGE}) ..."
 
-# Set registry credentials so Container Apps can pull the image
+# Set registry credentials so Container Apps can pull the image.
+# GHCR_READ_TOKEN is used here instead of GITHUB_TOKEN: the pull credential is stored
+# long-term in Azure and only needs read:packages access, not write:packages.
 az containerapp registry set \
     --name "$APP_NAME" \
     --resource-group "$RESOURCE_GROUP" \
     --server "$REGISTRY" \
     --username "$GITHUB_USER" \
-    --password "$GITHUB_TOKEN"
+    --password "$GHCR_READ_TOKEN"
 
 az containerapp update \
     --name "$APP_NAME" \
