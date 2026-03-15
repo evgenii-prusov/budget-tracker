@@ -65,6 +65,7 @@ import type {
   CategoryWithChildrenResponse,
   PostingCreate,
   PostingResponse,
+  ReportPeriod,
   TransferCreate,
   TransferResponse,
   SpendingReportResponse,
@@ -151,7 +152,7 @@ export const api = {
 
   reports: {
     spending: (params: {
-      period: string;
+      period: ReportPeriod;
       reference_date?: string;
       exclude_savings?: boolean;
     }) =>
