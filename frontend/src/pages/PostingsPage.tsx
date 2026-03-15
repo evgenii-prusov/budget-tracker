@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { PageLoader } from "@/components/shared/PageLoader";
 import { EmptyState } from "@/components/shared/EmptyState";
-import { TableSkeleton } from "@/components/shared/TableSkeleton";
 import { PostingsTable } from "@/components/postings/PostingsTable";
 import { CreatePostingDialog } from "@/components/postings/CreatePostingDialog";
 import { DeletePostingDialog } from "@/components/postings/DeletePostingDialog";
@@ -112,9 +111,7 @@ export default function PostingsPage() {
         </Button>
       </div>
 
-      {isLoading ? (
-        <TableSkeleton columns={7} />
-      ) : sorted.length > 0 ? (
+      {sorted.length > 0 ? (
         <>
           <PostingsTable postings={sorted} onDelete={setDeleteTarget} />
           {hasNextPage && (
