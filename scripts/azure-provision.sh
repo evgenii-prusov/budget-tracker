@@ -31,9 +31,6 @@ RESOURCE_GROUP="budget-tracker-rg"
 LOCATION="westeurope"
 ENVIRONMENT="budget-tracker-env"
 APP_NAME="budget-tracker"
-GITHUB_USER="evgenii-prusov"
-REGISTRY="ghcr.io"
-IMAGE="${REGISTRY}/${GITHUB_USER}/budget-tracker:latest"
 
 # ---------------------------------------------------------------------------
 # Load secrets: root .env first, then backend/.env (env vars take priority)
