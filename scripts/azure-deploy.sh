@@ -6,14 +6,17 @@
 #   GITHUB_TOKEN=<pat> TAG=v1.2.3 ./scripts/azure-deploy.sh
 #
 # Required env vars:
-#   GITHUB_TOKEN   — GitHub PAT with write:packages + read:packages scopes (used for docker push)
+#   GITHUB_TOKEN   — GitHub PAT with write:packages scope (used for docker push).
+#                    If GHCR_READ_TOKEN is not set, also needs read:packages (used as pull credential).
 #
 # Optional env vars:
 #   TAG              — Docker image tag (default: latest)
 #   GHCR_READ_TOKEN  — GitHub PAT with read:packages scope only, used as the Azure Container Apps
 #                      registry pull credential. Defaults to GITHUB_TOKEN if not set. Prefer
 #                      supplying a separate read-only PAT so the long-lived Azure credential does
-#                      not carry unnecessary write access.
+#                      not carry unnecessary write access. Must belong to GHCR_READ_USER.
+#   GHCR_READ_USER   — Registry username for the read-only pull credential (default: GITHUB_USER).
+#                      Set this if GHCR_READ_TOKEN belongs to a different user (e.g. a machine account).
 #
 # Prerequisites:
 #   - Docker running locally
@@ -48,8 +51,9 @@ FULL_IMAGE="${IMAGE_NAME}:${TAG}"
 # ---------------------------------------------------------------------------
 : "${GITHUB_TOKEN:?GITHUB_TOKEN is required — create a PAT with write:packages + read:packages scopes}"
 
-# Use a read-only PAT for the Azure pull credential if one is provided; fall back to GITHUB_TOKEN.
+# Use a read-only PAT/user for the Azure pull credential if provided; fall back to GITHUB_TOKEN.
 GHCR_READ_TOKEN="${GHCR_READ_TOKEN:-$GITHUB_TOKEN}"
+GHCR_READ_USER="${GHCR_READ_USER:-$GITHUB_USER}"
 
 echo ""
 echo "==> Logging in to ${REGISTRY} ..."
@@ -82,7 +86,7 @@ az containerapp registry set \
     --name "$APP_NAME" \
     --resource-group "$RESOURCE_GROUP" \
     --server "$REGISTRY" \
-    --username "$GITHUB_USER" \
+    --username "$GHCR_READ_USER" \
     --password "$GHCR_READ_TOKEN"
 
 az containerapp update \
