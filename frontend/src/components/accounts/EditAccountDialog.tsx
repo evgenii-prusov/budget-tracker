@@ -43,13 +43,17 @@ export function EditAccountDialog({
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     if (!account) return;
-    if (name.trim().length < 3) return;
+    const trimmedName = name.trim();
+    if (trimmedName.length < 3) {
+      showToast.error("Name must be at least 3 characters");
+      return;
+    }
 
     updateAccount.mutate(
       {
         id: account.account_id,
         data: {
-          name: name.trim(),
+          name: trimmedName,
           description: description.trim() || null,
         },
       },

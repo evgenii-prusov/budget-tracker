@@ -53,10 +53,14 @@ export function CreateAccountDialog({
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
-    if (name.trim().length < 3) return;
+    const trimmedName = name.trim();
+    if (trimmedName.length < 3) {
+      showToast.error("Name must be at least 3 characters");
+      return;
+    }
     createAccount.mutate(
       {
-        name: name.trim(),
+        name: trimmedName,
         currency,
         initial_balance: initialBalance || "0",
         is_savings: isSavings,
