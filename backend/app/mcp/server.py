@@ -132,7 +132,12 @@ def _create_category_impl(
             parent_id=parent_id,
             description=description,
         )
-    except (DuplicateCategoryNameError, CategoryHierarchyError, CategoryNotFoundError) as exc:
+    except (
+        DuplicateCategoryNameError,
+        CategoryHierarchyError,
+        CategoryNotFoundError,
+        ValueError,
+    ) as exc:
         return str(exc)
 
     kind = "subcategory" if parent_id else "parent category"
@@ -598,7 +603,7 @@ def _update_category_impl(
             description=description,
             update_description=update_description,
         )
-    except (CategoryNotFoundError, DuplicateCategoryNameError) as exc:
+    except (CategoryNotFoundError, DuplicateCategoryNameError, ValueError) as exc:
         return str(exc)
 
     parts = []

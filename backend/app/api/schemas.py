@@ -78,6 +78,8 @@ class CategoryUpdate(BaseModel):
     def check_at_least_one_field(cls, data: dict) -> dict:
         if not data:
             raise ValueError("At least one field must be provided for update")
+        if "name" in data and data["name"] is None:
+            raise ValueError("Category name cannot be null")
         return data
 
 
