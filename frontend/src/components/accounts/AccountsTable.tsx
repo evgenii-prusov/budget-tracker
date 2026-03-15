@@ -33,8 +33,7 @@ export function AccountsTable({
 
   const handleRowKeyDown = (e: KeyboardEvent, accountId: string) => {
     if (e.key === "Enter" || e.key === " ") {
-      const target = e.target as HTMLElement;
-      if (target.closest("button")) return;
+      if (e.target instanceof Element && e.target.closest("button")) return;
       e.preventDefault();
       navigateToPostings(accountId);
     }
