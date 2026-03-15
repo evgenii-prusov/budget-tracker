@@ -32,10 +32,6 @@ export function PostingsTable({ postings, onDelete }: PostingsTableProps) {
     ]),
   );
 
-  const sorted = [...postings].sort((a, b) =>
-    b.posting_date.localeCompare(a.posting_date),
-  );
-
   return (
     <Table>
       <TableHeader>
@@ -50,7 +46,7 @@ export function PostingsTable({ postings, onDelete }: PostingsTableProps) {
         </TableRow>
       </TableHeader>
       <TableBody>
-        {sorted.map((posting) => {
+        {postings.map((posting) => {
           const account = accountMap.get(posting.account_id);
           const categoryName = posting.category_id
             ? categoryMap.get(posting.category_id) ?? "—"
@@ -60,7 +56,7 @@ export function PostingsTable({ postings, onDelete }: PostingsTableProps) {
             ? "text-red-600 dark:text-red-400"
             : "text-green-600 dark:text-green-400";
           const amountDisplay = account
-            ? formatCurrency(posting.amount, account.currency)
+            ? formatCurrency(Math.abs(Number(posting.amount)), account.currency)
             : posting.amount;
 
           return (

@@ -123,14 +123,7 @@ export function CreatePostingDialog({
           onOpenChange(false);
         },
         onError: (err) => {
-          const message = parseApiError(err);
-          if (message.includes("ParentCategoryPostingError")) {
-            showToast.error("Cannot post to a parent category — select a subcategory");
-          } else if (message.includes("InsufficientFundsError")) {
-            showToast.error("Insufficient funds in account");
-          } else {
-            showToast.error(message);
-          }
+          showToast.error(parseApiError(err));
         },
       },
     );
