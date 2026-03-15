@@ -84,7 +84,7 @@ const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
         __html: Object.entries(THEMES)
           .map(
             ([theme, prefix]) => `
-${prefix} [data-chart=${id}] {
+${prefix} [data-chart="${id}"] {
 ${colorConfig
   .map(([key, itemConfig]) => {
     const color =
@@ -234,7 +234,7 @@ function ChartTooltipContent({
                           {itemConfig?.label || item.name}
                         </span>
                       </div>
-                      {item.value && (
+                      {item.value !== undefined && item.value !== null && (
                         <span className="font-mono font-medium text-foreground tabular-nums">
                           {item.value.toLocaleString()}
                         </span>
