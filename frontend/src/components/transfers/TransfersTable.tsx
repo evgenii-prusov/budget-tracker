@@ -1,4 +1,5 @@
-import { Trash2 } from "lucide-react";
+import { useMemo } from "react";
+import { Trash2, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -17,25 +18,23 @@ interface TransfersTableProps {
   onDelete: (transfer: TransferResponse) => void;
 }
 
-function getAccount(
-  accounts: AccountResponse[],
-  id: string,
-): AccountResponse | undefined {
-  return accounts.find((a) => a.account_id === id);
-}
-
 export function TransfersTable({
   transfers,
   accounts,
   onDelete,
 }: TransfersTableProps) {
+  const accountsById = useMemo(() => {
+    const map = new Map<string, AccountResponse>();
+    for (const a of accounts) map.set(a.account_id, a);
+    return map;
+  }, [accounts]);
+
   return (
     <Table>
       <TableHeader>
         <TableRow>
           <TableHead>Date</TableHead>
-          <TableHead>From Account</TableHead>
-          <TableHead>To Account</TableHead>
+          <TableHead>Transfer</TableHead>
           <TableHead className="text-right">Debit Amount</TableHead>
           <TableHead className="text-right">Credit Amount</TableHead>
           <TableHead>Description</TableHead>
@@ -44,8 +43,8 @@ export function TransfersTable({
       </TableHeader>
       <TableBody>
         {transfers.map((transfer) => {
-          const sourceAccount = getAccount(accounts, transfer.source_account_id);
-          const destAccount = getAccount(accounts, transfer.dest_account_id);
+          const sourceAccount = accountsById.get(transfer.source_account_id);
+          const destAccount = accountsById.get(transfer.dest_account_id);
           const sourceName = sourceAccount
             ? `${sourceAccount.name} (${sourceAccount.currency})`
             : transfer.source_account_id;
@@ -56,8 +55,13 @@ export function TransfersTable({
           return (
             <TableRow key={transfer.transfer_id}>
               <TableCell>{transfer.transfer_date}</TableCell>
-              <TableCell className="font-medium">{sourceName}</TableCell>
-              <TableCell className="font-medium">{destName}</TableCell>
+              <TableCell className="font-medium">
+                <span className="inline-flex items-center gap-1.5">
+                  {sourceName}
+                  <ArrowRight className="size-3.5 shrink-0 text-muted-foreground" />
+                  {destName}
+                </span>
+              </TableCell>
               <TableCell className="text-right">
                 {sourceAccount
                   ? formatCurrency(transfer.debit_amount, sourceAccount.currency)
