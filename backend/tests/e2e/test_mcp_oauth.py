@@ -196,6 +196,30 @@ def test_mcp_401_without_token(oauth_client):
     assert resp.status_code == 401
 
 
+def test_mcp_post_without_trailing_slash_no_redirect(oauth_client):
+    """POST /mcp (no trailing slash) must not 307-redirect.
+
+    Claude Web drops auth headers on redirect.
+    """
+    resp = oauth_client.post(
+        "/mcp",
+        json={
+            "jsonrpc": "2.0",
+            "id": 1,
+            "method": "initialize",
+            "params": {
+                "protocolVersion": "2025-03-26",
+                "capabilities": {},
+                "clientInfo": {"name": "test", "version": "1.0"},
+            },
+        },
+        follow_redirects=False,
+    )
+    # Should get 401 (no token) — NOT 307 redirect
+    assert resp.status_code != 307, "POST /mcp must not redirect; Claude Web loses auth headers"
+    assert resp.status_code == 401
+
+
 # ── Token refresh ────────────────────────────────────────────────────
 
 
