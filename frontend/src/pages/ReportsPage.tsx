@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { BarChart2, AlertCircle } from "lucide-react";
 import { format } from "date-fns";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -31,6 +31,14 @@ export default function ReportsPage() {
   const currencies = data
     ? [...new Set(data.rows.map((row) => row.currency))]
     : [];
+
+  const [selectedCurrency, setSelectedCurrency] = useState<string>("");
+
+  useEffect(() => {
+    if (currencies.length > 0 && !currencies.includes(selectedCurrency)) {
+      setSelectedCurrency(currencies[0]);
+    }
+  }, [currencies, selectedCurrency]);
 
   return (
     <div className="space-y-6">
@@ -71,7 +79,7 @@ export default function ReportsPage() {
       )}
 
       {!isLoading && !isError && data && currencies.length > 0 && (
-        <Tabs defaultValue={currencies[0]}>
+        <Tabs value={selectedCurrency} onValueChange={setSelectedCurrency}>
           <TabsList>
             {currencies.map((currency) => (
               <TabsTrigger key={currency} value={currency}>
