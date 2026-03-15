@@ -19,19 +19,21 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { useCreateCategory, useCategories } from "@/api/hooks";
-import type { CategoryType } from "@/api/types";
+import { useCreateCategory } from "@/api/hooks";
+import type { CategoryType, CategoryWithChildrenResponse } from "@/api/types";
 import { parseApiError } from "@/lib/errors";
 import { showToast } from "@/lib/toast";
 
 interface CreateCategoryDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  categories: CategoryWithChildrenResponse[];
 }
 
 export function CreateCategoryDialog({
   open,
   onOpenChange,
+  categories,
 }: CreateCategoryDialogProps) {
   const [name, setName] = useState("");
   const [categoryType, setCategoryType] = useState<CategoryType>("EXPENSE");
@@ -39,13 +41,11 @@ export function CreateCategoryDialog({
   const [description, setDescription] = useState("");
 
   const createCategory = useCreateCategory();
-  const { data: allCategories } = useCategories();
 
-  // Root categories of the selected type (no parent_id) for parent dropdown
-  const parentOptions =
-    allCategories?.filter(
-      (c) => c.category_type === categoryType && c.parent_id === null,
-    ) ?? [];
+  // Root categories of the selected type for parent dropdown
+  const parentOptions = categories.filter(
+    (c) => c.category_type === categoryType,
+  );
 
   const resetForm = () => {
     setName("");
