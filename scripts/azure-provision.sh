@@ -92,26 +92,51 @@ az containerapp env create \
 # ---------------------------------------------------------------------------
 echo ""
 echo "==> Creating container app: $APP_NAME ..."
+
+# Write the container app configuration to a temp file so that secrets are
+# never exposed as CLI arguments (visible in `ps aux` and az CLI telemetry).
+APP_CONFIG=$(mktemp)
+trap 'rm -f "$APP_CONFIG"' EXIT
+
+cat > "$APP_CONFIG" <<EOF
+properties:
+  configuration:
+    ingress:
+      external: true
+      targetPort: 8000
+    secrets:
+      - name: database-url
+        value: "${DATABASE_URL}"
+      - name: api-key
+        value: "${API_KEY}"
+      - name: oauth-owner-password-hash
+        value: "${OAUTH_OWNER_PASSWORD_HASH}"
+  template:
+    containers:
+      - image: mcr.microsoft.com/azuredocs/containerapps-helloworld:latest
+        name: budget-tracker
+        resources:
+          cpu: 0.25
+          memory: 0.5Gi
+        env:
+          - name: DATABASE_URL
+            secretRef: database-url
+          - name: API_KEY
+            secretRef: api-key
+          - name: OAUTH_OWNER_PASSWORD_HASH
+            secretRef: oauth-owner-password-hash
+          - name: CORS_ORIGINS
+            value: "${CORS_ORIGINS}"
+    scale:
+      minReplicas: 0
+      maxReplicas: 1
+EOF
+
 az containerapp create \
     --name "$APP_NAME" \
     --resource-group "$RESOURCE_GROUP" \
     --environment "$ENVIRONMENT" \
-    --image "mcr.microsoft.com/azuredocs/containerapps-helloworld:latest" \
-    --target-port 8000 \
-    --ingress external \
-    --min-replicas 0 \
-    --max-replicas 1 \
-    --cpu 0.25 \
-    --memory 0.5Gi \
-    --secrets \
-        "database-url=${DATABASE_URL}" \
-        "api-key=${API_KEY}" \
-        "oauth-owner-password-hash=${OAUTH_OWNER_PASSWORD_HASH}" \
-    --env-vars \
-        "DATABASE_URL=secretref:database-url" \
-        "API_KEY=secretref:api-key" \
-        "OAUTH_OWNER_PASSWORD_HASH=secretref:oauth-owner-password-hash" \
-        "CORS_ORIGINS=${CORS_ORIGINS}"
+    --yaml "$APP_CONFIG"
 
 # ---------------------------------------------------------------------------
 # Set MCP_BASE_URL (derived from the provisioned FQDN)
