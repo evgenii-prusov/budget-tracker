@@ -229,7 +229,7 @@ export function CreateTransferDialog({
             <Label>Date</Label>
             <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
               <PopoverTrigger asChild>
-                <Button variant="outline" className="w-full justify-start">
+                <Button type="button" variant="outline" className="w-full justify-start">
                   {date ? format(date, "PPP") : "Pick a date"}
                   <CalendarIcon className="ml-auto size-4 opacity-50" />
                 </Button>

@@ -31,10 +31,9 @@ export default function TransfersPage() {
   const [createOpen, setCreateOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<TransferResponse | null>(null);
 
+  // Display order depends on backend insertion order; no client-side sort to
+  // keep consistent behaviour with offset pagination.
   const allTransfers = data?.pages.flat() ?? [];
-  const sorted = [...allTransfers].sort((a, b) =>
-    b.transfer_date.localeCompare(a.transfer_date),
-  );
 
   const handleDelete = () => {
     if (!deleteTarget) return;
@@ -71,10 +70,10 @@ export default function TransfersPage() {
         </Button>
       </div>
 
-      {sorted.length > 0 ? (
+      {allTransfers.length > 0 ? (
         <>
           <TransfersTable
-            transfers={sorted}
+            transfers={allTransfers}
             accounts={accounts}
             onDelete={setDeleteTarget}
           />
