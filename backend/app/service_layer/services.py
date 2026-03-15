@@ -310,6 +310,9 @@ def update_category(
     description: str | None = None,
     update_description: bool = False,
 ) -> Category:
+    if name is None and not update_description:
+        raise ValueError("At least one field must be provided for update")
+
     with uow:
         category = uow.categories.get(category_id)
         if category is None:
