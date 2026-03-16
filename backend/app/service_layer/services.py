@@ -46,6 +46,8 @@ def update_account(
     name: str | None = None,
     description: str | None = None,
     update_description: bool = False,
+    initial_balance: Decimal | None = None,
+    update_initial_balance: bool = False,
 ) -> Account:
     with uow:
         account = uow.accounts.get(account_id)
@@ -62,6 +64,15 @@ def update_account(
             if description and len(description) > 500:
                 raise ValueError("Description is too long (max 500 characters)")
             account.description = description
+
+        if update_initial_balance:
+            if initial_balance is None:
+                initial_balance = Decimal(0)
+            if initial_balance < 0:
+                raise InvalidInitialBalanceError(
+                    f"Initial balance cannot be negative, got {initial_balance}"
+                )
+            account.initial_balance = initial_balance
 
         uow.commit()
         logger.info("Updated account id: %s", account_id)

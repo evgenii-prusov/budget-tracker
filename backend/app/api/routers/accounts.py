@@ -68,11 +68,15 @@ def update_account_endpoint(account_id: str, account_update: AccountUpdate, uow:
             name=account_update.name if "name" in fields else None,
             description=account_update.description if "description" in fields else None,
             update_description="description" in fields,
+            initial_balance=account_update.initial_balance if "initial_balance" in fields else None,
+            update_initial_balance="initial_balance" in fields,
         )
     except AccountNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc))
     except DuplicateAccountNameError as exc:
         raise HTTPException(status_code=409, detail=str(exc))
+    except InvalidInitialBalanceError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
 

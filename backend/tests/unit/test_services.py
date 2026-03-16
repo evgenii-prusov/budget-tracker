@@ -393,6 +393,78 @@ class TestUpdateAccountDescription:
         assert uow.committed is False
 
 
+class TestUpdateAccountInitialBalance:
+    def test_update_initial_balance_success(self):
+        uow = FakeUnitOfWork()
+        account = create_account(
+            uow,
+            name="My Account",
+            currency="USD",
+            initial_balance=Decimal(100),
+        )
+        uow.committed = False
+
+        updated = update_account(
+            uow,
+            account_id=account.account_id,
+            initial_balance=Decimal(200),
+            update_initial_balance=True,
+        )
+
+        assert updated.initial_balance == Decimal(200)
+        assert uow.committed is True
+
+    def test_update_initial_balance_to_zero(self):
+        uow = FakeUnitOfWork()
+        account = create_account(
+            uow,
+            name="My Account",
+            currency="USD",
+            initial_balance=Decimal(100),
+        )
+        uow.committed = False
+
+        updated = update_account(
+            uow,
+            account_id=account.account_id,
+            initial_balance=Decimal(0),
+            update_initial_balance=True,
+        )
+
+        assert updated.initial_balance == Decimal(0)
+        assert uow.committed is True
+
+    def test_update_initial_balance_negative_raises_error(self):
+        uow = FakeUnitOfWork()
+        account = create_account(
+            uow,
+            name="My Account",
+            currency="USD",
+            initial_balance=Decimal(100),
+        )
+        uow.committed = False
+
+        with pytest.raises(InvalidInitialBalanceError):
+            update_account(
+                uow,
+                account_id=account.account_id,
+                initial_balance=Decimal(-50),
+                update_initial_balance=True,
+            )
+        assert uow.committed is False
+
+    def test_update_initial_balance_not_found_raises_error(self):
+        uow = FakeUnitOfWork()
+        with pytest.raises(AccountNotFoundError):
+            update_account(
+                uow,
+                account_id="nonexistent-id",
+                initial_balance=Decimal(100),
+                update_initial_balance=True,
+            )
+        assert uow.committed is False
+
+
 class TestDeleteAccount:
     def test_delete_account_success(self):
         uow = FakeUnitOfWork()

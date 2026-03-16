@@ -778,3 +778,102 @@ def test_update_account_is_atomic(client, monkeypatch):
     # Check if name was NOT persisted
     response = client.get(f"/accounts/{account_id}")
     assert response.json()["name"] == "Original Name"
+
+
+def test_update_account_initial_balance_success(client):
+    """Successfully update an account's initial_balance."""
+    create_response = client.post(
+        "/accounts",
+        json={"name": "Balance Test", "currency": "EUR", "initial_balance": "100"},
+    )
+    assert create_response.status_code == 201
+    account_id = create_response.json()["account_id"]
+
+    response = client.patch(
+        f"/accounts/{account_id}",
+        json={"initial_balance": "250.50"},
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["initial_balance"] == "250.50"
+    assert data["balance"] == "250.50"
+
+    # Verify persisted
+    get_response = client.get(f"/accounts/{account_id}")
+    assert get_response.json()["initial_balance"] == "250.50"
+
+
+def test_update_account_initial_balance_to_zero(client):
+    """Setting initial_balance to 0 is allowed."""
+    create_response = client.post(
+        "/accounts",
+        json={"name": "Zero Test", "currency": "EUR", "initial_balance": "500"},
+    )
+    account_id = create_response.json()["account_id"]
+
+    response = client.patch(
+        f"/accounts/{account_id}",
+        json={"initial_balance": "0"},
+    )
+
+    assert response.status_code == 200
+    assert Decimal(response.json()["initial_balance"]) == Decimal("0")
+
+
+def test_update_account_initial_balance_negative_rejected(client):
+    """Negative initial_balance is rejected with 422."""
+    create_response = client.post(
+        "/accounts",
+        json={"name": "Neg Test", "currency": "EUR", "initial_balance": "100"},
+    )
+    account_id = create_response.json()["account_id"]
+
+    response = client.patch(
+        f"/accounts/{account_id}",
+        json={"initial_balance": "-50"},
+    )
+
+    assert response.status_code == 422
+
+
+def test_update_account_initial_balance_preserves_other_fields(client):
+    """Updating initial_balance does not clear name or description."""
+    create_response = client.post(
+        "/accounts",
+        json={
+            "name": "Preserve Test",
+            "currency": "EUR",
+            "initial_balance": "100",
+            "description": "My description",
+        },
+    )
+    account_id = create_response.json()["account_id"]
+
+    response = client.patch(
+        f"/accounts/{account_id}",
+        json={"initial_balance": "200"},
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["name"] == "Preserve Test"
+    assert data["description"] == "My description"
+    assert Decimal(data["initial_balance"]) == Decimal("200")
+
+
+def test_update_account_initial_balance_only_field(client):
+    """initial_balance alone satisfies the 'at least one field' requirement."""
+    create_response = client.post(
+        "/accounts",
+        json={"name": "Solo Test", "currency": "EUR", "initial_balance": "50"},
+    )
+    account_id = create_response.json()["account_id"]
+
+    response = client.patch(
+        f"/accounts/{account_id}",
+        json={"initial_balance": "75"},
+    )
+
+    assert response.status_code == 200
+    assert Decimal(response.json()["initial_balance"]) == Decimal("75")

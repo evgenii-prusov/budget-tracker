@@ -29,6 +29,7 @@ class AccountUpdate(BaseModel):
         description="New account name (3-100 characters, must start with alphanumeric)",
     )
     description: str | None = Field(None, max_length=500)
+    initial_balance: Decimal | None = Field(None, ge=0)
 
     @model_validator(mode="before")
     @classmethod

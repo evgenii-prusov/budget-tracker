@@ -16,6 +16,7 @@ export interface AccountCreate {
 export interface AccountUpdate {
   name?: string;
   description?: string | null;
+  initial_balance?: string;
 }
 
 export interface AccountResponse {
