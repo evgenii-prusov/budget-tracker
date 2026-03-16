@@ -11,8 +11,8 @@ class AccountCreate(BaseModel):
         ...,
         min_length=3,
         max_length=100,
-        pattern=r"^[A-Za-z0-9]+(?:[ _-][A-Za-z0-9]+)*$",
-        description="Account name (3-100 characters, must start with alphanumeric)",
+        pattern=r"^[\w]+(?:[ _-][\w]+)*$",
+        description="Account name (3-100 characters, Unicode letters/digits allowed)",
     )
     currency: str
     initial_balance: Decimal = Decimal(0)
@@ -25,8 +25,8 @@ class AccountUpdate(BaseModel):
         None,
         min_length=3,
         max_length=100,
-        pattern=r"^[A-Za-z0-9]+(?:[ _-][A-Za-z0-9]+)*$",
-        description="New account name (3-100 characters, must start with alphanumeric)",
+        pattern=r"^[\w]+(?:[ _-][\w]+)*$",
+        description="New account name (3-100 characters, Unicode letters/digits allowed)",
     )
     description: str | None = Field(None, max_length=500)
     initial_balance: Decimal | None = Field(None, ge=0)
