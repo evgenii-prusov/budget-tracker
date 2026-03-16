@@ -23,13 +23,15 @@ services:
       - "8000:8000"
     environment:
       DATABASE_URL: postgresql://budget:budget@postgres:5432/budget_tracker
-      API_KEY: ${API_KEY}
+      API_KEY: ${API_KEY:-dev-api-key}
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      MCP_BASE_URL: ${MCP_BASE_URL:-http://localhost:8000/mcp}
+      OAUTH_OWNER_PASSWORD_HASH: ${OAUTH_OWNER_PASSWORD_HASH:-$$2b$$12$$3xy.vALBgjUWyqFodMURV.NkzZ4.AnAxElTs3rp4Jk4ZmxU/LxT7y}
     depends_on:
       postgres:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/')"]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/openapi.json')"]
       interval: 10s
       timeout: 5s
       retries: 5
