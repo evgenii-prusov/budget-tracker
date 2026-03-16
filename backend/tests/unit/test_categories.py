@@ -202,3 +202,161 @@ class TestUpdateCategoryDescription:
         )
         assert updated.name == "Groceries"
         assert updated.description == "Weekly groceries"
+
+
+class TestUpdateCategoryParent:
+    def test_move_subcategory_to_different_parent(self):
+        uow = FakeUnitOfWork()
+        parent1 = create_category(uow, name="Food", category_type=CategoryType.EXPENSE)
+        parent2 = create_category(uow, name="Shopping", category_type=CategoryType.EXPENSE)
+        child = create_category(
+            uow, name="Groceries", category_type=CategoryType.EXPENSE, parent_id=parent1.category_id
+        )
+
+        updated = update_category(
+            uow,
+            category_id=child.category_id,
+            parent_id=parent2.category_id,
+            update_parent=True,
+        )
+        assert updated.parent_id == parent2.category_id
+
+    def test_promote_subcategory_to_root(self):
+        uow = FakeUnitOfWork()
+        parent = create_category(uow, name="Food", category_type=CategoryType.EXPENSE)
+        child = create_category(
+            uow, name="Groceries", category_type=CategoryType.EXPENSE, parent_id=parent.category_id
+        )
+
+        updated = update_category(
+            uow,
+            category_id=child.category_id,
+            parent_id=None,
+            update_parent=True,
+        )
+        assert updated.parent_id is None
+
+    def test_make_root_category_a_subcategory(self):
+        uow = FakeUnitOfWork()
+        parent = create_category(uow, name="Food", category_type=CategoryType.EXPENSE)
+        root = create_category(uow, name="Groceries", category_type=CategoryType.EXPENSE)
+
+        updated = update_category(
+            uow,
+            category_id=root.category_id,
+            parent_id=parent.category_id,
+            update_parent=True,
+        )
+        assert updated.parent_id == parent.category_id
+
+    def test_parent_not_found_raises_error(self):
+        uow = FakeUnitOfWork()
+        child = create_category(uow, name="Groceries", category_type=CategoryType.EXPENSE)
+
+        with pytest.raises(CategoryNotFoundError):
+            update_category(
+                uow,
+                category_id=child.category_id,
+                parent_id="non-existent",
+                update_parent=True,
+            )
+
+    def test_parent_is_subcategory_raises_hierarchy_error(self):
+        from app.domain.exceptions import CategoryHierarchyError
+
+        uow = FakeUnitOfWork()
+        grandparent = create_category(uow, name="Food", category_type=CategoryType.EXPENSE)
+        parent = create_category(
+            uow,
+            name="Groceries",
+            category_type=CategoryType.EXPENSE,
+            parent_id=grandparent.category_id,
+        )
+        orphan = create_category(uow, name="Organic", category_type=CategoryType.EXPENSE)
+
+        with pytest.raises(CategoryHierarchyError, match="max 2 levels"):
+            update_category(
+                uow,
+                category_id=orphan.category_id,
+                parent_id=parent.category_id,
+                update_parent=True,
+            )
+
+    def test_parent_type_mismatch_raises_hierarchy_error(self):
+        from app.domain.exceptions import CategoryHierarchyError
+
+        uow = FakeUnitOfWork()
+        income_parent = create_category(uow, name="Salary", category_type=CategoryType.INCOME)
+        expense_child = create_category(uow, name="Food", category_type=CategoryType.EXPENSE)
+
+        with pytest.raises(CategoryHierarchyError, match="must match"):
+            update_category(
+                uow,
+                category_id=expense_child.category_id,
+                parent_id=income_parent.category_id,
+                update_parent=True,
+            )
+
+    def test_category_with_children_cannot_become_subcategory(self):
+        from app.domain.exceptions import CategoryHierarchyError
+
+        uow = FakeUnitOfWork()
+        parent_with_children = create_category(uow, name="Food", category_type=CategoryType.EXPENSE)
+        create_category(
+            uow,
+            name="Groceries",
+            category_type=CategoryType.EXPENSE,
+            parent_id=parent_with_children.category_id,
+        )
+        new_parent = create_category(uow, name="Shopping", category_type=CategoryType.EXPENSE)
+
+        with pytest.raises(CategoryHierarchyError, match="has children"):
+            update_category(
+                uow,
+                category_id=parent_with_children.category_id,
+                parent_id=new_parent.category_id,
+                update_parent=True,
+            )
+
+    def test_duplicate_name_in_new_parent_raises_error(self):
+        uow = FakeUnitOfWork()
+        parent1 = create_category(uow, name="Food", category_type=CategoryType.EXPENSE)
+        parent2 = create_category(uow, name="Shopping", category_type=CategoryType.EXPENSE)
+        create_category(
+            uow,
+            name="Groceries",
+            category_type=CategoryType.EXPENSE,
+            parent_id=parent2.category_id,
+        )
+        child = create_category(
+            uow,
+            name="Groceries",
+            category_type=CategoryType.EXPENSE,
+            parent_id=parent1.category_id,
+        )
+
+        with pytest.raises(DuplicateCategoryNameError):
+            update_category(
+                uow,
+                category_id=child.category_id,
+                parent_id=parent2.category_id,
+                update_parent=True,
+            )
+
+    def test_move_to_same_parent_is_noop(self):
+        uow = FakeUnitOfWork()
+        parent = create_category(uow, name="Food", category_type=CategoryType.EXPENSE)
+        child = create_category(
+            uow,
+            name="Groceries",
+            category_type=CategoryType.EXPENSE,
+            parent_id=parent.category_id,
+        )
+
+        updated = update_category(
+            uow,
+            category_id=child.category_id,
+            parent_id=parent.category_id,
+            update_parent=True,
+        )
+        assert updated.parent_id == parent.category_id

@@ -309,8 +309,10 @@ def update_category(
     name: str | None = None,
     description: str | None = None,
     update_description: bool = False,
+    parent_id: str | None = None,
+    update_parent: bool = False,
 ) -> Category:
-    if name is None and not update_description:
+    if name is None and not update_description and not update_parent:
         raise ValueError("At least one field must be provided for update")
 
     with uow:
@@ -318,8 +320,37 @@ def update_category(
         if category is None:
             raise CategoryNotFoundError(f"Category with id '{category_id}' not found")
 
+        if update_parent and parent_id != category.parent_id:
+            if parent_id is not None:
+                new_parent = uow.categories.get(parent_id)
+                if new_parent is None:
+                    raise CategoryNotFoundError(f"Parent category with id '{parent_id}' not found")
+                if new_parent.parent_id is not None:
+                    raise CategoryHierarchyError(
+                        "Cannot create subcategory of a subcategory (max 2 levels)"
+                    )
+                if new_parent.category_type != category.category_type:
+                    raise CategoryHierarchyError(
+                        f"Subcategory type '{category.category_type}' must match "
+                        f"parent type '{new_parent.category_type}'"
+                    )
+                if uow.categories.count_children(category_id) > 0:
+                    raise CategoryHierarchyError(
+                        "Cannot move category that has children under another parent"
+                    )
+
+            # Check for duplicate name at the new parent level
+            effective_name = name if name is not None else category.name
+            existing = uow.categories.get_by_name(effective_name, parent_id=parent_id)
+            if existing and existing.category_id != category_id:
+                raise DuplicateCategoryNameError(
+                    f"Category with name '{effective_name}' already exists"
+                )
+            category.parent_id = parent_id
+
         if name is not None:
-            existing_category = uow.categories.get_by_name(name, parent_id=category.parent_id)
+            target_parent = category.parent_id
+            existing_category = uow.categories.get_by_name(name, parent_id=target_parent)
             if existing_category and existing_category.category_id != category_id:
                 raise DuplicateCategoryNameError(f"Category with name '{name}' already exists")
             category.name = name

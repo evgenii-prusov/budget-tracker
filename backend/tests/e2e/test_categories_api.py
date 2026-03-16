@@ -368,6 +368,99 @@ def test_create_posting_with_parent_that_has_children_fails(client: TestClient):
     assert "Use a subcategory" in response.json()["detail"]
 
 
+# --- Update Category Parent E2E Tests ---
+
+
+def test_update_category_parent(client: TestClient):
+    """Move subcategory from one parent to another."""
+    parent1 = client.post("/categories", json={"name": "Food", "category_type": "EXPENSE"}).json()
+    parent2 = client.post(
+        "/categories", json={"name": "Shopping", "category_type": "EXPENSE"}
+    ).json()
+    child = client.post(
+        "/categories",
+        json={
+            "name": "Groceries",
+            "category_type": "EXPENSE",
+            "parent_id": parent1["category_id"],
+        },
+    ).json()
+
+    response = client.patch(
+        f"/categories/{child['category_id']}",
+        json={"parent_id": parent2["category_id"]},
+    )
+    assert response.status_code == 200
+    assert response.json()["parent_id"] == parent2["category_id"]
+
+
+def test_update_category_promote_to_root(client: TestClient):
+    parent = client.post("/categories", json={"name": "Food", "category_type": "EXPENSE"}).json()
+    child = client.post(
+        "/categories",
+        json={
+            "name": "Groceries",
+            "category_type": "EXPENSE",
+            "parent_id": parent["category_id"],
+        },
+    ).json()
+
+    response = client.patch(
+        f"/categories/{child['category_id']}",
+        json={"parent_id": None},
+    )
+    assert response.status_code == 200
+    assert response.json()["parent_id"] is None
+
+
+def test_update_category_parent_type_mismatch_returns_422(client: TestClient):
+    income_parent = client.post(
+        "/categories", json={"name": "Salary", "category_type": "INCOME"}
+    ).json()
+    expense_cat = client.post(
+        "/categories", json={"name": "Food", "category_type": "EXPENSE"}
+    ).json()
+
+    response = client.patch(
+        f"/categories/{expense_cat['category_id']}",
+        json={"parent_id": income_parent["category_id"]},
+    )
+    assert response.status_code == 422
+    assert "must match" in response.json()["detail"]
+
+
+def test_update_category_parent_not_found_returns_404(client: TestClient):
+    cat = client.post("/categories", json={"name": "Food", "category_type": "EXPENSE"}).json()
+
+    response = client.patch(
+        f"/categories/{cat['category_id']}",
+        json={"parent_id": "non-existent"},
+    )
+    assert response.status_code == 404
+
+
+def test_update_category_with_children_cannot_nest_returns_422(client: TestClient):
+    parent = client.post("/categories", json={"name": "Food", "category_type": "EXPENSE"}).json()
+    client.post(
+        "/categories",
+        json={
+            "name": "Groceries",
+            "category_type": "EXPENSE",
+            "parent_id": parent["category_id"],
+        },
+    )
+    new_parent = client.post(
+        "/categories", json={"name": "Shopping", "category_type": "EXPENSE"}
+    ).json()
+
+    response = client.patch(
+        f"/categories/{parent['category_id']}",
+        json={"parent_id": new_parent["category_id"]},
+    )
+    assert response.status_code == 422
+    assert "has children" in response.json()["detail"]
+
+
 def test_create_posting_with_leaf_parent_category_succeeds(client: TestClient):
     """A root category with no children is a leaf — posting is allowed."""
     category = client.post(
