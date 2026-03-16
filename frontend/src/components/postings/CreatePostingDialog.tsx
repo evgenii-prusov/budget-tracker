@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useState, useEffect, type FormEvent } from "react";
 import { Loader2, CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
@@ -49,6 +49,10 @@ export function CreatePostingDialog({
   const [date, setDate] = useState<Date>(today);
   const [payee, setPayee] = useState("");
   const [description, setDescription] = useState("");
+
+  useEffect(() => {
+    setAccountId(defaultAccountId ?? "");
+  }, [defaultAccountId]);
 
   const { data: accounts } = useAccounts();
   const { data: categoryParents } = useCategoryParents();
