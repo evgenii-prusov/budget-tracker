@@ -90,7 +90,8 @@ export function CreatePostingDialog({
     }
   };
 
-  const handleParentCategoryChange = (value: string) => {
+  const handleParentCategoryChange = (value: string | null) => {
+    if (!value) return;
     setParentCategoryId(value);
     setCategoryId("");
   };
@@ -161,7 +162,7 @@ export function CreatePostingDialog({
           {/* Account */}
           <div className="space-y-2">
             <Label htmlFor="posting-account">Account</Label>
-            <Select value={accountId} onValueChange={setAccountId} required>
+            <Select value={accountId} onValueChange={(v) => v && setAccountId(v)} required>
               <SelectTrigger id="posting-account" className="w-full">
                 <SelectValue placeholder="Select account">
                   {(value: string | null) => {
@@ -211,7 +212,7 @@ export function CreatePostingDialog({
               <Label htmlFor="posting-subcategory">Subcategory</Label>
               <Select
                 value={categoryId}
-                onValueChange={setCategoryId}
+                onValueChange={(v) => v && setCategoryId(v)}
                 disabled={!parentCategoryId}
                 required
               >
