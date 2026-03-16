@@ -121,7 +121,10 @@ export function SpendingChart({ rows, currency }: SpendingChartProps) {
               <Tooltip
                 content={(props) => (
                   <CustomTooltip
-                    {...props}
+                    active={props.active}
+                    payload={
+                      props.payload as Array<{ value: number }>
+                    }
                     label={props.label as string}
                     currency={currency}
                   />

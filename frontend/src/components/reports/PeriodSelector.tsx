@@ -71,12 +71,14 @@ export function PeriodSelector({
       </ToggleGroup>
 
       <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
-        <PopoverTrigger asChild>
-          <Button variant="outline" className="w-[200px] justify-start gap-2">
-            <CalendarIcon className="size-4" />
-            {referenceDate ? format(referenceDate, "MMM d, yyyy") : "Today"}
-          </Button>
-        </PopoverTrigger>
+        <PopoverTrigger
+          render={
+            <Button variant="outline" className="w-[200px] justify-start gap-2">
+              <CalendarIcon className="size-4" />
+              {referenceDate ? format(referenceDate, "MMM d, yyyy") : "Today"}
+            </Button>
+          }
+        />
         <PopoverContent className="w-auto p-0" align="start">
           <Calendar
             mode="single"
