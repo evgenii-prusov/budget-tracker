@@ -45,6 +45,7 @@ export function AccountsTable({
         <TableRow>
           <TableHead>Name</TableHead>
           <TableHead>Currency</TableHead>
+          <TableHead className="text-right">Initial Balance</TableHead>
           <TableHead className="text-right">Balance</TableHead>
           <TableHead>Type</TableHead>
           <TableHead className="text-right">Actions</TableHead>
@@ -62,6 +63,9 @@ export function AccountsTable({
           >
             <TableCell className="font-medium">{account.name}</TableCell>
             <TableCell>{account.currency}</TableCell>
+            <TableCell className="text-right">
+              {formatCurrency(account.initial_balance, account.currency)}
+            </TableCell>
             <TableCell className="text-right">
               {formatCurrency(account.balance, account.currency)}
             </TableCell>
