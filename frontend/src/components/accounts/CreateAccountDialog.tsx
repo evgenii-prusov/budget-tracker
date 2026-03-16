@@ -112,7 +112,7 @@ export function CreateAccountDialog({
               </SelectTrigger>
               <SelectContent>
                 {CURRENCIES.map((c) => (
-                  <SelectItem key={c} value={c}>
+                  <SelectItem key={c} value={c} label={c}>
                     {c}
                   </SelectItem>
                 ))}

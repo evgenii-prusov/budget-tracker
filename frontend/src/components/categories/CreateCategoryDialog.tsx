@@ -118,8 +118,8 @@ export function CreateCategoryDialog({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="EXPENSE">Expense</SelectItem>
-                <SelectItem value="INCOME">Income</SelectItem>
+                <SelectItem value="EXPENSE" label="Expense">Expense</SelectItem>
+                <SelectItem value="INCOME" label="Income">Income</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -134,9 +134,9 @@ export function CreateCategoryDialog({
                 <SelectValue placeholder="None (root category)" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">None (root category)</SelectItem>
+                <SelectItem value="" label="None (root category)">None (root category)</SelectItem>
                 {parentOptions.map((c) => (
-                  <SelectItem key={c.category_id} value={c.category_id}>
+                  <SelectItem key={c.category_id} value={c.category_id} label={c.name}>
                     {c.name}
                   </SelectItem>
                 ))}

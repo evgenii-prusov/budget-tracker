@@ -171,7 +171,7 @@ export function CreateTransferDialog({
               </SelectTrigger>
               <SelectContent>
                 {accounts?.map((account) => (
-                  <SelectItem key={account.account_id} value={account.account_id}>
+                  <SelectItem key={account.account_id} value={account.account_id} label={`${account.name} (${account.currency})`}>
                     {account.name} ({account.currency})
                   </SelectItem>
                 ))}
@@ -187,7 +187,7 @@ export function CreateTransferDialog({
               </SelectTrigger>
               <SelectContent>
                 {accounts?.map((account) => (
-                  <SelectItem key={account.account_id} value={account.account_id}>
+                  <SelectItem key={account.account_id} value={account.account_id} label={`${account.name} (${account.currency})`}>
                     {account.name} ({account.currency})
                   </SelectItem>
                 ))}
