@@ -13,7 +13,10 @@ COPY pyproject.toml uv.lock ./
 RUN uv sync --frozen --no-dev
 
 # Add the virtual-env binaries to PATH so alembic/uvicorn can be called directly
-ENV PATH="/app/.venv/bin:$PATH"
+# Disable .pyc generation (ephemeral container, no benefit) and unbuffer stdout for logs
+ENV PATH="/app/.venv/bin:$PATH" \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
 
 # Copy application code and Alembic configuration
 COPY alembic/ alembic/
