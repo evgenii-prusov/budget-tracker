@@ -2,7 +2,8 @@
         db-up db-down db-migrate db-revision db-seed \
         docker-build docker-up docker-down docker-logs dev-up dev-down \
         fe-install fe-dev fe-build fe-lint fe-preview \
-        azure-provision azure-teardown deploy deploy-frontend deploy-logs deploy-status
+        azure-provision azure-teardown deploy deploy-frontend \
+        deploy-logs deploy-frontend-logs deploy-status deploy-frontend-status
 
 help:
 	@echo "Budget Tracker - Available Commands"
@@ -43,8 +44,10 @@ help:
 	@echo "make azure-teardown  - Delete all Azure infra (irreversible, Neon untouched)"
 	@echo "make deploy          - Build, push backend image to ghcr.io, update Azure app"
 	@echo "make deploy-frontend - Build, push frontend image to ghcr.io, update Azure app"
-	@echo "make deploy-logs     - Tail live logs from the Azure container app"
-	@echo "make deploy-status   - Show running status and URL of the Azure app"
+	@echo "make deploy-logs     - Tail live logs from the backend Azure app"
+	@echo "make deploy-frontend-logs   - Tail live logs from the frontend Azure app"
+	@echo "make deploy-status   - Show running status and URL of the backend Azure app"
+	@echo "make deploy-frontend-status - Show running status and URL of the frontend Azure app"
 
 install:
 	cd backend && uv sync
@@ -159,9 +162,22 @@ deploy-logs:
 		--resource-group budget-tracker-rg \
 		--follow
 
+deploy-frontend-logs:
+	az containerapp logs show \
+		--name budget-tracker-web \
+		--resource-group budget-tracker-rg \
+		--follow
+
 deploy-status:
 	az containerapp show \
 		--name budget-tracker \
+		--resource-group budget-tracker-rg \
+		--query "{status:properties.runningStatus, revisionFqdn:properties.latestRevisionFqdn, url:properties.configuration.ingress.fqdn}" \
+		--output table
+
+deploy-frontend-status:
+	az containerapp show \
+		--name budget-tracker-web \
 		--resource-group budget-tracker-rg \
 		--query "{status:properties.runningStatus, revisionFqdn:properties.latestRevisionFqdn, url:properties.configuration.ingress.fqdn}" \
 		--output table
