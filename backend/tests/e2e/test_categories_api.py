@@ -343,8 +343,12 @@ def test_create_category_description_too_long_returns_422(client: TestClient):
     assert response.status_code == 422
 
 
-def test_create_posting_with_parent_category_fails(client: TestClient):
+def test_create_posting_with_parent_that_has_children_fails(client: TestClient):
     parent = client.post("/categories", json={"name": "Food", "category_type": "EXPENSE"}).json()
+    client.post(
+        "/categories",
+        json={"name": "Groceries", "category_type": "EXPENSE", "parent_id": parent["category_id"]},
+    )
     acc = client.post(
         "/accounts",
         json={"name": "Cash", "currency": "USD", "initial_balance": 100},
@@ -362,3 +366,27 @@ def test_create_posting_with_parent_category_fails(client: TestClient):
     )
     assert response.status_code == 422
     assert "Use a subcategory" in response.json()["detail"]
+
+
+def test_create_posting_with_leaf_parent_category_succeeds(client: TestClient):
+    """A root category with no children is a leaf — posting is allowed."""
+    category = client.post(
+        "/categories", json={"name": "Kindergeld", "category_type": "INCOME"}
+    ).json()
+    acc = client.post(
+        "/accounts",
+        json={"name": "Checking", "currency": "EUR", "initial_balance": 1000},
+    ).json()
+
+    response = client.post(
+        "/postings/",
+        json={
+            "account_id": acc["account_id"],
+            "amount": 250,
+            "posting_date": "2024-01-15",
+            "category_id": category["category_id"],
+            "posting_type": "INCOME",
+        },
+    )
+    assert response.status_code == 201
+    assert response.json()["category_id"] == category["category_id"]

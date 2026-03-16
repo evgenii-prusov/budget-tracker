@@ -160,7 +160,7 @@ def create_posting(
             category = uow.categories.get(category_id)
             if not category:
                 raise CategoryNotFoundError(f"Category with id '{category_id}' not found")
-            if category.parent_id is None:
+            if category.parent_id is None and uow.categories.count_children(category_id) > 0:
                 raise ParentCategoryPostingError(
                     f"Cannot create posting with parent category '{category.name}'. "
                     f"Use a subcategory instead."
