@@ -167,7 +167,7 @@ export function CreatePostingDialog({
               </SelectTrigger>
               <SelectContent>
                 {(accounts ?? []).map((a) => (
-                  <SelectItem key={a.account_id} value={a.account_id}>
+                  <SelectItem key={a.account_id} value={a.account_id} label={`${a.name} (${a.currency})`}>
                     {a.name} ({a.currency})
                   </SelectItem>
                 ))}
@@ -188,7 +188,7 @@ export function CreatePostingDialog({
               </SelectTrigger>
               <SelectContent>
                 {filteredParents.map((p) => (
-                  <SelectItem key={p.category_id} value={p.category_id}>
+                  <SelectItem key={p.category_id} value={p.category_id} label={p.name}>
                     {p.name}
                   </SelectItem>
                 ))}
@@ -211,7 +211,7 @@ export function CreatePostingDialog({
                 </SelectTrigger>
                 <SelectContent>
                   {subcategories.map((child) => (
-                    <SelectItem key={child.category_id} value={child.category_id}>
+                    <SelectItem key={child.category_id} value={child.category_id} label={child.name}>
                       {child.name}
                     </SelectItem>
                   ))}
