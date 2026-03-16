@@ -55,9 +55,10 @@ export function PostingsTable({ postings, onDelete }: PostingsTableProps) {
           const amountClass = isExpense
             ? "text-red-600 dark:text-red-400"
             : "text-green-600 dark:text-green-400";
+          const absAmount = String(Math.abs(Number(posting.amount)));
           const amountDisplay = account
-            ? formatCurrency(String(Math.abs(Number(posting.amount))), account.currency)
-            : posting.amount;
+            ? formatCurrency(absAmount, account.currency)
+            : absAmount;
 
           return (
             <TableRow key={posting.posting_id}>
