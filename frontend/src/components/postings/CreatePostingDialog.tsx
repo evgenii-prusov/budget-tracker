@@ -163,7 +163,13 @@ export function CreatePostingDialog({
             <Label htmlFor="posting-account">Account</Label>
             <Select value={accountId} onValueChange={setAccountId} required>
               <SelectTrigger id="posting-account" className="w-full">
-                <SelectValue placeholder="Select account" />
+                <SelectValue placeholder="Select account">
+                  {(value: string | null) => {
+                    if (!value) return "Select account";
+                    const match = (accounts ?? []).find((a) => a.account_id === value);
+                    return match ? `${match.name} (${match.currency})` : value;
+                  }}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {(accounts ?? []).map((a) => {
