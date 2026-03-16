@@ -142,7 +142,7 @@ export default function PostingsPage() {
         />
       )}
 
-      <CreatePostingDialog open={createOpen} onOpenChange={setCreateOpen} />
+      <CreatePostingDialog open={createOpen} onOpenChange={setCreateOpen} defaultAccountId={accountId} />
 
       <DeletePostingDialog
         posting={deleteTarget}
