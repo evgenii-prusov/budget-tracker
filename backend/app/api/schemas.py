@@ -38,6 +38,8 @@ class AccountUpdate(BaseModel):
             raise ValueError("At least one field must be provided for update")
         if "name" in data and data["name"] is None:
             raise ValueError("Account name cannot be null")
+        if "initial_balance" in data and data["initial_balance"] is None:
+            raise ValueError("Initial balance cannot be null")
         return data
 
 

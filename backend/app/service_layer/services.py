@@ -67,7 +67,7 @@ def update_account(
 
         if update_initial_balance:
             if initial_balance is None:
-                initial_balance = Decimal(0)
+                raise ValueError("initial_balance is required when update_initial_balance is True")
             if initial_balance < 0:
                 raise InvalidInitialBalanceError(
                     f"Initial balance cannot be negative, got {initial_balance}"

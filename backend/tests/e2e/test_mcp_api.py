@@ -303,11 +303,14 @@ async def test_update_account_initial_balance(mcp_client):
         "update_account",
         {
             "account_name": "Balance Update",
-            "initial_balance": 250.50,
+            "initial_balance": "250.50",
             "update_initial_balance": True,
         },
     )
-    assert "initial_balance to 250.5" in result.content[0].text
+    assert (
+        "initial_balance to 250.5" in result.content[0].text
+        or "initial_balance to 250.50" in result.content[0].text
+    )
 
     # Verify via list_accounts
     list_result = await mcp_client.call_tool("list_accounts", {})
