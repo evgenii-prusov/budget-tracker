@@ -1,4 +1,4 @@
-.PHONY: help install run test coverage check format lint typecheck sync clean \
+.PHONY: help branch install run test coverage check format lint typecheck sync clean \
         db-up db-down db-migrate db-revision db-seed \
         docker-build docker-up docker-down docker-logs dev-up dev-down \
         fe-install fe-dev fe-build fe-lint fe-preview \
@@ -16,6 +16,7 @@ help:
 	@echo "make format          - Format code with ruff"
 	@echo "make lint            - Lint and auto-fix with ruff"
 	@echo "make typecheck       - Run ty type checker"
+	@echo "make branch name=... - Create a new branch from origin/master"
 	@echo "make sync            - Sync with remote master branch"
 	@echo "make clean           - Remove generated files"
 	@echo ""
@@ -74,6 +75,11 @@ lint:
 
 typecheck:
 	cd backend && uv run ty check
+
+branch:
+	@test -n "$(name)" || (echo "Usage: make branch name=<branch-name>"; exit 1)
+	git fetch origin
+	git checkout -b $(name) origin/master
 
 sync:
 	git pull --rebase origin master
