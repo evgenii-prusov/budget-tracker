@@ -31,16 +31,18 @@ import type { PostingType } from "@/api/types";
 interface CreatePostingDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  defaultAccountId?: string;
 }
 
 export function CreatePostingDialog({
   open,
   onOpenChange,
+  defaultAccountId,
 }: CreatePostingDialogProps) {
   const today = new Date();
 
   const [postingType, setPostingType] = useState<PostingType>("EXPENSE");
-  const [accountId, setAccountId] = useState("");
+  const [accountId, setAccountId] = useState(defaultAccountId ?? "");
   const [parentCategoryId, setParentCategoryId] = useState("");
   const [categoryId, setCategoryId] = useState("");
   const [amount, setAmount] = useState("");
@@ -66,7 +68,7 @@ export function CreatePostingDialog({
 
   const resetForm = () => {
     setPostingType("EXPENSE");
-    setAccountId("");
+    setAccountId(defaultAccountId ?? "");
     setParentCategoryId("");
     setCategoryId("");
     setAmount("");
