@@ -322,6 +322,8 @@ def update_category(
 
         if update_parent and parent_id != category.parent_id:
             if parent_id is not None:
+                if parent_id == category_id:
+                    raise CategoryHierarchyError("A category cannot be its own parent")
                 new_parent = uow.categories.get(parent_id)
                 if new_parent is None:
                     raise CategoryNotFoundError(f"Parent category with id '{parent_id}' not found")

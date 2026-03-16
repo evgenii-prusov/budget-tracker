@@ -343,6 +343,20 @@ class TestUpdateCategoryParent:
                 update_parent=True,
             )
 
+    def test_self_parent_raises_hierarchy_error(self):
+        from app.domain.exceptions import CategoryHierarchyError
+
+        uow = FakeUnitOfWork()
+        cat = create_category(uow, name="Food", category_type=CategoryType.EXPENSE)
+
+        with pytest.raises(CategoryHierarchyError, match="cannot be its own parent"):
+            update_category(
+                uow,
+                category_id=cat.category_id,
+                parent_id=cat.category_id,
+                update_parent=True,
+            )
+
     def test_move_to_same_parent_is_noop(self):
         uow = FakeUnitOfWork()
         parent = create_category(uow, name="Food", category_type=CategoryType.EXPENSE)

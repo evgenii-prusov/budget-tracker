@@ -461,6 +461,17 @@ def test_update_category_with_children_cannot_nest_returns_422(client: TestClien
     assert "has children" in response.json()["detail"]
 
 
+def test_update_category_self_parent_returns_422(client: TestClient):
+    cat = client.post("/categories", json={"name": "Food", "category_type": "EXPENSE"}).json()
+
+    response = client.patch(
+        f"/categories/{cat['category_id']}",
+        json={"parent_id": cat["category_id"]},
+    )
+    assert response.status_code == 422
+    assert "cannot be its own parent" in response.json()["detail"]
+
+
 def test_create_posting_with_leaf_parent_category_succeeds(client: TestClient):
     """A root category with no children is a leaf — posting is allowed."""
     category = client.post(
