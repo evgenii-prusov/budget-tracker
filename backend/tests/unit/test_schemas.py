@@ -42,3 +42,15 @@ class TestAccountNameValidation:
     def test_create_account_with_mixed_scripts(self):
         acc = AccountCreate(name="Счёт EUR-123", currency="EUR")
         assert acc.name == "Счёт EUR-123"
+
+    def test_create_account_rejects_leading_underscore(self):
+        with pytest.raises(ValidationError):
+            AccountCreate(name="_Account", currency="USD")
+
+    def test_create_account_rejects_underscore_in_word(self):
+        with pytest.raises(ValidationError):
+            AccountCreate(name="My__Account", currency="USD")
+
+    def test_create_account_allows_underscore_as_separator(self):
+        acc = AccountCreate(name="My_Account", currency="USD")
+        assert acc.name == "My_Account"
