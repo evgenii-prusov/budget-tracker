@@ -1,9 +1,9 @@
 # Dependencies and virtual environment
 .venv/
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+**/*.pyd
 
 # Version control
 .git/
