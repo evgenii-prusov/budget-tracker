@@ -186,8 +186,8 @@ echo ""
 echo "==> Updating backend CORS to include frontend origin ..."
 
 FRONTEND_ORIGIN="https://${FRONTEND_FQDN}"
-# Append frontend origin to existing CORS_ORIGINS (avoid duplicates)
-if [[ "$CORS_ORIGINS" != *"$FRONTEND_ORIGIN"* ]]; then
+# Append frontend origin to existing CORS_ORIGINS (exact match on comma-delimited list)
+if [[ ",${CORS_ORIGINS}," != *",${FRONTEND_ORIGIN},"* ]]; then
     CORS_ORIGINS="${CORS_ORIGINS},${FRONTEND_ORIGIN}"
 fi
 
