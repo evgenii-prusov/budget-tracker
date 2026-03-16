@@ -55,7 +55,8 @@ export function CreateTransferDialog({
     setDescription("");
   };
 
-  const handleSourceChange = (value: string) => {
+  const handleSourceChange = (value: string | null) => {
+    if (!value) return;
     setSourceAccountId(value);
     // If same currency, sync credit amount
     if (accounts && destAccountId) {
@@ -69,7 +70,8 @@ export function CreateTransferDialog({
     }
   };
 
-  const handleDestChange = (value: string) => {
+  const handleDestChange = (value: string | null) => {
+    if (!value) return;
     setDestAccountId(value);
     // If same currency, sync credit amount
     if (accounts && sourceAccountId) {
@@ -234,12 +236,14 @@ export function CreateTransferDialog({
           <div className="space-y-2">
             <Label>Date</Label>
             <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
-              <PopoverTrigger asChild>
-                <Button type="button" variant="outline" className="w-full justify-start">
-                  {date ? format(date, "PPP") : "Pick a date"}
-                  <CalendarIcon className="ml-auto size-4 opacity-50" />
-                </Button>
-              </PopoverTrigger>
+              <PopoverTrigger
+                render={
+                  <Button type="button" variant="outline" className="w-full justify-start">
+                    {date ? format(date, "PPP") : "Pick a date"}
+                    <CalendarIcon className="ml-auto size-4 opacity-50" />
+                  </Button>
+                }
+              />
               <PopoverContent className="w-auto p-0">
                 <Calendar
                   mode="single"
