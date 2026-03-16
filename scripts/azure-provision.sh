@@ -31,6 +31,7 @@ RESOURCE_GROUP="budget-tracker-rg"
 LOCATION="westeurope"
 ENVIRONMENT="budget-tracker-env"
 APP_NAME="budget-tracker"
+FRONTEND_APP="budget-tracker-web"
 
 # ---------------------------------------------------------------------------
 # Load secrets: root .env first, then backend/.env (env vars take priority)
@@ -154,13 +155,57 @@ az containerapp update \
     --set-env-vars "MCP_BASE_URL=${MCP_BASE_URL}"
 
 # ---------------------------------------------------------------------------
+# Frontend Container App
+# ---------------------------------------------------------------------------
+echo ""
+echo "==> Creating frontend container app: $FRONTEND_APP ..."
+
+BACKEND_URL="https://${FQDN}"
+
+az containerapp create \
+    --name "$FRONTEND_APP" \
+    --resource-group "$RESOURCE_GROUP" \
+    --environment "$ENVIRONMENT" \
+    --image mcr.microsoft.com/azuredocs/containerapps-helloworld:latest \
+    --target-port 80 \
+    --ingress external \
+    --min-replicas 0 \
+    --max-replicas 1 \
+    --env-vars "BACKEND_URL=${BACKEND_URL}"
+
+FRONTEND_FQDN=$(az containerapp show \
+    --name "$FRONTEND_APP" \
+    --resource-group "$RESOURCE_GROUP" \
+    --query "properties.configuration.ingress.fqdn" \
+    --output tsv)
+
+# ---------------------------------------------------------------------------
+# Update backend CORS to allow the frontend origin
+# ---------------------------------------------------------------------------
+echo ""
+echo "==> Updating backend CORS to include frontend origin ..."
+
+FRONTEND_ORIGIN="https://${FRONTEND_FQDN}"
+# Append frontend origin to existing CORS_ORIGINS (avoid duplicates)
+if [[ "$CORS_ORIGINS" != *"$FRONTEND_ORIGIN"* ]]; then
+    CORS_ORIGINS="${CORS_ORIGINS},${FRONTEND_ORIGIN}"
+fi
+
+az containerapp update \
+    --name "$APP_NAME" \
+    --resource-group "$RESOURCE_GROUP" \
+    --set-env-vars "CORS_ORIGINS=${CORS_ORIGINS}"
+
+# ---------------------------------------------------------------------------
 # Done
 # ---------------------------------------------------------------------------
 echo ""
 echo "==> Infrastructure provisioned successfully."
-echo "    App URL (placeholder): https://${FQDN}"
+echo "    Backend URL (placeholder): https://${FQDN}"
+echo "    Frontend URL (placeholder): https://${FRONTEND_FQDN}"
 echo "    MCP OAuth: ${MCP_BASE_URL}"
 echo ""
 echo "Next steps:"
 echo "  1. Set GITHUB_TOKEN (PAT with write:packages + read:packages scopes)"
 echo "  2. Run: make deploy"
+echo "  3. Run: make deploy-frontend"

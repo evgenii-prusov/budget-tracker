@@ -2,7 +2,7 @@
         db-up db-down db-migrate db-revision db-seed \
         docker-build docker-up docker-down docker-logs dev-up dev-down \
         fe-install fe-dev fe-build fe-lint fe-preview \
-        azure-provision azure-teardown deploy deploy-logs deploy-status
+        azure-provision azure-teardown deploy deploy-frontend deploy-logs deploy-status
 
 help:
 	@echo "Budget Tracker - Available Commands"
@@ -41,7 +41,8 @@ help:
 	@echo "Azure Container Apps"
 	@echo "make azure-provision - One-time: create Azure infra (rg, env, app)"
 	@echo "make azure-teardown  - Delete all Azure infra (irreversible, Neon untouched)"
-	@echo "make deploy          - Build, push image to ghcr.io, update Azure app"
+	@echo "make deploy          - Build, push backend image to ghcr.io, update Azure app"
+	@echo "make deploy-frontend - Build, push frontend image to ghcr.io, update Azure app"
 	@echo "make deploy-logs     - Tail live logs from the Azure container app"
 	@echo "make deploy-status   - Show running status and URL of the Azure app"
 
@@ -148,6 +149,9 @@ azure-teardown:
 
 deploy:
 	bash scripts/azure-deploy.sh
+
+deploy-frontend:
+	bash scripts/azure-deploy-frontend.sh
 
 deploy-logs:
 	az containerapp logs show \
