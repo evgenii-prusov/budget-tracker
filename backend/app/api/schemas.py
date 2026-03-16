@@ -11,7 +11,7 @@ class AccountCreate(BaseModel):
         ...,
         min_length=3,
         max_length=100,
-        pattern=r"^[\w]+(?:[ _-][\w]+)*$",
+        pattern=r"^[^\W_]+(?:[ _-][^\W_]+)*$",
         description="Account name (3-100 characters, Unicode letters/digits allowed)",
     )
     currency: str
@@ -25,7 +25,7 @@ class AccountUpdate(BaseModel):
         None,
         min_length=3,
         max_length=100,
-        pattern=r"^[\w]+(?:[ _-][\w]+)*$",
+        pattern=r"^[^\W_]+(?:[ _-][^\W_]+)*$",
         description="New account name (3-100 characters, Unicode letters/digits allowed)",
     )
     description: str | None = Field(None, max_length=500)
