@@ -52,10 +52,9 @@ export function PeriodSelector({
   return (
     <div className="flex flex-wrap items-center gap-4">
       <ToggleGroup
-        type="single"
-        value={period}
+        value={[period]}
         onValueChange={(val) => {
-          if (val) onPeriodChange(val as ReportPeriod);
+          if (val.length > 0) onPeriodChange(val[val.length - 1] as ReportPeriod);
         }}
         aria-label="Select period"
       >
