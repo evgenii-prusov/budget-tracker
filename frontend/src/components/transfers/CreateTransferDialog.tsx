@@ -170,11 +170,14 @@ export function CreateTransferDialog({
                 <SelectValue placeholder="Select source account" />
               </SelectTrigger>
               <SelectContent>
-                {accounts?.map((account) => (
-                  <SelectItem key={account.account_id} value={account.account_id} label={`${account.name} (${account.currency})`}>
-                    {account.name} ({account.currency})
-                  </SelectItem>
-                ))}
+                {accounts?.map((account) => {
+                  const displayLabel = `${account.name} (${account.currency})`;
+                  return (
+                    <SelectItem key={account.account_id} value={account.account_id} label={displayLabel}>
+                      {displayLabel}
+                    </SelectItem>
+                  );
+                })}
               </SelectContent>
             </Select>
           </div>
@@ -186,11 +189,14 @@ export function CreateTransferDialog({
                 <SelectValue placeholder="Select destination account" />
               </SelectTrigger>
               <SelectContent>
-                {accounts?.map((account) => (
-                  <SelectItem key={account.account_id} value={account.account_id} label={`${account.name} (${account.currency})`}>
-                    {account.name} ({account.currency})
-                  </SelectItem>
-                ))}
+                {accounts?.map((account) => {
+                  const displayLabel = `${account.name} (${account.currency})`;
+                  return (
+                    <SelectItem key={account.account_id} value={account.account_id} label={displayLabel}>
+                      {displayLabel}
+                    </SelectItem>
+                  );
+                })}
               </SelectContent>
             </Select>
           </div>

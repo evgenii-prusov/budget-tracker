@@ -166,11 +166,14 @@ export function CreatePostingDialog({
                 <SelectValue placeholder="Select account" />
               </SelectTrigger>
               <SelectContent>
-                {(accounts ?? []).map((a) => (
-                  <SelectItem key={a.account_id} value={a.account_id} label={`${a.name} (${a.currency})`}>
-                    {a.name} ({a.currency})
-                  </SelectItem>
-                ))}
+                {(accounts ?? []).map((a) => {
+                  const displayLabel = `${a.name} (${a.currency})`;
+                  return (
+                    <SelectItem key={a.account_id} value={a.account_id} label={displayLabel}>
+                      {displayLabel}
+                    </SelectItem>
+                  );
+                })}
               </SelectContent>
             </Select>
           </div>
