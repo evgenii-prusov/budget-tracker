@@ -58,6 +58,7 @@ export default function CategoriesPage() {
         category={editTarget}
         open={!!editTarget}
         onOpenChange={(open) => !open && setEditTarget(null)}
+        categories={categories ?? []}
       />
 
       <DeleteCategoryDialog

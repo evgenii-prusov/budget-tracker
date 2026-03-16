@@ -81,18 +81,23 @@ def create_category_endpoint(category: CategoryCreate, uow: UoWDep):
 
 @router.patch("/categories/{category_id}", response_model=CategoryResponse)
 def update_category_endpoint(category_id: str, category_update: CategoryUpdate, uow: UoWDep):
+    fields_set = category_update.model_fields_set or set()
     try:
         updated_category = update_category(
             uow=uow,
             category_id=category_id,
             name=category_update.name,
             description=category_update.description,
-            update_description="description" in (category_update.model_fields_set or set()),
+            update_description="description" in fields_set,
+            parent_id=category_update.parent_id,
+            update_parent="parent_id" in fields_set,
         )
     except CategoryNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc))
     except DuplicateCategoryNameError as exc:
         raise HTTPException(status_code=409, detail=str(exc))
+    except CategoryHierarchyError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
 
     return updated_category
 

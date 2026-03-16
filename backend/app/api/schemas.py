@@ -72,6 +72,7 @@ class CategoryUpdate(BaseModel):
         description="New category name",
     )
     description: str | None = Field(None, max_length=500)
+    parent_id: str | None = None
 
     @model_validator(mode="before")
     @classmethod

@@ -40,6 +40,7 @@ export interface CategoryCreate {
 export interface CategoryUpdate {
   name?: string;
   description?: string | null;
+  parent_id?: string | null;
 }
 
 export interface CategoryResponse {
