@@ -165,9 +165,9 @@ export function CreatePostingDialog({
               <SelectTrigger id="posting-account" className="w-full">
                 <SelectValue placeholder="Select account">
                   {(value: string | null) => {
-                    if (!value) return "Select account";
+                    if (!value) return null;
                     const match = (accounts ?? []).find((a) => a.account_id === value);
-                    return match ? `${match.name} (${match.currency})` : value;
+                    return match ? `${match.name} (${match.currency})` : "Loading…";
                   }}
                 </SelectValue>
               </SelectTrigger>
