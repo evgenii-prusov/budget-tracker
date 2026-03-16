@@ -1216,10 +1216,13 @@ class TestCategoryHierarchy:
 
 
 class TestPostingCategoryEnforcement:
-    def test_create_posting_with_parent_category_raises_error(self):
+    def test_create_posting_with_parent_that_has_children_raises_error(self):
         uow = FakeUnitOfWork()
         account = create_account(uow, name="Test", currency="EUR", initial_balance=Decimal(100))
         parent = create_category(uow, name="Food", category_type=CategoryType.EXPENSE)
+        create_category(
+            uow, name="Groceries", category_type=CategoryType.EXPENSE, parent_id=parent.category_id
+        )
         with pytest.raises(ParentCategoryPostingError, match="Use a subcategory"):
             create_posting(
                 uow,
@@ -1229,6 +1232,21 @@ class TestPostingCategoryEnforcement:
                 posting_type=PostingType.EXPENSE,
                 category_id=parent.category_id,
             )
+
+    def test_create_posting_with_leaf_parent_category_succeeds(self):
+        """A root category with no children is a leaf node — postings are allowed."""
+        uow = FakeUnitOfWork()
+        account = create_account(uow, name="Test", currency="EUR", initial_balance=Decimal(100))
+        kindergeld = create_category(uow, name="Kindergeld", category_type=CategoryType.INCOME)
+        posting = create_posting(
+            uow,
+            account_id=account.account_id,
+            amount=Decimal(250),
+            posting_date=JAN_01,
+            posting_type=PostingType.INCOME,
+            category_id=kindergeld.category_id,
+        )
+        assert posting.category_id == kindergeld.category_id
 
     def test_create_posting_with_subcategory_succeeds(self):
         uow = FakeUnitOfWork()

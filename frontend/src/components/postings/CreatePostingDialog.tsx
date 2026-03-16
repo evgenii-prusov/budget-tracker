@@ -61,6 +61,8 @@ export function CreatePostingDialog({
   );
 
   const subcategories = selectedParent?.children ?? [];
+  const hasSubcategories = subcategories.length > 0;
+  const effectiveCategoryId = hasSubcategories ? categoryId : parentCategoryId;
 
   const resetForm = () => {
     setPostingType("EXPENSE");
@@ -101,8 +103,8 @@ export function CreatePostingDialog({
       return;
     }
 
-    if (!categoryId) {
-      showToast.error("Please select a subcategory");
+    if (!effectiveCategoryId) {
+      showToast.error(hasSubcategories ? "Please select a subcategory" : "Please select a category");
       return;
     }
 
@@ -112,7 +114,7 @@ export function CreatePostingDialog({
         amount: parsedAmount.toString(),
         posting_date: format(date, "yyyy-MM-dd"),
         posting_type: postingType,
-        category_id: categoryId,
+        category_id: effectiveCategoryId,
         payee: payee.trim() || null,
         description: description.trim() || null,
       },
@@ -188,35 +190,29 @@ export function CreatePostingDialog({
             </Select>
           </div>
 
-          {/* Subcategory */}
-          <div className="space-y-2">
-            <Label htmlFor="posting-subcategory">Subcategory</Label>
-            <Select
-              value={categoryId}
-              onValueChange={setCategoryId}
-              disabled={!parentCategoryId || subcategories.length === 0}
-              required
-            >
-              <SelectTrigger id="posting-subcategory" className="w-full">
-                <SelectValue
-                  placeholder={
-                    !parentCategoryId
-                      ? "Select a category first"
-                      : subcategories.length === 0
-                        ? "No subcategories available"
-                        : "Select subcategory"
-                  }
-                />
-              </SelectTrigger>
-              <SelectContent>
-                {subcategories.map((child) => (
-                  <SelectItem key={child.category_id} value={child.category_id}>
-                    {child.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          {/* Subcategory — only shown when the selected parent has children */}
+          {hasSubcategories && (
+            <div className="space-y-2">
+              <Label htmlFor="posting-subcategory">Subcategory</Label>
+              <Select
+                value={categoryId}
+                onValueChange={setCategoryId}
+                disabled={!parentCategoryId}
+                required
+              >
+                <SelectTrigger id="posting-subcategory" className="w-full">
+                  <SelectValue placeholder="Select subcategory" />
+                </SelectTrigger>
+                <SelectContent>
+                  {subcategories.map((child) => (
+                    <SelectItem key={child.category_id} value={child.category_id}>
+                      {child.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           {/* Amount */}
           <div className="space-y-2">
