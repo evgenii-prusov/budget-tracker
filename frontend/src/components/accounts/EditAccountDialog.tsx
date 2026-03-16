@@ -30,6 +30,7 @@ export function EditAccountDialog({
 }: EditAccountDialogProps) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+  const [initialBalance, setInitialBalance] = useState("");
 
   const updateAccount = useUpdateAccount();
 
@@ -37,6 +38,7 @@ export function EditAccountDialog({
     if (account) {
       setName(account.name);
       setDescription(account.description ?? "");
+      setInitialBalance(account.initial_balance);
     }
   }, [account]);
 
@@ -49,13 +51,18 @@ export function EditAccountDialog({
       return;
     }
 
+    const data: Record<string, unknown> = {
+      name: trimmedName,
+      description: description.trim() || null,
+    };
+    if (initialBalance !== account.initial_balance) {
+      data.initial_balance = initialBalance;
+    }
+
     updateAccount.mutate(
       {
         id: account.account_id,
-        data: {
-          name: trimmedName,
-          description: description.trim() || null,
-        },
+        data: data as import("@/api/types").AccountUpdate,
       },
       {
         onSuccess: () => {
@@ -88,6 +95,18 @@ export function EditAccountDialog({
               required
               minLength={3}
               maxLength={100}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="edit-initial-balance">Initial Balance</Label>
+            <Input
+              id="edit-initial-balance"
+              type="number"
+              step="0.01"
+              min="0"
+              value={initialBalance}
+              onChange={(e) => setInitialBalance(e.target.value)}
             />
           </div>
 

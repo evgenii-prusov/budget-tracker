@@ -292,6 +292,30 @@ async def test_update_account_no_op(mcp_client):
 
 
 @pytest.mark.asyncio
+async def test_update_account_initial_balance(mcp_client):
+    """Test updating an account's initial_balance via MCP tool."""
+    await mcp_client.call_tool(
+        "create_account",
+        {"name": "Balance Update", "currency": "EUR", "initial_balance": "100"},
+    )
+
+    result = await mcp_client.call_tool(
+        "update_account",
+        {
+            "account_name": "Balance Update",
+            "initial_balance": 250.50,
+            "update_initial_balance": True,
+        },
+    )
+    assert "initial_balance to 250.5" in result.content[0].text
+
+    # Verify via list_accounts
+    list_result = await mcp_client.call_tool("list_accounts", {})
+    text = list_result.content[0].text
+    assert "250.5" in text
+
+
+@pytest.mark.asyncio
 async def test_create_category_roundtrip(mcp_client, client):
     """Create parent then subcategory via MCP, verify via REST API."""
     # 1. Create parent category via MCP
