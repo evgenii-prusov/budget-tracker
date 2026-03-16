@@ -82,7 +82,7 @@ export function EditAccountDialog({
         <DialogHeader>
           <DialogTitle>Edit Account</DialogTitle>
           <DialogDescription>
-            Update the account name or description.
+            Update the account name, initial balance, or description.
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
