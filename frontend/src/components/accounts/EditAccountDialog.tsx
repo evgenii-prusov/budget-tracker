@@ -55,7 +55,7 @@ export function EditAccountDialog({
       name: trimmedName,
       description: description.trim() || null,
     };
-    if (initialBalance !== account.initial_balance) {
+    if (Number(initialBalance) !== Number(account.initial_balance)) {
       data.initial_balance = initialBalance;
     }
 
@@ -105,6 +105,7 @@ export function EditAccountDialog({
               type="number"
               step="0.01"
               min="0"
+              required
               value={initialBalance}
               onChange={(e) => setInitialBalance(e.target.value)}
             />

@@ -518,7 +518,7 @@ def _update_account_impl(
     new_name: str | None = None,
     description: str | None = None,
     update_description: bool = False,
-    initial_balance: float | None = None,
+    initial_balance: str | None = None,
     update_initial_balance: bool = False,
 ) -> str:
     if new_name is None and not update_description and not update_initial_balance:
@@ -529,17 +529,26 @@ def _update_account_impl(
     except ValueError as exc:
         return str(exc)
 
+    balance_decimal: Decimal | None = None
+    if initial_balance is not None:
+        try:
+            balance_decimal = Decimal(initial_balance)
+        except InvalidOperation:
+            return f"Invalid initial_balance value: '{initial_balance}'"
+
     try:
-        services.update_account(
+        updated = services.update_account(
             uow,
             account_id=account.account_id,
             name=new_name,
             description=description,
             update_description=update_description,
-            initial_balance=Decimal(str(initial_balance)) if initial_balance is not None else None,
+            initial_balance=balance_decimal,
             update_initial_balance=update_initial_balance,
         )
     except (AccountNotFoundError, DuplicateAccountNameError, InvalidInitialBalanceError) as exc:
+        return str(exc)
+    except ValueError as exc:
         return str(exc)
 
     parts = []
@@ -549,7 +558,7 @@ def _update_account_impl(
         desc_val = f"'{description}'" if description is not None else "null"
         parts.append(f"description to {desc_val}")
     if update_initial_balance:
-        parts.append(f"initial_balance to {initial_balance}")
+        parts.append(f"initial_balance to {updated.initial_balance}")
 
     return f"Updated account '{account_name}' {' and '.join(parts)}."
 
@@ -1015,7 +1024,7 @@ def _register_tools(mcp: FastMCP) -> None:
         new_name: str | None = None,
         description: str | None = None,
         update_description: bool = False,
-        initial_balance: float | None = None,
+        initial_balance: str | None = None,
         update_initial_balance: bool = False,
     ) -> str:
         """Update an existing account's name, description, or initial balance.
@@ -1025,7 +1034,7 @@ def _register_tools(mcp: FastMCP) -> None:
             new_name: Optional new name for the account.
             description: Optional new description for the account.
             update_description: Set to true if providing a description (even null).
-            initial_balance: Optional new initial balance (must be >= 0).
+            initial_balance: Optional new initial balance as a decimal string (must be >= 0).
             update_initial_balance: Set to true if providing an initial_balance.
         """
         with _uow_from_ctx(ctx) as uow:
