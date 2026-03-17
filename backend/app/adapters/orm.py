@@ -62,6 +62,14 @@ transfers = Table(
 )
 
 
+settings = Table(
+    "settings",
+    metadata,
+    Column("settings_id", String(36), primary_key=True),
+    Column("primary_currency", String(3), nullable=False, server_default="EUR"),
+)
+
+
 def start_mappers():
     mapper_registry.map_imperatively(
         model.Account,
@@ -98,3 +106,4 @@ def start_mappers():
     )
     mapper_registry.map_imperatively(model.Posting, postings)
     mapper_registry.map_imperatively(model.Transfer, transfers)
+    mapper_registry.map_imperatively(model.Settings, settings)

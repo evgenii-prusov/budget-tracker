@@ -7,6 +7,7 @@ from app.domain.model import Transfer
 from app.domain.model import PostingType
 from app.domain.model import CategoryType
 from app.domain.model import Category
+from app.domain.model import Settings
 from app.domain.exceptions import DuplicateAccountNameError
 from app.domain.exceptions import InvalidInitialBalanceError
 from app.domain.exceptions import AccountNotFoundError
@@ -19,6 +20,7 @@ from app.domain.exceptions import DuplicateCategoryNameError
 from app.domain.exceptions import InsufficientFundsError
 from app.domain.exceptions import ParentCategoryPostingError
 from app.domain.exceptions import PostingNotFoundError
+from app.domain.exceptions import InvalidCurrencyError
 from app.domain.exceptions import TransferNotFoundError
 
 from collections.abc import Callable
@@ -27,6 +29,7 @@ from app.service_layer.abstract_account_repository import AbstractAccountReposit
 from app.service_layer.abstract_transfer_repository import AbstractTransferRepository
 from app.service_layer.abstract_category_repository import AbstractCategoryRepository
 from app.service_layer.abstract_report_repository import AbstractReportRepository
+from app.service_layer.abstract_settings_repository import AbstractSettingsRepository
 from app.service_layer.reports import SpendingReport
 from app.service_layer.unit_of_work import AbstractUnitOfWork
 from app.service_layer.services import create_account
@@ -46,6 +49,8 @@ from app.service_layer.services import create_transfer
 from app.service_layer.services import delete_transfer
 from app.service_layer.services import get_transfer
 from app.service_layer.services import list_transfers
+from app.service_layer.services import get_settings
+from app.service_layer.services import update_settings
 from tests.constants import JAN_01
 
 
@@ -151,16 +156,29 @@ class FakeReportRepository(AbstractReportRepository):
         return SpendingReport(period="month", start_date=start_date, end_date=end_date, rows=[])
 
 
+class FakeSettingsRepository(AbstractSettingsRepository):
+    def __init__(self):
+        self._settings: Settings | None = None
+
+    def get(self) -> Settings | None:
+        return self._settings
+
+    def save(self, settings: Settings) -> None:
+        self._settings = settings
+
+
 class FakeUnitOfWork(AbstractUnitOfWork):
     accounts: FakeAccountRepository
     transfers: FakeTransferRepository
     categories: FakeCategoryRepository
     reports: FakeReportRepository
+    settings: FakeSettingsRepository
 
     def __init__(self):
         self.accounts = FakeAccountRepository()
         self.transfers = FakeTransferRepository()
         self.reports = FakeReportRepository()
+        self.settings = FakeSettingsRepository()
         self.committed = False
 
         # Wire up category's count_postings to scan accounts
@@ -1665,3 +1683,40 @@ class TestDeleteTransfer:
             delete_transfer(uow, transfer_id="nonexistent")
         assert "Transfer with id 'nonexistent' not found" in str(exc_info.value)
         assert uow.committed is False
+
+
+class TestSettings:
+    def test_get_settings_returns_default_when_none(self):
+        uow = FakeUnitOfWork()
+        settings = get_settings(uow)
+        assert settings.settings_id == "default"
+        assert settings.primary_currency == "EUR"
+        assert uow.committed is True
+
+    def test_get_settings_returns_existing(self):
+        uow = FakeUnitOfWork()
+        existing = Settings(settings_id="default", primary_currency="USD")
+        uow.settings._settings = existing
+        settings = get_settings(uow)
+        assert settings.primary_currency == "USD"
+        assert settings is existing
+
+    def test_update_settings_changes_currency(self):
+        uow = FakeUnitOfWork()
+        settings = update_settings(uow, primary_currency="GBP")
+        assert settings.primary_currency == "GBP"
+        assert uow.committed is True
+
+    def test_update_settings_overwrites_existing(self):
+        uow = FakeUnitOfWork()
+        existing = Settings(settings_id="default", primary_currency="USD")
+        uow.settings._settings = existing
+        settings = update_settings(uow, primary_currency="JPY")
+        assert settings.primary_currency == "JPY"
+        assert uow.settings._settings.primary_currency == "JPY"
+        assert uow.committed is True
+
+    def test_update_settings_invalid_currency(self):
+        uow = FakeUnitOfWork()
+        with pytest.raises(InvalidCurrencyError):
+            update_settings(uow, primary_currency="XXX")

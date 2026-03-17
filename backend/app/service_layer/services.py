@@ -10,6 +10,7 @@ from app.domain.exceptions import CategoryInUseError
 from app.domain.exceptions import CategoryNotFoundError
 from app.domain.exceptions import DuplicateAccountNameError
 from app.domain.exceptions import DuplicateCategoryNameError
+from app.domain.exceptions import InvalidCurrencyError
 from app.domain.exceptions import InvalidInitialBalanceError
 from app.domain.exceptions import ParentCategoryPostingError
 from app.domain.exceptions import PostingNotFoundError
@@ -19,7 +20,9 @@ from app.domain.model import Category
 from app.domain.model import CategoryType
 from app.domain.model import Posting
 from app.domain.model import PostingType
+from app.domain.model import Settings
 from app.domain.model import Transfer
+from app.domain.model import VALID_CURRENCIES
 from app.service_layer.unit_of_work import AbstractUnitOfWork
 from app.core.logging_config import get_logger
 
@@ -554,3 +557,27 @@ def delete_transfer(uow: AbstractUnitOfWork, *, transfer_id: str) -> None:
         uow.transfers.delete(transfer)
         uow.commit()
         logger.info("Deleted transfer id: %s", transfer_id)
+
+
+def get_settings(uow: AbstractUnitOfWork) -> Settings:
+    with uow:
+        settings = uow.settings.get()
+        if settings is None:
+            settings = Settings()
+            uow.settings.save(settings)
+            uow.commit()
+        return settings
+
+
+def update_settings(uow: AbstractUnitOfWork, *, primary_currency: str) -> Settings:
+    with uow:
+        settings = uow.settings.get()
+        if settings is None:
+            settings = Settings(primary_currency=primary_currency)
+        else:
+            if primary_currency not in VALID_CURRENCIES:
+                raise InvalidCurrencyError(f"Invalid currency: {primary_currency}")
+            settings.primary_currency = primary_currency
+        uow.settings.save(settings)
+        uow.commit()
+        return settings
