@@ -65,3 +65,29 @@ class SqlAlchemyReportRepository(AbstractReportRepository):
             end_date=end_date,
             rows=rows,
         )
+
+    def daily_spending(
+        self,
+        start_date: date,
+        end_date: date,
+        currency: str,
+        exclude_savings: bool = True,
+    ) -> list[tuple[date, Decimal]]:
+        stmt = (
+            select(
+                postings.c.posting_date,
+                func.sum(func.abs(postings.c.amount)).label("daily_total"),
+            )
+            .select_from(postings)
+            .join(accounts, postings.c.account_id == accounts.c.account_id)
+            .where(postings.c.posting_type == "EXPENSE")
+            .where(postings.c.posting_date.between(start_date, end_date))
+            .where(accounts.c.currency == currency)
+            .where(accounts.c.is_savings.is_(False) if exclude_savings else True)
+            .group_by(postings.c.posting_date)
+            .order_by(postings.c.posting_date)
+        )
+
+        return [
+            (row.posting_date, Decimal(str(row.daily_total))) for row in self._session.execute(stmt)
+        ]

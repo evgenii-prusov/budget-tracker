@@ -6,8 +6,11 @@ from typing import Any
 from app.service_layer.reports import (
     _compute_period_dates,
     get_spending_report,
+    get_spending_timeline,
     SpendingReport,
     CategorySpendingRow,
+    DailySpendingRow,
+    SpendingTimelineReport,
 )
 from app.service_layer.abstract_report_repository import AbstractReportRepository
 from tests.unit.test_services import FakeUnitOfWork
@@ -67,9 +70,11 @@ class TestPeriodDates:
 class SpyReportRepository(AbstractReportRepository):
     called_with: Any
 
-    def __init__(self, rows=None):
+    def __init__(self, rows=None, daily_rows=None):
         self._rows = rows or []
+        self._daily_rows = daily_rows or []
         self.called_with = None
+        self.daily_spending_calls: list[tuple] = []
 
     def spending_by_period(
         self, start_date: date, end_date: date, exclude_savings: bool = True
@@ -81,6 +86,16 @@ class SpyReportRepository(AbstractReportRepository):
             end_date=end_date,
             rows=self._rows,
         )
+
+    def daily_spending(
+        self,
+        start_date: date,
+        end_date: date,
+        currency: str,
+        exclude_savings: bool = True,
+    ) -> list[tuple[date, Decimal]]:
+        self.daily_spending_calls.append((start_date, end_date, currency, exclude_savings))
+        return self._daily_rows
 
 
 class FakeUnitOfWorkWithReports(FakeUnitOfWork):
@@ -142,3 +157,96 @@ class TestGetSpendingReport:
 
         with pytest.raises(ValueError, match="Invalid period"):
             get_spending_report(uow, period="quarter", reference_date=date(2026, 3, 1))
+
+
+class FakeUnitOfWorkWithTimeline(FakeUnitOfWork):
+    reports: SpyReportRepository
+
+    def __init__(self, daily_rows=None):
+        super().__init__()
+        self.reports = SpyReportRepository(daily_rows=daily_rows)
+
+
+class TestSpendingTimeline:
+    def test_delegates_to_repo(self):
+        """get_spending_timeline calls daily_spending with correct date range and currency."""
+        uow = FakeUnitOfWorkWithTimeline()
+
+        result = get_spending_timeline(uow, currency="EUR", reference_date=date(2026, 3, 15))
+
+        assert isinstance(result, SpendingTimelineReport)
+        assert result.currency == "EUR"
+        # Current period: March 2026
+        assert result.start_date == date(2026, 3, 1)
+        assert result.end_date == date(2026, 3, 31)
+
+    def test_computes_cumulative_totals(self):
+        """Daily totals [10, 20, 30] should produce cumulative [10, 30, 60]."""
+        daily_rows = [
+            (date(2026, 3, 1), Decimal("10")),
+            (date(2026, 3, 2), Decimal("20")),
+            (date(2026, 3, 3), Decimal("30")),
+        ]
+        uow = FakeUnitOfWorkWithTimeline(daily_rows=daily_rows)
+
+        result = get_spending_timeline(uow, currency="EUR", reference_date=date(2026, 3, 15))
+
+        assert len(result.current_period) == 3
+        assert result.current_period[0] == DailySpendingRow(
+            spending_date=date(2026, 3, 1),
+            daily_total=Decimal("10"),
+            cumulative_total=Decimal("10"),
+        )
+        assert result.current_period[1] == DailySpendingRow(
+            spending_date=date(2026, 3, 2),
+            daily_total=Decimal("20"),
+            cumulative_total=Decimal("30"),
+        )
+        assert result.current_period[2] == DailySpendingRow(
+            spending_date=date(2026, 3, 3),
+            daily_total=Decimal("30"),
+            cumulative_total=Decimal("60"),
+        )
+
+    def test_fetches_both_periods(self):
+        """daily_spending is called twice: once for current month, once for previous month."""
+        uow = FakeUnitOfWorkWithTimeline()
+
+        get_spending_timeline(uow, currency="EUR", reference_date=date(2026, 3, 15))
+
+        calls = uow.reports.daily_spending_calls
+        assert len(calls) == 2
+
+        # Current period: March 2026
+        current_call = calls[0]
+        assert current_call[0] == date(2026, 3, 1)
+        assert current_call[1] == date(2026, 3, 31)
+        assert current_call[2] == "EUR"
+
+        # Previous period: February 2026
+        prev_call = calls[1]
+        assert prev_call[0] == date(2026, 2, 1)
+        assert prev_call[1] == date(2026, 2, 28)
+        assert prev_call[2] == "EUR"
+
+    def test_fetches_both_periods_january_wraps_to_december(self):
+        """When reference is January, previous month wraps to December of previous year."""
+        uow = FakeUnitOfWorkWithTimeline()
+
+        get_spending_timeline(uow, currency="USD", reference_date=date(2026, 1, 10))
+
+        calls = uow.reports.daily_spending_calls
+        assert len(calls) == 2
+
+        prev_call = calls[1]
+        assert prev_call[0] == date(2025, 12, 1)
+        assert prev_call[1] == date(2025, 12, 31)
+
+    def test_empty_data(self):
+        """Empty repo returns empty current_period and previous_period lists."""
+        uow = FakeUnitOfWorkWithTimeline(daily_rows=[])
+
+        result = get_spending_timeline(uow, currency="EUR", reference_date=date(2026, 3, 15))
+
+        assert result.current_period == []
+        assert result.previous_period == []

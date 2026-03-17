@@ -5,6 +5,7 @@ from datetime import date
 from app.adapters.account_repository import SqlAlchemyAccountRepository
 from app.adapters.transfer_repository import SqlAlchemyTransferRepository
 from app.adapters.category_repository import SqlAlchemyCategoryRepository
+from app.adapters.report_repository import SqlAlchemyReportRepository
 from app.domain.model import Account, CategoryType, PostingType, Category, Transfer
 from tests.constants import JAN_01
 
@@ -436,3 +437,89 @@ def test_category_count_postings(session):
 
     assert category_repo.count_postings("cat-1") == 2
     assert category_repo.count_postings("nonexistent") == 0
+
+
+def test_daily_spending_groups_by_date(session):
+    """Two postings on the same day are summed; postings on different days are separate rows."""
+    session.execute(
+        text(
+            "INSERT INTO account (account_id, name, currency, initial_balance, is_savings)"
+            " VALUES ('ds-a1', 'EUR Account', 'EUR', 1000, false)"
+        )
+    )
+    session.execute(
+        text(
+            "INSERT INTO posting"
+            " (posting_id, account_id, amount, posting_date, category_id, posting_type)"
+            " VALUES"
+            " ('ds-p1', 'ds-a1', -30, '2026-03-05', NULL, 'EXPENSE'),"
+            " ('ds-p2', 'ds-a1', -20, '2026-03-05', NULL, 'EXPENSE'),"
+            " ('ds-p3', 'ds-a1', -50, '2026-03-10', NULL, 'EXPENSE')"
+        )
+    )
+    session.commit()
+
+    repo = SqlAlchemyReportRepository(session)
+    rows = repo.daily_spending(date(2026, 3, 1), date(2026, 3, 31), "EUR")
+
+    assert len(rows) == 2
+    assert rows[0] == (date(2026, 3, 5), Decimal("50"))
+    assert rows[1] == (date(2026, 3, 10), Decimal("50"))
+
+
+def test_daily_spending_excludes_income(session):
+    """Income postings are not included in daily_spending results."""
+    session.execute(
+        text(
+            "INSERT INTO account (account_id, name, currency, initial_balance, is_savings)"
+            " VALUES ('ds-a2', 'EUR Account 2', 'EUR', 1000, false)"
+        )
+    )
+    session.execute(
+        text(
+            "INSERT INTO posting"
+            " (posting_id, account_id, amount, posting_date, category_id, posting_type)"
+            " VALUES"
+            " ('ds-p4', 'ds-a2', -40, '2026-03-07', NULL, 'EXPENSE'),"
+            " ('ds-p5', 'ds-a2', 200, '2026-03-07', NULL, 'INCOME')"
+        )
+    )
+    session.commit()
+
+    repo = SqlAlchemyReportRepository(session)
+    rows = repo.daily_spending(date(2026, 3, 1), date(2026, 3, 31), "EUR")
+
+    assert len(rows) == 1
+    assert rows[0] == (date(2026, 3, 7), Decimal("40"))
+
+
+def test_daily_spending_filters_by_currency(session):
+    """Only postings from accounts matching the given currency are included."""
+    session.execute(
+        text(
+            "INSERT INTO account (account_id, name, currency, initial_balance, is_savings)"
+            " VALUES"
+            " ('ds-a3', 'EUR Acc', 'EUR', 500, false),"
+            " ('ds-a4', 'USD Acc', 'USD', 500, false)"
+        )
+    )
+    session.execute(
+        text(
+            "INSERT INTO posting"
+            " (posting_id, account_id, amount, posting_date, category_id, posting_type)"
+            " VALUES"
+            " ('ds-p6', 'ds-a3', -60, '2026-03-12', NULL, 'EXPENSE'),"
+            " ('ds-p7', 'ds-a4', -80, '2026-03-12', NULL, 'EXPENSE')"
+        )
+    )
+    session.commit()
+
+    repo = SqlAlchemyReportRepository(session)
+    eur_rows = repo.daily_spending(date(2026, 3, 1), date(2026, 3, 31), "EUR")
+    usd_rows = repo.daily_spending(date(2026, 3, 1), date(2026, 3, 31), "USD")
+
+    assert len(eur_rows) == 1
+    assert eur_rows[0] == (date(2026, 3, 12), Decimal("60"))
+
+    assert len(usd_rows) == 1
+    assert usd_rows[0] == (date(2026, 3, 12), Decimal("80"))

@@ -150,6 +150,15 @@ class FakeReportRepository(AbstractReportRepository):
     ) -> SpendingReport:
         return SpendingReport(period="month", start_date=start_date, end_date=end_date, rows=[])
 
+    def daily_spending(
+        self,
+        start_date: date,
+        end_date: date,
+        currency: str,
+        exclude_savings: bool = True,
+    ) -> list[tuple[date, Decimal]]:
+        return []
+
 
 class FakeUnitOfWork(AbstractUnitOfWork):
     accounts: FakeAccountRepository
