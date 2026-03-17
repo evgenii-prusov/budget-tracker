@@ -9,6 +9,7 @@ from fastapi import Query
 from app.api.dependencies import get_unit_of_work
 from app.api.schemas import PostingCreate
 from app.api.schemas import PostingResponse
+from app.api.schemas import PostingUpdate
 from app.domain.exceptions import AccountNotFoundError
 from app.domain.exceptions import CategoryHierarchyError
 from app.domain.exceptions import CategoryNotFoundError
@@ -21,6 +22,7 @@ from app.service_layer.services import create_posting
 from app.service_layer.services import delete_posting
 from app.service_layer.services import get_posting
 from app.service_layer.services import list_postings
+from app.service_layer.services import update_posting
 
 
 router = APIRouter(
@@ -82,6 +84,45 @@ def get_posting_endpoint(
         return get_posting(uow, posting_id=posting_id)
     except PostingNotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+
+
+@router.patch("/{posting_id}", response_model=PostingResponse)
+def update_posting_endpoint(
+    posting_id: str,
+    posting_update: PostingUpdate,
+    uow: UoWDep,
+):
+    try:
+        raw_data = posting_update.model_dump(exclude_unset=True)
+        kwargs: dict = {"posting_id": posting_id}
+
+        if "amount" in raw_data:
+            kwargs["amount"] = posting_update.amount
+        if "posting_date" in raw_data:
+            kwargs["posting_date"] = posting_update.posting_date
+        if "posting_type" in raw_data and posting_update.posting_type is not None:
+            kwargs["posting_type"] = PostingType(posting_update.posting_type.value)
+        if "category_id" in raw_data:
+            kwargs["category_id"] = posting_update.category_id
+            kwargs["update_category"] = True
+        if "payee" in raw_data:
+            kwargs["payee"] = posting_update.payee
+            kwargs["update_payee"] = True
+        if "description" in raw_data:
+            kwargs["description"] = posting_update.description
+            kwargs["update_description"] = True
+
+        return update_posting(uow, **kwargs)
+    except PostingNotFoundError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+    except CategoryNotFoundError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    except ParentCategoryPostingError as e:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(e))
+    except CategoryHierarchyError as e:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(e))
+    except InsufficientFundsError as e:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(e))
 
 
 @router.delete("/{posting_id}", status_code=status.HTTP_204_NO_CONTENT)

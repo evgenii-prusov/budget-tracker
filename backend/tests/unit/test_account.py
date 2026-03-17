@@ -1,3 +1,4 @@
+from datetime import date
 from decimal import Decimal
 import pytest
 
@@ -242,3 +243,165 @@ def test_account_description_set():
         description="My main spending account",
     )
     assert account.description == "My main spending account"
+
+
+# --- Tests for update_posting ---
+
+
+class TestUpdatePosting:
+    def test_update_posting_amount(self, acc_eur: Account):
+        """Changing amount from 5 to 10 should update balance accordingly."""
+        posting = acc_eur.record_posting(
+            Decimal(5), JAN_01, category_id=None, posting_type=PostingType.EXPENSE
+        )
+        # balance: 35 - 5 = 30
+        assert acc_eur.balance == Decimal(30)
+
+        updated = acc_eur.update_posting(posting.posting_id, amount=Decimal(10))
+
+        assert updated.amount == Decimal("-10")
+        assert acc_eur.balance == Decimal(25)  # 35 - 10
+
+    def test_update_posting_date(self, acc_eur: Account):
+        posting = acc_eur.record_posting(
+            Decimal(5), JAN_01, category_id=None, posting_type=PostingType.EXPENSE
+        )
+        new_date = date(2024, 6, 15)
+
+        updated = acc_eur.update_posting(posting.posting_id, posting_date=new_date)
+
+        assert updated.posting_date == new_date
+        assert updated.amount == Decimal("-5")  # unchanged
+
+    def test_update_posting_type_expense_to_income(self, acc_eur: Account):
+        """Changing EXPENSE→INCOME should flip the sign and update balance."""
+        posting = acc_eur.record_posting(
+            Decimal(5), JAN_01, category_id=None, posting_type=PostingType.EXPENSE
+        )
+        # balance: 35 - 5 = 30
+        assert acc_eur.balance == Decimal(30)
+
+        updated = acc_eur.update_posting(posting.posting_id, posting_type=PostingType.INCOME)
+
+        assert updated.posting_type == PostingType.INCOME
+        assert updated.amount == Decimal("5")  # flipped to positive
+        assert acc_eur.balance == Decimal(40)  # 35 + 5
+
+    def test_update_posting_amount_and_type_together(self, acc_eur: Account):
+        """Changing both amount and type at once."""
+        posting = acc_eur.record_posting(
+            Decimal(5), JAN_01, category_id=None, posting_type=PostingType.EXPENSE
+        )
+        # balance: 35 - 5 = 30
+
+        updated = acc_eur.update_posting(
+            posting.posting_id,
+            amount=Decimal(20),
+            posting_type=PostingType.INCOME,
+        )
+
+        assert updated.amount == Decimal("20")
+        assert updated.posting_type == PostingType.INCOME
+        assert acc_eur.balance == Decimal(55)  # 35 + 20
+
+    def test_update_posting_category(self, acc_eur: Account):
+        posting = acc_eur.record_posting(
+            Decimal(5), JAN_01, category_id="CAT_1", posting_type=PostingType.EXPENSE
+        )
+
+        updated = acc_eur.update_posting(
+            posting.posting_id, category_id="CAT_2", update_category=True
+        )
+
+        assert updated.category_id == "CAT_2"
+
+    def test_update_posting_clear_category(self, acc_eur: Account):
+        posting = acc_eur.record_posting(
+            Decimal(5), JAN_01, category_id="CAT_1", posting_type=PostingType.EXPENSE
+        )
+
+        updated = acc_eur.update_posting(posting.posting_id, category_id=None, update_category=True)
+
+        assert updated.category_id is None
+
+    def test_update_posting_payee(self, acc_eur: Account):
+        posting = acc_eur.record_posting(
+            Decimal(5),
+            JAN_01,
+            category_id=None,
+            posting_type=PostingType.INCOME,
+            payee="Old Payee",
+        )
+
+        updated = acc_eur.update_posting(posting.posting_id, payee="New Payee", update_payee=True)
+
+        assert updated.payee == "New Payee"
+
+    def test_update_posting_clear_payee(self, acc_eur: Account):
+        posting = acc_eur.record_posting(
+            Decimal(5),
+            JAN_01,
+            category_id=None,
+            posting_type=PostingType.INCOME,
+            payee="Some Payee",
+        )
+
+        updated = acc_eur.update_posting(posting.posting_id, payee=None, update_payee=True)
+
+        assert updated.payee is None
+
+    def test_update_posting_description(self, acc_eur: Account):
+        posting = acc_eur.record_posting(
+            Decimal(5),
+            JAN_01,
+            category_id=None,
+            posting_type=PostingType.INCOME,
+            description="Old desc",
+        )
+
+        updated = acc_eur.update_posting(
+            posting.posting_id, description="New desc", update_description=True
+        )
+
+        assert updated.description == "New desc"
+
+    def test_update_posting_insufficient_funds(self, acc_eur: Account):
+        """Increasing expense amount beyond balance should raise."""
+        posting = acc_eur.record_posting(
+            Decimal(5), JAN_01, category_id=None, posting_type=PostingType.EXPENSE
+        )
+        # balance: 35 - 5 = 30
+
+        with pytest.raises(InsufficientFundsError):
+            acc_eur.update_posting(posting.posting_id, amount=Decimal(100))
+
+        # Posting should be unchanged after failed update
+        assert posting.amount == Decimal("-5")
+        assert acc_eur.balance == Decimal(30)
+
+    def test_update_posting_not_found(self, acc_eur: Account):
+        from app.domain.exceptions import PostingNotFoundError
+
+        with pytest.raises(PostingNotFoundError):
+            acc_eur.update_posting("nonexistent-id", amount=Decimal(10))
+
+    def test_update_posting_no_changes(self, acc_eur: Account):
+        """Calling update with no fields should return posting unchanged."""
+        posting = acc_eur.record_posting(
+            Decimal(5), JAN_01, category_id=None, posting_type=PostingType.EXPENSE
+        )
+
+        updated = acc_eur.update_posting(posting.posting_id)
+
+        assert updated.amount == Decimal("-5")
+        assert acc_eur.balance == Decimal(30)
+
+    def test_update_posting_returns_same_object(self, acc_eur: Account):
+        """The returned posting should be the same object (mutated in-place)."""
+        posting = acc_eur.record_posting(
+            Decimal(5), JAN_01, category_id=None, posting_type=PostingType.EXPENSE
+        )
+
+        updated = acc_eur.update_posting(posting.posting_id, amount=Decimal(10))
+
+        assert updated is posting

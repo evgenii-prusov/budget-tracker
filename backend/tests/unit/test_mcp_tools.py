@@ -24,6 +24,7 @@ from app.mcp.server import (
     _list_postings_impl,
     _list_transfers_impl,
     _transfer_funds_impl,
+    _update_posting_impl,
 )
 from tests.constants import JAN_01
 
@@ -1030,6 +1031,84 @@ class TestDeletePostingImpl:
 
         assert "nonexistent-id" in result
         assert "not found" in result.lower()
+
+
+class TestUpdatePostingImpl:
+    def test_update_posting_amount(self):
+        from app.domain.model import PostingType
+
+        uow = FakeUnitOfWork()
+        account = Account(None, "Cash EUR", "EUR", Decimal("100"))
+        uow.accounts.add(account)
+        posting = account.record_posting(
+            Decimal("50"), JAN_01, posting_type=PostingType.EXPENSE, category_id=None
+        )
+
+        result = _update_posting_impl(uow, posting_id=posting.posting_id, amount="30")
+
+        assert "Updated posting" in result
+        assert posting.amount == Decimal("-30")
+
+    def test_update_posting_not_found(self):
+        uow = FakeUnitOfWork()
+
+        result = _update_posting_impl(uow, posting_id="nonexistent-id", amount="10")
+
+        assert "not found" in result.lower()
+
+    def test_update_posting_invalid_amount(self):
+        from app.domain.model import PostingType
+
+        uow = FakeUnitOfWork()
+        account = Account(None, "Cash EUR", "EUR", Decimal("100"))
+        uow.accounts.add(account)
+        posting = account.record_posting(
+            Decimal("50"), JAN_01, posting_type=PostingType.EXPENSE, category_id=None
+        )
+
+        result = _update_posting_impl(uow, posting_id=posting.posting_id, amount="abc")
+
+        assert "Invalid amount" in result
+
+    def test_update_posting_invalid_date(self):
+        from app.domain.model import PostingType
+
+        uow = FakeUnitOfWork()
+        account = Account(None, "Cash EUR", "EUR", Decimal("100"))
+        uow.accounts.add(account)
+        posting = account.record_posting(
+            Decimal("50"), JAN_01, posting_type=PostingType.EXPENSE, category_id=None
+        )
+
+        result = _update_posting_impl(uow, posting_id=posting.posting_id, posting_date="not-a-date")
+
+        assert "Invalid date" in result
+
+    def test_update_posting_category_by_name(self):
+        from app.domain.model import PostingType
+
+        uow = FakeUnitOfWork()
+        account = Account(None, "Cash EUR", "EUR", Decimal("100"))
+        uow.accounts.add(account)
+        parent_cat = Category(None, "Food", CategoryType.EXPENSE)
+        uow.categories.add(parent_cat)
+        sub_cat = Category(
+            None, "Groceries", CategoryType.EXPENSE, parent_id=parent_cat.category_id
+        )
+        uow.categories.add(sub_cat)
+        posting = account.record_posting(
+            Decimal("50"), JAN_01, posting_type=PostingType.EXPENSE, category_id=None
+        )
+
+        result = _update_posting_impl(
+            uow,
+            posting_id=posting.posting_id,
+            subcategory="Groceries",
+            update_category=True,
+        )
+
+        assert "Updated posting" in result
+        assert posting.category_id == sub_cat.category_id
 
 
 class TestDeleteTransferImpl:

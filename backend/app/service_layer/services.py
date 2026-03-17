@@ -230,6 +230,72 @@ def list_postings(
             return all_postings[skip : skip + limit]
 
 
+def update_posting(
+    uow: AbstractUnitOfWork,
+    *,
+    posting_id: str,
+    amount: Decimal | None = None,
+    posting_date: date | None = None,
+    posting_type: PostingType | None = None,
+    category_id: str | None = None,
+    update_category: bool = False,
+    payee: str | None = None,
+    update_payee: bool = False,
+    description: str | None = None,
+    update_description: bool = False,
+) -> Posting:
+    with uow:
+        account = uow.accounts.get_by_posting_id(posting_id)
+        if account is None:
+            raise PostingNotFoundError(f"Posting with id '{posting_id}' not found")
+
+        posting = account.get_posting(posting_id)
+        assert posting is not None
+
+        # Determine the effective posting_type for category validation
+        effective_type = posting_type if posting_type is not None else posting.posting_type
+
+        # Validate category if being changed
+        if update_category and category_id is not None:
+            category = uow.categories.get(category_id)
+            if not category:
+                raise CategoryNotFoundError(f"Category with id '{category_id}' not found")
+            if category.parent_id is None and uow.categories.count_children(category_id) > 0:
+                raise ParentCategoryPostingError(
+                    f"Cannot assign parent category '{category.name}'. Use a subcategory instead."
+                )
+            if str(effective_type) != str(category.category_type):
+                raise CategoryHierarchyError(
+                    f"Posting type '{effective_type}' does not match "
+                    f"category type '{category.category_type}'"
+                )
+
+        # Also validate existing category against new posting_type if type is changing
+        if posting_type is not None and not update_category and posting.category_id is not None:
+            category = uow.categories.get(posting.category_id)
+            if category and str(posting_type) != str(category.category_type):
+                raise CategoryHierarchyError(
+                    f"Posting type '{posting_type}' does not match "
+                    f"category type '{category.category_type}'"
+                )
+
+        updated = account.update_posting(
+            posting_id,
+            amount=amount,
+            posting_date=posting_date,
+            posting_type=posting_type,
+            category_id=category_id,
+            update_category=update_category,
+            payee=payee,
+            update_payee=update_payee,
+            description=description,
+            update_description=update_description,
+        )
+        uow.commit()
+        logger.info("Updated posting id: %s", posting_id)
+        return updated
+
+
 def delete_posting(uow: AbstractUnitOfWork, *, posting_id: str) -> None:
     with uow:
         found = uow.accounts.delete_posting_by_id(posting_id)
