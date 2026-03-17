@@ -19,7 +19,7 @@ Before any analysis, switch to a clean master perspective so your exploration re
 ORIGINAL_BRANCH=$(git branch --show-current)
 git stash push -m "architect-stash" 2>/dev/null || true
 git checkout master
-git pull origin master
+make sync
 ```
 
 > **Remember to restore at the end** (Step 5).
