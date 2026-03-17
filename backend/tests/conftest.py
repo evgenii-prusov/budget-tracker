@@ -10,14 +10,7 @@ from tests.constants import JAN_01, JAN_02, JAN_03, TEST_API_KEY
 # Set env vars BEFORE importing app modules (which trigger module-level side effects).
 # Force-set API_KEY (may differ from shell env); use setdefault for OAuth vars.
 os.environ["API_KEY"] = TEST_API_KEY
-os.environ.setdefault("MCP_BASE_URL", "http://localhost:8000/mcp")
-os.environ.setdefault(
-    "OAUTH_OWNER_PASSWORD_HASH",
-    "$2b$12$6FQtafu8y3qr8QlpySKC0eBSjp97K0aLabTrguTBJoocKizymv1xy",
-)
-
 from app.adapters.orm import metadata, start_mappers, mapper_registry  # noqa: E402
-from app.mcp.oauth_provider import oauth_tables_metadata  # noqa: E402
 from app.domain.model import Account, Posting, PostingType  # noqa: E402
 from app.main import app  # noqa: E402
 from app.api.dependencies import get_db_session  # noqa: E402
@@ -32,7 +25,6 @@ def postgres_engine():
     with PostgresContainer("postgres:17") as pg:
         engine = create_engine(pg.get_connection_url())
         metadata.create_all(engine)
-        oauth_tables_metadata.create_all(engine)
 
         mapper_registry.dispose()
         start_mappers()
