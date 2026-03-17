@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from tests.constants import JAN_01, JAN_02, JAN_03, TEST_API_KEY
 
 # Set env vars BEFORE importing app modules (which trigger module-level side effects).
-# Force-set API_KEY (may differ from shell env); use setdefault for OAuth vars.
+# Force-set API_KEY for tests (may differ from shell env).
 os.environ["API_KEY"] = TEST_API_KEY
 from app.adapters.orm import metadata, start_mappers, mapper_registry  # noqa: E402
 from app.domain.model import Account, Posting, PostingType  # noqa: E402
