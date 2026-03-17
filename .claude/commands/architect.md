@@ -17,7 +17,12 @@ Before any analysis, switch to a clean master perspective so your exploration re
 ```bash
 # Save current branch and any uncommitted work
 ORIGINAL_BRANCH=$(git branch --show-current)
-git stash push -m "architect-stash" 2>/dev/null || true
+if ! git diff-index --quiet HEAD -- || ! git ls-files --others --exclude-standard --quiet; then
+  ARCHITECT_STASH_CREATED=1
+  git stash push -u -m "architect-stash" >/dev/null
+else
+  ARCHITECT_STASH_CREATED=0
+fi
 git checkout master
 make sync
 ```
