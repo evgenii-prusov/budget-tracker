@@ -40,6 +40,7 @@ from app.service_layer.services import create_posting
 from app.service_layer.services import delete_posting
 from app.service_layer.services import get_posting
 from app.service_layer.services import list_postings
+from app.service_layer.services import update_posting
 from app.service_layer.services import update_account
 from app.service_layer.services import create_transfer
 from app.service_layer.services import delete_transfer
@@ -1022,6 +1023,238 @@ class TestDeletePosting:
 
         assert account.balance == Decimal(100)
         assert uow.committed is True
+
+
+class TestUpdatePosting:
+    def test_update_posting_amount(self):
+        uow = FakeUnitOfWork()
+        account = create_account(
+            uow,
+            name="Test Account",
+            currency="EUR",
+            initial_balance=Decimal(100),
+        )
+        parent = create_category(uow, name="Food", category_type=CategoryType.EXPENSE)
+        category = create_category(
+            uow,
+            name="Groceries",
+            category_type=CategoryType.EXPENSE,
+            parent_id=parent.category_id,
+        )
+        posting = create_posting(
+            uow,
+            account_id=account.account_id,
+            amount=Decimal(50),
+            posting_date=JAN_01,
+            posting_type=PostingType.EXPENSE,
+            category_id=category.category_id,
+        )
+        uow.committed = False
+
+        updated = update_posting(
+            uow,
+            posting_id=posting.posting_id,
+            amount=Decimal(30),
+        )
+
+        assert updated.amount == Decimal("-30")
+        assert account.balance == Decimal(70)
+        assert uow.committed is True
+
+    def test_update_posting_not_found(self):
+        uow = FakeUnitOfWork()
+        with pytest.raises(PostingNotFoundError):
+            update_posting(uow, posting_id="nonexistent-id", amount=Decimal(10))
+        assert uow.committed is False
+
+    def test_update_posting_validates_new_category_exists(self):
+        uow = FakeUnitOfWork()
+        account = create_account(
+            uow,
+            name="Test Account",
+            currency="EUR",
+            initial_balance=Decimal(100),
+        )
+        posting = create_posting(
+            uow,
+            account_id=account.account_id,
+            amount=Decimal(10),
+            posting_date=JAN_01,
+            posting_type=PostingType.EXPENSE,
+        )
+        uow.committed = False
+
+        with pytest.raises(CategoryNotFoundError):
+            update_posting(
+                uow,
+                posting_id=posting.posting_id,
+                category_id="non-existent-cat",
+                update_category=True,
+            )
+        assert uow.committed is False
+
+    def test_update_posting_validates_category_type_matches(self):
+        uow = FakeUnitOfWork()
+        account = create_account(
+            uow,
+            name="Test Account",
+            currency="EUR",
+            initial_balance=Decimal(100),
+        )
+        parent = create_category(uow, name="Salary", category_type=CategoryType.INCOME)
+        income_cat = create_category(
+            uow,
+            name="Bonus",
+            category_type=CategoryType.INCOME,
+            parent_id=parent.category_id,
+        )
+        posting = create_posting(
+            uow,
+            account_id=account.account_id,
+            amount=Decimal(10),
+            posting_date=JAN_01,
+            posting_type=PostingType.EXPENSE,
+        )
+        uow.committed = False
+
+        with pytest.raises(CategoryHierarchyError):
+            update_posting(
+                uow,
+                posting_id=posting.posting_id,
+                category_id=income_cat.category_id,
+                update_category=True,
+            )
+        assert uow.committed is False
+
+    def test_update_posting_rejects_parent_category(self):
+        uow = FakeUnitOfWork()
+        account = create_account(
+            uow,
+            name="Test Account",
+            currency="EUR",
+            initial_balance=Decimal(100),
+        )
+        parent = create_category(uow, name="Food", category_type=CategoryType.EXPENSE)
+        create_category(
+            uow,
+            name="Groceries",
+            category_type=CategoryType.EXPENSE,
+            parent_id=parent.category_id,
+        )
+        posting = create_posting(
+            uow,
+            account_id=account.account_id,
+            amount=Decimal(10),
+            posting_date=JAN_01,
+            posting_type=PostingType.EXPENSE,
+        )
+        uow.committed = False
+
+        with pytest.raises(ParentCategoryPostingError):
+            update_posting(
+                uow,
+                posting_id=posting.posting_id,
+                category_id=parent.category_id,
+                update_category=True,
+            )
+        assert uow.committed is False
+
+    def test_update_posting_clear_category_allowed(self):
+        uow = FakeUnitOfWork()
+        account = create_account(
+            uow,
+            name="Test Account",
+            currency="EUR",
+            initial_balance=Decimal(100),
+        )
+        parent = create_category(uow, name="Food", category_type=CategoryType.EXPENSE)
+        category = create_category(
+            uow,
+            name="Groceries",
+            category_type=CategoryType.EXPENSE,
+            parent_id=parent.category_id,
+        )
+        posting = create_posting(
+            uow,
+            account_id=account.account_id,
+            amount=Decimal(10),
+            posting_date=JAN_01,
+            posting_type=PostingType.EXPENSE,
+            category_id=category.category_id,
+        )
+        uow.committed = False
+
+        updated = update_posting(
+            uow,
+            posting_id=posting.posting_id,
+            category_id=None,
+            update_category=True,
+        )
+
+        assert updated.category_id is None
+        assert uow.committed is True
+
+    def test_update_posting_validates_category_against_effective_type(self):
+        """When changing posting_type AND category, validate against the NEW type."""
+        uow = FakeUnitOfWork()
+        account = create_account(
+            uow,
+            name="Test Account",
+            currency="EUR",
+            initial_balance=Decimal(100),
+        )
+        parent = create_category(uow, name="Food", category_type=CategoryType.EXPENSE)
+        expense_cat = create_category(
+            uow,
+            name="Groceries",
+            category_type=CategoryType.EXPENSE,
+            parent_id=parent.category_id,
+        )
+        posting = create_posting(
+            uow,
+            account_id=account.account_id,
+            amount=Decimal(10),
+            posting_date=JAN_01,
+            posting_type=PostingType.EXPENSE,
+            category_id=expense_cat.category_id,
+        )
+        uow.committed = False
+
+        # Switching to INCOME but keeping an EXPENSE category should fail
+        with pytest.raises(CategoryHierarchyError):
+            update_posting(
+                uow,
+                posting_id=posting.posting_id,
+                posting_type=PostingType.INCOME,
+                category_id=expense_cat.category_id,
+                update_category=True,
+            )
+        assert uow.committed is False
+
+    def test_update_posting_insufficient_funds(self):
+        uow = FakeUnitOfWork()
+        account = create_account(
+            uow,
+            name="Test Account",
+            currency="EUR",
+            initial_balance=Decimal(100),
+        )
+        posting = create_posting(
+            uow,
+            account_id=account.account_id,
+            amount=Decimal(10),
+            posting_date=JAN_01,
+            posting_type=PostingType.EXPENSE,
+        )
+        uow.committed = False
+
+        with pytest.raises(InsufficientFundsError):
+            update_posting(
+                uow,
+                posting_id=posting.posting_id,
+                amount=Decimal(200),
+            )
+        assert uow.committed is False
 
 
 class TestTransferServices:

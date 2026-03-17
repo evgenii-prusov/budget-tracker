@@ -326,6 +326,76 @@ class Account:
     def get_posting(self, posting_id: str) -> Posting | None:
         return next((p for p in self._postings if p.posting_id == posting_id), None)
 
+    def update_posting(
+        self,
+        posting_id: str,
+        *,
+        amount: Decimal | None = None,
+        posting_date: date | None = None,
+        category_id: str | None = None,
+        update_category: bool = False,
+        posting_type: PostingType | None = None,
+        payee: str | None = None,
+        update_payee: bool = False,
+        description: str | None = None,
+        update_description: bool = False,
+    ) -> Posting:
+        """Update fields of an existing posting on this account.
+
+        Amount is provided as an unsigned value (like record_posting).
+        Sign is applied based on the effective posting_type.
+
+        Raises:
+            PostingNotFoundError: If the posting does not exist on this account
+            InsufficientFundsError: If the update would result in negative balance
+        """
+        from app.domain.exceptions import PostingNotFoundError
+
+        posting = self.get_posting(posting_id)
+        if posting is None:
+            raise PostingNotFoundError(f"Posting with id '{posting_id}' not found")
+
+        # Determine effective type and amount
+        effective_type = posting_type if posting_type is not None else posting.posting_type
+        if amount is not None:
+            if not isinstance(amount, Decimal):
+                raise TypeError(
+                    f"amount must be Decimal, got {type(amount).__name__}. "
+                    f"Use Decimal(str(value)) to convert."
+                )
+            raw_amount = amount
+        else:
+            raw_amount = abs(posting.amount)
+
+        # Apply sign based on effective type
+        if effective_type == PostingType.EXPENSE:
+            new_signed_amount = -abs(raw_amount)
+        else:
+            new_signed_amount = abs(raw_amount)
+
+        # Balance check: reverse old posting, apply new
+        new_balance = self.balance - posting.amount + new_signed_amount
+        if new_balance < 0:
+            raise InsufficientFundsError(
+                f"Insufficient funds in account '{self.name}' (id={self.account_id}): "
+                f"updating posting would result in balance {new_balance} {self.currency}"
+            )
+
+        # Apply changes
+        posting.amount = new_signed_amount
+        if posting_type is not None:
+            posting.posting_type = effective_type
+        if posting_date is not None:
+            posting.posting_date = posting_date
+        if update_category:
+            posting.category_id = category_id
+        if update_payee:
+            posting.payee = payee
+        if update_description:
+            posting.description = description
+
+        return posting
+
     def remove_posting(self, posting_id: str) -> None:
         """Remove a posting from this account by its ID.
 

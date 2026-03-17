@@ -131,6 +131,22 @@ class PostingResponse(BaseModel):
     description: str | None
 
 
+class PostingUpdate(BaseModel):
+    amount: Decimal | None = Field(None, gt=0, le=1_000_000_000)
+    posting_date: date | None = None
+    posting_type: PostingType | None = None
+    category_id: str | None = None
+    payee: str | None = None
+    description: str | None = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def check_at_least_one_field(cls, data: dict) -> dict:
+        if not data:
+            raise ValueError("At least one field must be provided for update")
+        return data
+
+
 class TransferCreate(BaseModel):
     source_account_id: str
     dest_account_id: str

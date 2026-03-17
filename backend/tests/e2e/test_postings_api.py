@@ -345,6 +345,184 @@ def test_list_postings_endpoint_filtered(client, test_data):
         assert posting["account_id"] == account_id
 
 
+# --- Update (PATCH) posting tests ---
+
+
+def test_update_posting_amount(client, test_data):
+    account_id = test_data["account_id"]
+    category_id = test_data["category_id"]
+
+    # Create an expense posting for 50
+    create_response = client.post(
+        "/postings/",
+        json={
+            "account_id": account_id,
+            "amount": "50.00",
+            "posting_date": JAN_01.isoformat(),
+            "posting_type": "EXPENSE",
+            "category_id": category_id,
+        },
+    )
+    assert create_response.status_code == 201
+    posting_id = create_response.json()["posting_id"]
+
+    # Update amount from 50 to 30
+    response = client.patch(f"/postings/{posting_id}", json={"amount": "30.00"})
+
+    assert response.status_code == 200
+    data = response.json()
+    assert Decimal(data["amount"]) == Decimal("-30.00")
+    assert data["posting_id"] == posting_id
+
+
+def test_update_posting_date(client, test_data):
+    account_id = test_data["account_id"]
+
+    create_response = client.post(
+        "/postings/",
+        json={
+            "account_id": account_id,
+            "amount": "10.00",
+            "posting_date": JAN_01.isoformat(),
+            "posting_type": "EXPENSE",
+        },
+    )
+    posting_id = create_response.json()["posting_id"]
+
+    response = client.patch(f"/postings/{posting_id}", json={"posting_date": JAN_02.isoformat()})
+
+    assert response.status_code == 200
+    assert response.json()["posting_date"] == JAN_02.isoformat()
+
+
+def test_update_posting_category(client, test_data):
+    account_id = test_data["account_id"]
+    category_id = test_data["category_id"]
+
+    create_response = client.post(
+        "/postings/",
+        json={
+            "account_id": account_id,
+            "amount": "10.00",
+            "posting_date": JAN_01.isoformat(),
+            "posting_type": "EXPENSE",
+            "category_id": category_id,
+        },
+    )
+    posting_id = create_response.json()["posting_id"]
+
+    # Clear the category
+    response = client.patch(f"/postings/{posting_id}", json={"category_id": None})
+
+    assert response.status_code == 200
+    assert response.json()["category_id"] is None
+
+
+def test_update_posting_payee_and_description(client, test_data):
+    account_id = test_data["account_id"]
+
+    create_response = client.post(
+        "/postings/",
+        json={
+            "account_id": account_id,
+            "amount": "10.00",
+            "posting_date": JAN_01.isoformat(),
+            "posting_type": "EXPENSE",
+        },
+    )
+    posting_id = create_response.json()["posting_id"]
+
+    response = client.patch(
+        f"/postings/{posting_id}",
+        json={"payee": "New Payee", "description": "New description"},
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["payee"] == "New Payee"
+    assert data["description"] == "New description"
+
+
+def test_update_posting_not_found(client):
+    response = client.patch("/postings/non-existent-id", json={"amount": "10.00"})
+    assert response.status_code == 404
+
+
+def test_update_posting_insufficient_funds(client, test_data):
+    account_id = test_data["account_id"]
+
+    create_response = client.post(
+        "/postings/",
+        json={
+            "account_id": account_id,
+            "amount": "10.00",
+            "posting_date": JAN_01.isoformat(),
+            "posting_type": "EXPENSE",
+        },
+    )
+    posting_id = create_response.json()["posting_id"]
+
+    # Account has initial_balance=100, try to set expense to 200
+    response = client.patch(f"/postings/{posting_id}", json={"amount": "200.00"})
+
+    assert response.status_code == 422
+    assert "Insufficient funds" in response.json()["detail"]
+
+
+def test_update_posting_updates_account_balance(client, test_data):
+    account_id = test_data["account_id"]
+
+    # Get initial balance
+    initial_balance = Decimal(client.get(f"/accounts/{account_id}").json()["balance"])
+
+    # Create expense for 30
+    create_response = client.post(
+        "/postings/",
+        json={
+            "account_id": account_id,
+            "amount": "30.00",
+            "posting_date": JAN_01.isoformat(),
+            "posting_type": "EXPENSE",
+        },
+    )
+    posting_id = create_response.json()["posting_id"]
+
+    balance_after_create = Decimal(client.get(f"/accounts/{account_id}").json()["balance"])
+    assert balance_after_create == initial_balance - Decimal("30.00")
+
+    # Update amount to 10
+    client.patch(f"/postings/{posting_id}", json={"amount": "10.00"})
+
+    balance_after_update = Decimal(client.get(f"/accounts/{account_id}").json()["balance"])
+    assert balance_after_update == initial_balance - Decimal("10.00")
+
+
+def test_update_posting_type_expense_to_income(client, test_data):
+    account_id = test_data["account_id"]
+
+    create_response = client.post(
+        "/postings/",
+        json={
+            "account_id": account_id,
+            "amount": "10.00",
+            "posting_date": JAN_01.isoformat(),
+            "posting_type": "EXPENSE",
+        },
+    )
+    posting_id = create_response.json()["posting_id"]
+
+    # Change type to INCOME (also clear category to avoid type mismatch)
+    response = client.patch(
+        f"/postings/{posting_id}",
+        json={"posting_type": "INCOME", "category_id": None},
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["posting_type"] == "INCOME"
+    assert Decimal(data["amount"]) == Decimal("10.00")
+
+
 def test_delete_posting_success(client, test_data):
     account_id = test_data["account_id"]
     category_id = test_data["category_id"]

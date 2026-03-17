@@ -32,6 +32,7 @@ from app.domain.exceptions import (
     InsufficientFundsError,
     InvalidCurrencyError,
     InvalidInitialBalanceError,
+    ParentCategoryPostingError,
     PostingNotFoundError,
     TransferNotFoundError,
 )
@@ -483,6 +484,94 @@ def _list_transfers_impl(
         )
 
     return "\n".join(lines)
+
+
+def _update_posting_impl(
+    uow: AbstractUnitOfWork,
+    *,
+    posting_id: str,
+    amount: str | None = None,
+    posting_date: str | None = None,
+    posting_type: str | None = None,
+    subcategory: str | None = None,
+    update_category: bool = False,
+    payee: str | None = None,
+    update_payee: bool = False,
+    description: str | None = None,
+    update_description: bool = False,
+) -> str:
+    kwargs: dict = {"posting_id": posting_id}
+
+    if amount is not None:
+        try:
+            kwargs["amount"] = Decimal(amount)
+        except Exception:
+            return f"Invalid amount: '{amount}'. Provide a valid decimal number."
+
+    if posting_date is not None:
+        try:
+            kwargs["posting_date"] = date.fromisoformat(posting_date)
+        except ValueError:
+            return f"Invalid date: '{posting_date}'. Use ISO format (YYYY-MM-DD)."
+
+    if posting_type is not None:
+        pt = posting_type.strip().upper()
+        if pt not in ("EXPENSE", "INCOME"):
+            return f"Invalid posting_type: '{posting_type}'. Use 'expense' or 'income'."
+        kwargs["posting_type"] = PostingType(pt)
+
+    if update_category:
+        if subcategory is not None:
+            # Determine category type for resolution
+            effective_type = kwargs.get("posting_type")
+            if effective_type is None:
+                # Need to look up the existing posting to get its type
+                try:
+                    existing = services.get_posting(uow, posting_id=posting_id)
+                    effective_type = existing.posting_type
+                except PostingNotFoundError as exc:
+                    return str(exc)
+            cat_type = (
+                CategoryType.EXPENSE
+                if effective_type == PostingType.EXPENSE
+                else CategoryType.INCOME
+            )
+            try:
+                category = resolve_subcategory_by_name(uow, subcategory, category_type=cat_type)
+            except ValueError as exc:
+                return str(exc)
+            kwargs["category_id"] = category.category_id
+        else:
+            kwargs["category_id"] = None
+        kwargs["update_category"] = True
+
+    if update_payee:
+        kwargs["payee"] = payee
+        kwargs["update_payee"] = True
+
+    if update_description:
+        kwargs["description"] = description
+        kwargs["update_description"] = True
+
+    try:
+        posting = services.update_posting(uow, **kwargs)
+    except (
+        PostingNotFoundError,
+        CategoryNotFoundError,
+        ParentCategoryPostingError,
+        CategoryHierarchyError,
+        InsufficientFundsError,
+    ) as exc:
+        return str(exc)
+
+    return (
+        f"Updated posting '{posting.posting_id}': "
+        f"amount={posting.amount}, type={posting.posting_type}, "
+        f"date={posting.posting_date}"
+        + (f", category_id={posting.category_id}" if posting.category_id else "")
+        + (f", payee={posting.payee}" if posting.payee else "")
+        + "."
+    )
 
 
 def _delete_posting_impl(
@@ -990,6 +1079,50 @@ def _register_tools(mcp: FastMCP) -> None:
 
         with _uow_from_ctx(ctx) as uow:
             return _list_transfers_impl(uow, limit=limit_int)
+
+    @mcp.tool()
+    def update_posting(
+        ctx: Context,
+        posting_id: str,
+        amount: str | None = None,
+        posting_date: str | None = None,
+        posting_type: str | None = None,
+        subcategory: str | None = None,
+        update_category: bool = False,
+        payee: str | None = None,
+        update_payee: bool = False,
+        description: str | None = None,
+        update_description: bool = False,
+    ) -> str:
+        """Update an existing posting (expense or income entry).
+
+        Args:
+            posting_id: ID of the posting to update.
+            amount: New amount as decimal string (e.g., "42.50").
+                Always positive — sign is applied from posting_type.
+            posting_date: New date in ISO format (YYYY-MM-DD).
+            posting_type: New type: 'expense' or 'income'.
+            subcategory: New subcategory name (e.g., 'Groceries'). Requires update_category=true.
+            update_category: Set to true to change the category (even to null).
+            payee: New payee name. Requires update_payee=true.
+            update_payee: Set to true to change the payee (even to null).
+            description: New description. Requires update_description=true.
+            update_description: Set to true to change the description (even to null).
+        """
+        with _uow_from_ctx(ctx) as uow:
+            return _update_posting_impl(
+                uow,
+                posting_id=posting_id,
+                amount=amount,
+                posting_date=posting_date,
+                posting_type=posting_type,
+                subcategory=subcategory,
+                update_category=update_category,
+                payee=payee,
+                update_payee=update_payee,
+                description=description,
+                update_description=update_description,
+            )
 
     @mcp.tool()
     def delete_posting(
