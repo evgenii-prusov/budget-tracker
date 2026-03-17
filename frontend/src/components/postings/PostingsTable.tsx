@@ -1,4 +1,4 @@
-import { Trash2 } from "lucide-react";
+import { Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -14,10 +14,11 @@ import { formatCurrency } from "@/lib/format";
 
 interface PostingsTableProps {
   postings: PostingResponse[];
+  onEdit: (posting: PostingResponse) => void;
   onDelete: (posting: PostingResponse) => void;
 }
 
-export function PostingsTable({ postings, onDelete }: PostingsTableProps) {
+export function PostingsTable({ postings, onEdit, onDelete }: PostingsTableProps) {
   const { data: accounts } = useAccounts();
   const { data: categoryParents } = useCategoryParents();
 
@@ -72,6 +73,14 @@ export function PostingsTable({ postings, onDelete }: PostingsTableProps) {
               </TableCell>
               <TableCell>{account?.name ?? posting.account_id}</TableCell>
               <TableCell className="text-right">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => onEdit(posting)}
+                >
+                  <Pencil className="size-4" />
+                  <span className="sr-only">Edit</span>
+                </Button>
                 <Button
                   variant="ghost"
                   size="icon"

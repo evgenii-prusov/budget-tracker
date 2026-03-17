@@ -68,6 +68,15 @@ export interface PostingCreate {
   description?: string | null;
 }
 
+export interface PostingUpdate {
+  amount?: string;
+  posting_date?: string;
+  posting_type?: PostingType;
+  category_id?: string | null;
+  payee?: string | null;
+  description?: string | null;
+}
+
 export interface PostingResponse {
   posting_id: string;
   account_id: string;

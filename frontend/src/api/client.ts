@@ -64,6 +64,7 @@ import type {
   CategoryResponse,
   CategoryWithChildrenResponse,
   PostingCreate,
+  PostingUpdate,
   PostingResponse,
   ReportPeriod,
   TransferCreate,
@@ -135,6 +136,11 @@ export const api = {
     create: (data: PostingCreate) =>
       request<PostingResponse>("/postings/", {
         method: "POST",
+        body: JSON.stringify(data),
+      }),
+    update: (id: string, data: PostingUpdate) =>
+      request<PostingResponse>(`/postings/${id}`, {
+        method: "PATCH",
         body: JSON.stringify(data),
       }),
     delete: (id: string) =>

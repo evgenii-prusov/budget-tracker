@@ -15,6 +15,7 @@ import type {
   CategoryResponse,
   CategoryWithChildrenResponse,
   PostingCreate,
+  PostingUpdate,
   PostingResponse,
   ReportPeriod,
   TransferCreate,
@@ -145,6 +146,18 @@ export function useCreatePosting() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (data: PostingCreate) => api.postings.create(data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: queryKeys.postings.all });
+      qc.invalidateQueries({ queryKey: queryKeys.accounts.all });
+    },
+  });
+}
+
+export function useUpdatePosting() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: PostingUpdate }) =>
+      api.postings.update(id, data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.postings.all });
       qc.invalidateQueries({ queryKey: queryKeys.accounts.all });
