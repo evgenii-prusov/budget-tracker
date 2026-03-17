@@ -8,6 +8,7 @@ import { EmptyState } from "@/components/shared/EmptyState";
 import { PostingsTable } from "@/components/postings/PostingsTable";
 import { CreatePostingDialog } from "@/components/postings/CreatePostingDialog";
 import { DeletePostingDialog } from "@/components/postings/DeletePostingDialog";
+import { EditPostingDialog } from "@/components/postings/EditPostingDialog";
 import { usePostings, useDeletePosting, useAccounts } from "@/api/hooks";
 import type { PostingResponse } from "@/api/types";
 import { parseApiError } from "@/lib/errors";
@@ -18,6 +19,7 @@ export default function PostingsPage() {
   const accountId = searchParams.get("account_id") ?? undefined;
 
   const [createOpen, setCreateOpen] = useState(false);
+  const [editTarget, setEditTarget] = useState<PostingResponse | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<PostingResponse | null>(null);
 
   const {
@@ -113,7 +115,7 @@ export default function PostingsPage() {
 
       {sorted.length > 0 ? (
         <>
-          <PostingsTable postings={sorted} onDelete={setDeleteTarget} />
+          <PostingsTable postings={sorted} onEdit={setEditTarget} onDelete={setDeleteTarget} />
           {hasNextPage && (
             <div className="flex justify-center pt-4">
               <Button
@@ -143,6 +145,12 @@ export default function PostingsPage() {
       )}
 
       <CreatePostingDialog open={createOpen} onOpenChange={setCreateOpen} defaultAccountId={accountId} />
+
+      <EditPostingDialog
+        posting={editTarget}
+        open={!!editTarget}
+        onOpenChange={(open) => !open && setEditTarget(null)}
+      />
 
       <DeletePostingDialog
         posting={deleteTarget}
