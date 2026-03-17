@@ -155,6 +155,16 @@ class FakeReportRepository(AbstractReportRepository):
     ) -> SpendingReport:
         return SpendingReport(period="month", start_date=start_date, end_date=end_date, rows=[])
 
+    def income_vs_spending(
+        self, start_date: date, end_date: date, currency: str, exclude_savings: bool = True
+    ) -> tuple[Decimal, Decimal]:
+        return (Decimal(0), Decimal(0))
+
+    def daily_spending(
+        self, start_date: date, end_date: date, currency: str, exclude_savings: bool = True
+    ) -> list[tuple[date, Decimal]]:
+        return []
+
 
 class FakeSettingsRepository(AbstractSettingsRepository):
     def __init__(self):
