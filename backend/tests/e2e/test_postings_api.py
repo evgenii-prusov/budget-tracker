@@ -523,6 +523,24 @@ def test_update_posting_type_expense_to_income(client, test_data):
     assert Decimal(data["amount"]) == Decimal("10.00")
 
 
+def test_update_posting_rejects_unknown_fields_only(client, test_data):
+    account_id = test_data["account_id"]
+
+    create_response = client.post(
+        "/postings/",
+        json={
+            "account_id": account_id,
+            "amount": "10.00",
+            "posting_date": JAN_01.isoformat(),
+            "posting_type": "EXPENSE",
+        },
+    )
+    posting_id = create_response.json()["posting_id"]
+
+    response = client.patch(f"/postings/{posting_id}", json={"foo": "bar"})
+    assert response.status_code == 422
+
+
 def test_delete_posting_success(client, test_data):
     account_id = test_data["account_id"]
     category_id = test_data["category_id"]

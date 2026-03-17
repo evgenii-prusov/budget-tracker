@@ -1,7 +1,7 @@
 import pytest
 from pydantic import ValidationError
 
-from app.api.schemas import AccountCreate, AccountUpdate
+from app.api.schemas import AccountCreate, AccountUpdate, PostingUpdate
 
 
 class TestAccountNameValidation:
@@ -54,3 +54,21 @@ class TestAccountNameValidation:
     def test_create_account_allows_underscore_as_separator(self):
         acc = AccountCreate(name="My_Account", currency="USD")
         assert acc.name == "My_Account"
+
+
+class TestPostingUpdateValidation:
+    def test_rejects_empty_payload(self):
+        with pytest.raises(ValidationError, match="At least one field"):
+            PostingUpdate.model_validate({})
+
+    def test_rejects_unknown_fields_only(self):
+        with pytest.raises(ValidationError, match="At least one field"):
+            PostingUpdate.model_validate({"foo": "bar", "baz": 123})
+
+    def test_accepts_valid_amount(self):
+        update = PostingUpdate.model_validate({"amount": "42.50"})
+        assert update.amount is not None
+
+    def test_accepts_category_id_null(self):
+        update = PostingUpdate.model_validate({"category_id": None})
+        assert update.category_id is None
