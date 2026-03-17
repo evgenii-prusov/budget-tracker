@@ -131,6 +131,16 @@ class PostingResponse(BaseModel):
     description: str | None
 
 
+_POSTING_UPDATE_FIELDS = {
+    "amount",
+    "posting_date",
+    "posting_type",
+    "category_id",
+    "payee",
+    "description",
+}
+
+
 class PostingUpdate(BaseModel):
     amount: Decimal | None = Field(None, gt=0, le=1_000_000_000)
     posting_date: date | None = None
@@ -142,7 +152,7 @@ class PostingUpdate(BaseModel):
     @model_validator(mode="before")
     @classmethod
     def check_at_least_one_field(cls, data: dict) -> dict:
-        if not data:
+        if not data or not (set(data) & _POSTING_UPDATE_FIELDS):
             raise ValueError("At least one field must be provided for update")
         return data
 

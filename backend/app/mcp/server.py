@@ -525,12 +525,13 @@ def _update_posting_impl(
             # Determine category type for resolution
             effective_type = kwargs.get("posting_type")
             if effective_type is None:
-                # Need to look up the existing posting to get its type
-                try:
-                    existing = services.get_posting(uow, posting_id=posting_id)
-                    effective_type = existing.posting_type
-                except PostingNotFoundError as exc:
-                    return str(exc)
+                # Look up posting directly via repository to avoid nested UoW
+                account = uow.accounts.get_by_posting_id(posting_id)
+                if account is None:
+                    return f"Posting with id '{posting_id}' not found"
+                existing = account.get_posting(posting_id)
+                assert existing is not None
+                effective_type = existing.posting_type
             cat_type = (
                 CategoryType.EXPENSE
                 if effective_type == PostingType.EXPENSE
