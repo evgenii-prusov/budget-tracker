@@ -27,7 +27,7 @@ git checkout master
 make sync
 ```
 
-> **Remember to restore at the end** (Step 5).
+> **Remember to restore at the end** (Step 5). Only pop the stash if `ARCHITECT_STASH_CREATED=1`.
 
 ## Step 1: Gather context
 
@@ -128,7 +128,10 @@ Then restore the original branch:
 
 ```bash
 git checkout $ORIGINAL_BRANCH
-git stash pop 2>/dev/null || true
+# Only pop if we actually created a stash in Step 0
+if [ "$ARCHITECT_STASH_CREATED" = "1" ]; then
+  git stash pop
+fi
 ```
 
 ## Hard rules

@@ -55,7 +55,7 @@ For each layer of the task (domain → service → API):
 ### 3b. Run to confirm failure
 
 ```bash
-uv run pytest tests/unit/test_<module>.py -x -v
+make test V=1
 ```
 
 The test **must fail**. If it passes, the test isn't testing new behavior.
@@ -67,7 +67,7 @@ Implement just enough to make the test pass. Follow existing patterns.
 ### 3d. Run to confirm pass
 
 ```bash
-uv run pytest tests/unit/test_<module>.py -x -v
+make test V=1
 ```
 
 ### 3e. Refactor if needed
@@ -79,7 +79,7 @@ Clean up while keeping tests green.
 Stage specific files (never `git add .` or `git add -A`):
 
 ```bash
-git add src/budget_tracker/domain/model.py tests/unit/test_model.py
+git add backend/app/domain/model.py backend/tests/unit/test_model.py
 git commit -m "feat: add <description>"
 ```
 
@@ -143,7 +143,7 @@ After PR creation, the PostToolUse hook will remind you to schedule a background
 ## Hard rules
 
 - **TDD is mandatory**: test first, always. No exceptions.
-- **All python via `uv`**: `uv run pytest`, `uv run python`, etc.
+- **Use `make` targets**: `make test`, `make lint`, `make format`, `make typecheck` (not raw `uv` or `pytest`)
 - **Branch via Makefile**: `make branch name=...`, never raw `git checkout -b`
 - **Explicit staging**: `git add <specific files>`, never `git add .`
 - **No Co-Authored-By** in commit messages
