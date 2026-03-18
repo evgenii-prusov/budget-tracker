@@ -190,3 +190,54 @@ class SpendingReportResponse(BaseModel):
     start_date: date
     end_date: date
     rows: list[CategorySpendingResponse]
+
+
+# ── Dashboard ─────────────────────────────────────────────────────
+
+
+class IncomeVsSpendingResponse(BaseModel):
+    start_date: date
+    end_date: date
+    currency: str
+    total_income: Decimal
+    total_spending: Decimal
+    net_income: Decimal
+    prev_total_income: Decimal
+    prev_total_spending: Decimal
+    spending_ratio: Decimal | None
+    prev_spending_ratio: Decimal | None
+
+
+class DailySpendingResponse(BaseModel):
+    spending_date: date
+    daily_total: Decimal
+    cumulative_total: Decimal
+
+
+class SpendingTimelineResponse(BaseModel):
+    start_date: date
+    end_date: date
+    currency: str
+    current_period: list[DailySpendingResponse]
+    previous_period: list[DailySpendingResponse]
+    projected_total: Decimal | None
+
+
+class DashboardCategorySpendingResponse(BaseModel):
+    parent_category_id: str
+    parent_category_name: str
+    currency: str
+    total: Decimal
+
+
+# ── Settings ──────────────────────────────────────────────────────
+
+
+class SettingsResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    primary_currency: str
+
+
+class UpdateSettingsRequest(BaseModel):
+    primary_currency: str
