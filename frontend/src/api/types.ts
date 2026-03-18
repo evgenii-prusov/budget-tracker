@@ -112,6 +112,7 @@ export interface TransferResponse {
 // --- Reports ---
 
 export type ReportPeriod = "week" | "month" | "year";
+export type DashboardPeriod = "month" | "quarter" | "year";
 
 export interface CategorySpendingResponse {
   parent_category_id: string;

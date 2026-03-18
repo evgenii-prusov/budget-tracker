@@ -1,9 +1,12 @@
+import { useState } from "react";
+import { format } from "date-fns";
 import { AlertCircle, LayoutDashboard } from "lucide-react";
 import { PageLoader } from "@/components/shared/PageLoader";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { IncomeVsSpendingWidget } from "@/components/dashboard/IncomeVsSpendingWidget";
 import { SpendingByCategoriesWidget } from "@/components/dashboard/SpendingByCategoriesWidget";
 import { SpendingTimelineWidget } from "@/components/dashboard/SpendingTimelineWidget";
+import { PeriodSelector } from "@/components/dashboard/PeriodSelector";
 import {
   useIncomeVsSpending,
   useSpendingByCategories,
@@ -11,8 +14,14 @@ import {
   useSettings,
 } from "@/api/hooks";
 import { parseApiError } from "@/lib/errors";
+import type { DashboardPeriod } from "@/api/types";
 
 export default function DashboardPage() {
+  const [period, setPeriod] = useState<DashboardPeriod>("month");
+  const [referenceDate, setReferenceDate] = useState(new Date());
+
+  const refDateStr = format(referenceDate, "yyyy-MM-dd");
+
   const {
     data: settings,
     isLoading: settingsLoading,
@@ -26,21 +35,21 @@ export default function DashboardPage() {
     isLoading: incomeLoading,
     isError: incomeError,
     error: incomeErr,
-  } = useIncomeVsSpending(currency);
+  } = useIncomeVsSpending(currency, refDateStr, true, period);
 
   const {
     data: categoriesData,
     isLoading: categoriesLoading,
     isError: categoriesError,
     error: categoriesErr,
-  } = useSpendingByCategories(currency);
+  } = useSpendingByCategories(currency, refDateStr, true, period);
 
   const {
     data: timelineData,
     isLoading: timelineLoading,
     isError: timelineError,
     error: timelineErr,
-  } = useSpendingTimeline(currency);
+  } = useSpendingTimeline(currency, refDateStr, true, period);
 
   const isLoading =
     settingsLoading || incomeLoading || categoriesLoading || timelineLoading;
@@ -70,9 +79,16 @@ export default function DashboardPage() {
       <div>
         <h1 className="text-2xl font-bold">Dashboard</h1>
         <p className="text-sm text-muted-foreground">
-          Your financial overview for the current month ({currency})
+          Your financial overview ({currency})
         </p>
       </div>
+
+      <PeriodSelector
+        period={period}
+        referenceDate={referenceDate}
+        onPeriodChange={setPeriod}
+        onReferenceDateChange={setReferenceDate}
+      />
 
       {hasNoData ? (
         <EmptyState
@@ -82,11 +98,11 @@ export default function DashboardPage() {
         />
       ) : (
         <>
-          {incomeData && <IncomeVsSpendingWidget data={incomeData} />}
+          {incomeData && <IncomeVsSpendingWidget data={incomeData} period={period} />}
           {categoriesData && categoriesData.length > 0 && (
             <SpendingByCategoriesWidget rows={categoriesData} currency={currency} />
           )}
-          {timelineData && <SpendingTimelineWidget data={timelineData} />}
+          {timelineData && <SpendingTimelineWidget data={timelineData} period={period} />}
         </>
       )}
     </div>
