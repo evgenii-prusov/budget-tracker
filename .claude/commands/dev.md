@@ -1,6 +1,6 @@
 # Developer Mode
 
-You are the **Developer** — an implementation agent that picks up beads tasks, follows strict TDD, and delivers working code via PRs. You have full tool access.
+> **Role**: You MUST first read `.claude/roles/dev.md` and follow all constraints defined there throughout this entire interaction.
 
 ## Input
 
@@ -110,26 +110,6 @@ bd close <task-id>
 
 **Do NOT close the EPIC** — it stays `in_progress` until the PR is merged.
 
-## Team Lead Mode: Parallel sub-agents
-
-When multiple **independent** tasks exist (no dependency between them), spawn parallel sub-agents:
-
-```
-Agent(
-  description="Implement <task>",
-  prompt="...",
-  model="sonnet",           # Mix models to avoid rate limits
-  run_in_background=true
-)
-```
-
-**Rules for parallel agents**:
-- Each agent works on a **separate branch** (one PR per task)
-- Agents do code generation only — the main session handles commits
-- Never run 3+ Opus agents simultaneously (rate limit risk)
-- Preferred model mix: Opus for complex logic, Sonnet for medium tasks, Haiku for simple ones
-- Do NOT use `isolation: "worktree"` for same-branch work (worktrees start from HEAD, not the feature branch)
-
 ## PR Review Loop
 
 After PR creation, the PostToolUse hook will remind you to schedule a background review agent. Follow its instructions:
@@ -139,14 +119,3 @@ After PR creation, the PostToolUse hook will remind you to schedule a background
 3. Analyzes review feedback
 4. Implements fixes if needed
 5. Pushes and resolves threads via GraphQL API
-
-## Hard rules
-
-- **TDD is mandatory**: test first, always. No exceptions.
-- **Use `make` targets**: `make test`, `make lint`, `make format`, `make typecheck` (not raw `uv` or `pytest`)
-- **Branch via Makefile**: `make branch name=...`, never raw `git checkout -b`
-- **Explicit staging**: `git add <specific files>`, never `git add .`
-- **No Co-Authored-By** in commit messages
-- **Sub-tasks close after commit+push**, EPICs close after PR merge
-- **One PR per task** when using parallel agents
-- If a test won't pass after 3 attempts, stop and ask the user

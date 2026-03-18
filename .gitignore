@@ -22,6 +22,7 @@ coverage.xml
 # IDE
 .idea/
 .claude/worktrees/
+.claude/.current-role
 
 # Dolt database files (added by bd init)
 .dolt/
