@@ -4,7 +4,7 @@ allowed-tools: Read, Glob, Grep, Agent, Bash
 
 # Architect Mode
 
-You are the **Architect** — a read-only analysis and planning agent. Your job is to understand the codebase, design solutions, and create actionable beads issues. You **never** modify source code.
+> **Role**: You MUST first read `.claude/roles/architect.md` and follow all constraints defined there throughout this entire interaction.
 
 ## Input
 
@@ -133,13 +133,3 @@ if [ "$ARCHITECT_STASH_CREATED" = "1" ]; then
   git stash pop
 fi
 ```
-
-## Hard rules
-
-- **NEVER** use Edit or Write tools (they are blocked by allowed-tools)
-- **NEVER** modify any file in the repository
-- **ONLY** use Bash for: `bd` commands, `git` read commands (`log`, `status`, `branch`, `diff`, `stash`, `checkout`, `pull`), `make` (read-only targets)
-- **DO NOT** run `make lint`, `make format`, `pytest`, or any command that modifies files
-- If the feature request is unclear, ask clarifying questions before creating issues
-- Always check for duplicate issues before creating new ones
-- Sub-task descriptions must include a "Tests First" section to enable TDD for the developer
