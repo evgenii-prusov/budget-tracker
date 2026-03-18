@@ -21,6 +21,11 @@ import type {
   TransferCreate,
   TransferResponse,
   SpendingReportResponse,
+  IncomeVsSpendingResponse,
+  SpendingTimelineResponse,
+  CategorySpendingResponse,
+  SettingsResponse,
+  UpdateSettingsRequest,
 } from "./types";
 
 const PAGE_SIZE = 50;
@@ -228,5 +233,89 @@ export function useSpendingReport(
         reference_date: referenceDate,
         exclude_savings: excludeSavings,
       }),
+  });
+}
+
+// --- Dashboard ---
+
+export function useIncomeVsSpending(
+  currency: string,
+  referenceDate?: string,
+  excludeSavings: boolean = true,
+) {
+  return useQuery<IncomeVsSpendingResponse>({
+    queryKey: queryKeys.dashboard.incomeVsSpending(
+      currency,
+      referenceDate,
+      excludeSavings,
+    ),
+    queryFn: () =>
+      api.dashboard.incomeVsSpending({
+        currency,
+        reference_date: referenceDate,
+        exclude_savings: excludeSavings,
+      }),
+    enabled: !!currency,
+  });
+}
+
+export function useSpendingByCategories(
+  currency: string,
+  referenceDate?: string,
+  excludeSavings: boolean = true,
+) {
+  return useQuery<CategorySpendingResponse[]>({
+    queryKey: queryKeys.dashboard.spendingByCategories(
+      currency,
+      referenceDate,
+      excludeSavings,
+    ),
+    queryFn: () =>
+      api.dashboard.spendingByCategories({
+        currency,
+        reference_date: referenceDate,
+        exclude_savings: excludeSavings,
+      }),
+    enabled: !!currency,
+  });
+}
+
+export function useSpendingTimeline(
+  currency: string,
+  referenceDate?: string,
+  excludeSavings: boolean = true,
+) {
+  return useQuery<SpendingTimelineResponse>({
+    queryKey: queryKeys.dashboard.spendingTimeline(
+      currency,
+      referenceDate,
+      excludeSavings,
+    ),
+    queryFn: () =>
+      api.dashboard.spendingTimeline({
+        currency,
+        reference_date: referenceDate,
+        exclude_savings: excludeSavings,
+      }),
+    enabled: !!currency,
+  });
+}
+
+// --- Settings ---
+
+export function useSettings() {
+  return useQuery<SettingsResponse>({
+    queryKey: queryKeys.settings.all,
+    queryFn: () => api.settings.get(),
+  });
+}
+
+export function useUpdateSettings() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: UpdateSettingsRequest) => api.settings.update(data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: queryKeys.settings.all });
+    },
   });
 }

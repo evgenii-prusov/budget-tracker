@@ -28,4 +28,39 @@ export const queryKeys = {
     ) =>
       ["reports", "spending", { period, referenceDate, excludeSavings }] as const,
   },
+  dashboard: {
+    incomeVsSpending: (
+      currency: string,
+      referenceDate?: string,
+      excludeSavings: boolean = true,
+    ) =>
+      [
+        "dashboard",
+        "income-vs-spending",
+        { currency, referenceDate, excludeSavings },
+      ] as const,
+    spendingByCategories: (
+      currency: string,
+      referenceDate?: string,
+      excludeSavings: boolean = true,
+    ) =>
+      [
+        "dashboard",
+        "spending-by-categories",
+        { currency, referenceDate, excludeSavings },
+      ] as const,
+    spendingTimeline: (
+      currency: string,
+      referenceDate?: string,
+      excludeSavings: boolean = true,
+    ) =>
+      [
+        "dashboard",
+        "spending-timeline",
+        { currency, referenceDate, excludeSavings },
+      ] as const,
+  },
+  settings: {
+    all: ["settings"] as const,
+  },
 };

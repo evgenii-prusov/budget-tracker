@@ -127,6 +127,46 @@ export interface SpendingReportResponse {
   rows: CategorySpendingResponse[];
 }
 
+// --- Dashboard ---
+
+export interface IncomeVsSpendingResponse {
+  start_date: string;
+  end_date: string;
+  currency: string;
+  total_income: string;
+  total_spending: string;
+  net_income: string;
+  prev_total_income: string;
+  prev_total_spending: string;
+  spending_ratio: string | null;
+  prev_spending_ratio: string | null;
+}
+
+export interface DailySpendingEntry {
+  spending_date: string;
+  daily_total: string;
+  cumulative_total: string;
+}
+
+export interface SpendingTimelineResponse {
+  start_date: string;
+  end_date: string;
+  currency: string;
+  current_period: DailySpendingEntry[];
+  previous_period: DailySpendingEntry[];
+  projected_total: string | null;
+}
+
+// --- Settings ---
+
+export interface SettingsResponse {
+  primary_currency: string;
+}
+
+export interface UpdateSettingsRequest {
+  primary_currency: string;
+}
+
 // --- Errors ---
 
 export interface ApiErrorSimple {
