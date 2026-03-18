@@ -45,7 +45,7 @@ export function PayeeCombobox({
       {suggestions.length > 0 && (
         <Combobox.Portal>
           <Combobox.Positioner className="z-50 outline-none" sideOffset={4}>
-            <Combobox.Popup className="max-h-48 w-[var(--anchor-width)] overflow-y-auto overscroll-contain rounded-lg bg-popover p-1 text-sm text-popover-foreground shadow-md ring-1 ring-foreground/10">
+            <Combobox.Popup className="max-h-48 w-(--anchor-width) overflow-y-auto overscroll-contain rounded-lg bg-popover p-1 text-sm text-popover-foreground shadow-md ring-1 ring-foreground/10">
               <Combobox.List>
                 {(item: string) => (
                   <Combobox.Item

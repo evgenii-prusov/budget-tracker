@@ -84,12 +84,16 @@ class SqlAlchemyAccountRepository(AbstractAccountRepository):
     def suggest_payees(self, prefix: str, limit: int = 10) -> list[str]:
         from sqlalchemy import func
 
+        # Escape LIKE metacharacters so %, _ in user input match literally
+        escaped = prefix.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+        pattern = f"{escaped.lower()}%"
+
         stmt = (
             select(postings.c.payee)
-            .where(postings.c.payee.ilike(f"{prefix}%"))
+            .where(func.lower(postings.c.payee).like(pattern))
             .where(postings.c.payee.isnot(None))
             .group_by(postings.c.payee)
-            .order_by(func.count().desc())
+            .order_by(func.count().desc(), postings.c.payee.asc())
             .limit(limit)
         )
         return list(self.session.execute(stmt).scalars().all())
