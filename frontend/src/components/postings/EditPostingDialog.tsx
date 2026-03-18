@@ -217,7 +217,13 @@ export function EditPostingDialog({
               onValueChange={handleParentCategoryChange}
             >
               <SelectTrigger id="edit-posting-parent-category" className="w-full">
-                <SelectValue placeholder="No category" />
+                <SelectValue placeholder="No category">
+                  {(value: string | null) => {
+                    if (!value) return null;
+                    const match = filteredParents.find((p) => p.category_id === value);
+                    return match?.name ?? "Loading…";
+                  }}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {filteredParents.map((p) => (
@@ -239,7 +245,13 @@ export function EditPostingDialog({
                 disabled={!parentCategoryId}
               >
                 <SelectTrigger id="edit-posting-subcategory" className="w-full">
-                  <SelectValue placeholder="Select subcategory" />
+                  <SelectValue placeholder="Select subcategory">
+                    {(value: string | null) => {
+                      if (!value) return null;
+                      const match = subcategories.find((c) => c.category_id === value);
+                      return match?.name ?? "Loading…";
+                    }}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {subcategories.map((child) => (

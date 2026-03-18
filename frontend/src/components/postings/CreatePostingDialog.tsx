@@ -195,7 +195,13 @@ export function CreatePostingDialog({
               required
             >
               <SelectTrigger id="posting-parent-category" className="w-full">
-                <SelectValue placeholder="Select category" />
+                <SelectValue placeholder="Select category">
+                  {(value: string | null) => {
+                    if (!value) return null;
+                    const match = filteredParents.find((p) => p.category_id === value);
+                    return match?.name ?? "Loading…";
+                  }}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {filteredParents.map((p) => (
@@ -218,7 +224,13 @@ export function CreatePostingDialog({
                 required
               >
                 <SelectTrigger id="posting-subcategory" className="w-full">
-                  <SelectValue placeholder="Select subcategory" />
+                  <SelectValue placeholder="Select subcategory">
+                    {(value: string | null) => {
+                      if (!value) return null;
+                      const match = subcategories.find((c) => c.category_id === value);
+                      return match?.name ?? "Loading…";
+                    }}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {subcategories.map((child) => (
