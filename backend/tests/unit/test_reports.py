@@ -5,7 +5,11 @@ from typing import Any
 
 from app.service_layer.reports import (
     _compute_period_dates,
+    _previous_month_range,
+    _build_cumulative,
     get_spending_report,
+    get_income_vs_spending,
+    get_spending_timeline,
     SpendingReport,
     CategorySpendingRow,
 )
@@ -64,12 +68,50 @@ class TestPeriodDates:
             _compute_period_dates("quarter", date(2026, 1, 1))
 
 
+class TestPreviousMonthRange:
+    def test_march_to_february(self):
+        start, end = _previous_month_range(date(2026, 3, 15))
+        assert start == date(2026, 2, 1)
+        assert end == date(2026, 2, 28)
+
+    def test_january_wraps_to_december(self):
+        start, end = _previous_month_range(date(2026, 1, 15))
+        assert start == date(2025, 12, 1)
+        assert end == date(2025, 12, 31)
+
+    def test_february_leap_year(self):
+        start, end = _previous_month_range(date(2024, 3, 1))
+        assert start == date(2024, 2, 1)
+        assert end == date(2024, 2, 29)
+
+
+class TestBuildCumulative:
+    def test_accumulates_running_total(self):
+        rows = [
+            (date(2026, 3, 1), Decimal("10")),
+            (date(2026, 3, 5), Decimal("20")),
+            (date(2026, 3, 10), Decimal("30")),
+        ]
+        result = _build_cumulative(rows)
+        assert len(result) == 3
+        assert result[0].cumulative_total == Decimal("10")
+        assert result[1].cumulative_total == Decimal("30")
+        assert result[2].cumulative_total == Decimal("60")
+
+    def test_empty_returns_empty(self):
+        assert _build_cumulative([]) == []
+
+
 class SpyReportRepository(AbstractReportRepository):
     called_with: Any
 
-    def __init__(self, rows=None):
+    def __init__(self, rows=None, *, income_spending_data=None, daily_spending_data=None):
         self._rows = rows or []
         self.called_with = None
+        self._income_spending_data = income_spending_data or (Decimal(0), Decimal(0))
+        self._daily_spending_data = daily_spending_data or []
+        self.income_vs_spending_calls: list[tuple] = []
+        self.daily_spending_calls: list[tuple] = []
 
     def spending_by_period(
         self, start_date: date, end_date: date, exclude_savings: bool = True
@@ -82,13 +124,25 @@ class SpyReportRepository(AbstractReportRepository):
             rows=self._rows,
         )
 
+    def income_vs_spending(
+        self, start_date: date, end_date: date, currency: str, exclude_savings: bool = True
+    ) -> tuple[Decimal, Decimal]:
+        self.income_vs_spending_calls.append((start_date, end_date, currency, exclude_savings))
+        return self._income_spending_data
+
+    def daily_spending(
+        self, start_date: date, end_date: date, currency: str, exclude_savings: bool = True
+    ) -> list[tuple[date, Decimal]]:
+        self.daily_spending_calls.append((start_date, end_date, currency, exclude_savings))
+        return self._daily_spending_data
+
 
 class FakeUnitOfWorkWithReports(FakeUnitOfWork):
     reports: SpyReportRepository
 
-    def __init__(self, rows=None):
+    def __init__(self, rows=None, **kwargs):
         super().__init__()
-        self.reports = SpyReportRepository(rows)
+        self.reports = SpyReportRepository(rows, **kwargs)
 
 
 class TestGetSpendingReport:
@@ -142,3 +196,85 @@ class TestGetSpendingReport:
 
         with pytest.raises(ValueError, match="Invalid period"):
             get_spending_report(uow, period="quarter", reference_date=date(2026, 3, 1))
+
+
+class TestIncomeVsSpending:
+    def test_delegates_to_repo(self):
+        uow = FakeUnitOfWorkWithReports(income_spending_data=(Decimal("1000"), Decimal("600")))
+        result = get_income_vs_spending(uow, currency="EUR", reference_date=date(2026, 3, 15))
+
+        assert result.currency == "EUR"
+        assert result.start_date == date(2026, 3, 1)
+        assert result.end_date == date(2026, 3, 31)
+        # Current month call
+        call = uow.reports.income_vs_spending_calls[0]
+        assert call == (date(2026, 3, 1), date(2026, 3, 31), "EUR", True)
+
+    def test_computes_net_income(self):
+        uow = FakeUnitOfWorkWithReports(income_spending_data=(Decimal("1000"), Decimal("600")))
+        result = get_income_vs_spending(uow, currency="EUR", reference_date=date(2026, 3, 15))
+
+        assert result.total_income == Decimal("1000")
+        assert result.total_spending == Decimal("600")
+        assert result.net_income == Decimal("400")
+
+    def test_fetches_previous_period(self):
+        uow = FakeUnitOfWorkWithReports(income_spending_data=(Decimal("500"), Decimal("300")))
+        result = get_income_vs_spending(uow, currency="EUR", reference_date=date(2026, 3, 15))
+
+        assert len(uow.reports.income_vs_spending_calls) == 2
+        # Second call is previous month (February)
+        prev_call = uow.reports.income_vs_spending_calls[1]
+        assert prev_call[0] == date(2026, 2, 1)
+        assert prev_call[1] == date(2026, 2, 28)
+        assert result.prev_total_income == Decimal("500")
+        assert result.prev_total_spending == Decimal("300")
+
+    def test_january_wraps_to_december(self):
+        uow = FakeUnitOfWorkWithReports(income_spending_data=(Decimal("0"), Decimal("0")))
+        get_income_vs_spending(uow, currency="EUR", reference_date=date(2026, 1, 15))
+
+        prev_call = uow.reports.income_vs_spending_calls[1]
+        assert prev_call[0] == date(2025, 12, 1)
+        assert prev_call[1] == date(2025, 12, 31)
+
+
+class TestSpendingTimeline:
+    def test_delegates_to_repo(self):
+        uow = FakeUnitOfWorkWithReports()
+        get_spending_timeline(uow, currency="EUR", reference_date=date(2026, 3, 15))
+
+        assert len(uow.reports.daily_spending_calls) == 2
+        curr_call = uow.reports.daily_spending_calls[0]
+        assert curr_call == (date(2026, 3, 1), date(2026, 3, 31), "EUR", True)
+
+    def test_computes_cumulative_totals(self):
+        uow = FakeUnitOfWorkWithReports(
+            daily_spending_data=[
+                (date(2026, 3, 1), Decimal("10")),
+                (date(2026, 3, 2), Decimal("20")),
+                (date(2026, 3, 3), Decimal("30")),
+            ]
+        )
+        result = get_spending_timeline(uow, currency="EUR", reference_date=date(2026, 3, 15))
+
+        assert len(result.current_period) == 3
+        assert result.current_period[0].cumulative_total == Decimal("10")
+        assert result.current_period[1].cumulative_total == Decimal("30")
+        assert result.current_period[2].cumulative_total == Decimal("60")
+
+    def test_fetches_both_periods(self):
+        uow = FakeUnitOfWorkWithReports()
+        get_spending_timeline(uow, currency="EUR", reference_date=date(2026, 3, 15))
+
+        prev_call = uow.reports.daily_spending_calls[1]
+        assert prev_call[0] == date(2026, 2, 1)
+        assert prev_call[1] == date(2026, 2, 28)
+
+    def test_empty_data(self):
+        uow = FakeUnitOfWorkWithReports()
+        result = get_spending_timeline(uow, currency="EUR", reference_date=date(2026, 3, 15))
+
+        assert result.current_period == []
+        assert result.previous_period == []
+        assert result.currency == "EUR"
