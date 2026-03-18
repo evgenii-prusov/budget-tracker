@@ -196,10 +196,18 @@ class Settings:
         settings_id: str | None = None,
         primary_currency: str = "EUR",
     ):
-        if primary_currency not in VALID_CURRENCIES:
-            raise InvalidCurrencyError(f"Invalid currency: {primary_currency}")
         self.settings_id = settings_id or self.SINGLETON_ID
-        self.primary_currency = primary_currency
+        self.primary_currency = primary_currency  # uses setter validation
+
+    @property
+    def primary_currency(self) -> str:
+        return self._primary_currency
+
+    @primary_currency.setter
+    def primary_currency(self, value: str) -> None:
+        if value not in VALID_CURRENCIES:
+            raise InvalidCurrencyError(f"Invalid currency: {value}")
+        self._primary_currency = value
 
     def __repr__(self) -> str:
         return f"Settings({self.settings_id!r}, {self.primary_currency!r})"

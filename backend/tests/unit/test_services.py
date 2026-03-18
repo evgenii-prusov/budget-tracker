@@ -1720,3 +1720,10 @@ class TestSettings:
         uow = FakeUnitOfWork()
         with pytest.raises(InvalidCurrencyError):
             update_settings(uow, primary_currency="XXX")
+
+    def test_settings_rejects_invalid_currency_on_mutation(self):
+        settings = Settings(primary_currency="EUR")
+        with pytest.raises(InvalidCurrencyError):
+            settings.primary_currency = "INVALID"
+        # Original value unchanged
+        assert settings.primary_currency == "EUR"

@@ -26,7 +26,7 @@ def upgrade() -> None:
             "primary_currency",
             sa.String(3),
             nullable=False,
-            server_default="EUR",
+            server_default=sa.text("'EUR'"),
         ),
     )
 
