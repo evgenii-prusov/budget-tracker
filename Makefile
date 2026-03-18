@@ -54,8 +54,10 @@ install:
 	cd backend && uv sync
 	cd frontend && npm ci
 
+ENV_FILE := $(shell test -f backend/.env.local && echo .env.local || echo .env)
+
 run:
-	cd backend && uv run --env-file .env fastapi dev app/main.py
+	cd backend && uv run --env-file $(ENV_FILE) fastapi dev app/main.py
 
 test:
 	cd backend && uv run pytest$(if $(V), -v)
