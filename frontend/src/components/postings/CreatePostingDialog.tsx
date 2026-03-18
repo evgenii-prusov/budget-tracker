@@ -169,7 +169,8 @@ export function CreatePostingDialog({
                   {(value: string | null) => {
                     if (!value) return null;
                     const match = (accounts ?? []).find((a) => a.account_id === value);
-                    return match ? `${match.name} (${match.currency})` : "Loading…";
+                    if (match) return `${match.name} (${match.currency})`;
+                    return accounts === undefined ? "Loading…" : "Unknown account";
                   }}
                 </SelectValue>
               </SelectTrigger>
@@ -199,7 +200,8 @@ export function CreatePostingDialog({
                   {(value: string | null) => {
                     if (!value) return null;
                     const match = filteredParents.find((p) => p.category_id === value);
-                    return match?.name ?? "Loading…";
+                    if (match) return match.name;
+                    return categoryParents === undefined ? "Loading…" : "Unknown category";
                   }}
                 </SelectValue>
               </SelectTrigger>
@@ -228,7 +230,7 @@ export function CreatePostingDialog({
                     {(value: string | null) => {
                       if (!value) return null;
                       const match = subcategories.find((c) => c.category_id === value);
-                      return match?.name ?? "Loading…";
+                      return match?.name ?? "Unknown subcategory";
                     }}
                   </SelectValue>
                 </SelectTrigger>

@@ -173,7 +173,8 @@ export function CreateTransferDialog({
                   {(value: string | null) => {
                     if (!value) return null;
                     const match = accounts?.find((a) => a.account_id === value);
-                    return match ? `${match.name} (${match.currency})` : "Loading…";
+                    if (match) return `${match.name} (${match.currency})`;
+                    return accounts === undefined ? "Loading…" : "Unknown account";
                   }}
                 </SelectValue>
               </SelectTrigger>
@@ -198,7 +199,8 @@ export function CreateTransferDialog({
                   {(value: string | null) => {
                     if (!value) return null;
                     const match = accounts?.find((a) => a.account_id === value);
-                    return match ? `${match.name} (${match.currency})` : "Loading…";
+                    if (match) return `${match.name} (${match.currency})`;
+                    return accounts === undefined ? "Loading…" : "Unknown account";
                   }}
                 </SelectValue>
               </SelectTrigger>
