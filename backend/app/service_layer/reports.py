@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import calendar
 from dataclasses import dataclass, field
 from datetime import date, timedelta
 from decimal import Decimal
@@ -33,10 +34,36 @@ def _compute_period_dates(period: str, reference: date) -> tuple[date, date]:
         start = reference.replace(day=1)
         next_month = (start + timedelta(days=32)).replace(day=1)
         return start, next_month - timedelta(days=1)
+    elif period == "quarter":
+        q = (reference.month - 1) // 3  # 0-based quarter index
+        start_month = q * 3 + 1
+        end_month = start_month + 2
+        start = date(reference.year, start_month, 1)
+        end = date(reference.year, end_month, calendar.monthrange(reference.year, end_month)[1])
+        return start, end
     elif period == "year":
         return reference.replace(month=1, day=1), reference.replace(month=12, day=31)
     else:
-        raise ValueError(f"Invalid period: {period!r}. Must be 'week', 'month', or 'year'")
+        raise ValueError(
+            f"Invalid period: {period!r}. Must be 'week', 'month', 'quarter', or 'year'"
+        )
+
+
+def _previous_period_range(period: str, reference: date) -> tuple[date, date]:
+    """Return (start, end) of the period immediately before the one containing reference."""
+    if period == "month":
+        return _previous_month_range(reference)
+    elif period == "quarter":
+        if reference.month <= 3:
+            prev_ref = date(reference.year - 1, reference.month + 9, 1)
+        else:
+            prev_ref = date(reference.year, reference.month - 3, 1)
+        return _compute_period_dates("quarter", prev_ref)
+    elif period == "year":
+        prev_ref = date(reference.year - 1, 6, 1)
+        return _compute_period_dates("year", prev_ref)
+    else:
+        raise ValueError(f"Invalid period: {period!r}. Must be 'month', 'quarter', or 'year'")
 
 
 def _previous_month_range(reference: date) -> tuple[date, date]:
@@ -109,12 +136,13 @@ def get_income_vs_spending(
     uow: AbstractUnitOfWork,
     *,
     currency: str,
+    period: str = "month",
     exclude_savings: bool = True,
     reference_date: date | None = None,
 ) -> IncomeVsSpendingSummary:
     ref = reference_date or date.today()
-    start, end = _compute_period_dates("month", ref)
-    prev_start, prev_end = _previous_month_range(ref)
+    start, end = _compute_period_dates(period, ref)
+    prev_start, prev_end = _previous_period_range(period, ref)
     with uow:
         total_income, total_spending = uow.reports.income_vs_spending(
             start, end, currency, exclude_savings=exclude_savings
@@ -138,12 +166,13 @@ def get_spending_timeline(
     uow: AbstractUnitOfWork,
     *,
     currency: str,
+    period: str = "month",
     exclude_savings: bool = True,
     reference_date: date | None = None,
 ) -> SpendingTimelineReport:
     ref = reference_date or date.today()
-    start, end = _compute_period_dates("month", ref)
-    prev_start, prev_end = _previous_month_range(ref)
+    start, end = _compute_period_dates(period, ref)
+    prev_start, prev_end = _previous_period_range(period, ref)
     with uow:
         current_raw = uow.reports.daily_spending(
             start, end, currency, exclude_savings=exclude_savings

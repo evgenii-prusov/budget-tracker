@@ -63,9 +63,29 @@ class TestPeriodDates:
         assert start == date(2026, 1, 1)
         assert end == date(2026, 12, 31)
 
+    def test_period_dates_quarter_q1(self):
+        start, end = _compute_period_dates("quarter", date(2026, 1, 15))
+        assert start == date(2026, 1, 1)
+        assert end == date(2026, 3, 31)
+
+    def test_period_dates_quarter_q2(self):
+        start, end = _compute_period_dates("quarter", date(2026, 5, 10))
+        assert start == date(2026, 4, 1)
+        assert end == date(2026, 6, 30)
+
+    def test_period_dates_quarter_q3(self):
+        start, end = _compute_period_dates("quarter", date(2026, 8, 1))
+        assert start == date(2026, 7, 1)
+        assert end == date(2026, 9, 30)
+
+    def test_period_dates_quarter_q4(self):
+        start, end = _compute_period_dates("quarter", date(2026, 12, 25))
+        assert start == date(2026, 10, 1)
+        assert end == date(2026, 12, 31)
+
     def test_invalid_period_raises_value_error(self):
         with pytest.raises(ValueError, match="Invalid period"):
-            _compute_period_dates("quarter", date(2026, 1, 1))
+            _compute_period_dates("biweekly", date(2026, 1, 1))
 
 
 class TestPreviousMonthRange:
@@ -83,6 +103,43 @@ class TestPreviousMonthRange:
         start, end = _previous_month_range(date(2024, 3, 1))
         assert start == date(2024, 2, 1)
         assert end == date(2024, 2, 29)
+
+
+class TestPreviousPeriodRange:
+    def test_month_delegates_to_previous_month_range(self):
+        from app.service_layer.reports import _previous_period_range
+
+        start, end = _previous_period_range("month", date(2026, 3, 15))
+        expected_start, expected_end = _previous_month_range(date(2026, 3, 15))
+        assert start == expected_start
+        assert end == expected_end
+
+    def test_quarter_q2_gives_q1(self):
+        from app.service_layer.reports import _previous_period_range
+
+        start, end = _previous_period_range("quarter", date(2026, 5, 15))
+        assert start == date(2026, 1, 1)
+        assert end == date(2026, 3, 31)
+
+    def test_quarter_q1_wraps_to_q4_previous_year(self):
+        from app.service_layer.reports import _previous_period_range
+
+        start, end = _previous_period_range("quarter", date(2026, 2, 15))
+        assert start == date(2025, 10, 1)
+        assert end == date(2025, 12, 31)
+
+    def test_year_gives_previous_year(self):
+        from app.service_layer.reports import _previous_period_range
+
+        start, end = _previous_period_range("year", date(2026, 6, 1))
+        assert start == date(2025, 1, 1)
+        assert end == date(2025, 12, 31)
+
+    def test_invalid_period_raises(self):
+        from app.service_layer.reports import _previous_period_range
+
+        with pytest.raises(ValueError, match="Invalid period"):
+            _previous_period_range("biweekly", date(2026, 3, 15))
 
 
 class TestBuildCumulative:
@@ -191,11 +248,19 @@ class TestGetSpendingReport:
         assert uow.reports.called_with[0] == date(2026, 3, 2)
         assert uow.reports.called_with[1] == date(2026, 3, 8)
 
+    def test_get_spending_report_quarter_period(self):
+        uow = FakeUnitOfWorkWithReports()
+
+        get_spending_report(uow, period="quarter", reference_date=date(2026, 5, 10))
+
+        assert uow.reports.called_with[0] == date(2026, 4, 1)
+        assert uow.reports.called_with[1] == date(2026, 6, 30)
+
     def test_get_spending_report_invalid_period_raises(self):
         uow = FakeUnitOfWorkWithReports()
 
         with pytest.raises(ValueError, match="Invalid period"):
-            get_spending_report(uow, period="quarter", reference_date=date(2026, 3, 1))
+            get_spending_report(uow, period="biweekly", reference_date=date(2026, 3, 1))
 
 
 class TestIncomeVsSpending:
@@ -238,6 +303,36 @@ class TestIncomeVsSpending:
         assert prev_call[0] == date(2025, 12, 1)
         assert prev_call[1] == date(2025, 12, 31)
 
+    def test_quarter_period_uses_quarter_dates(self):
+        uow = FakeUnitOfWorkWithReports(income_spending_data=(Decimal("0"), Decimal("0")))
+        result = get_income_vs_spending(
+            uow, currency="EUR", period="quarter", reference_date=date(2026, 5, 15)
+        )
+
+        assert result.start_date == date(2026, 4, 1)
+        assert result.end_date == date(2026, 6, 30)
+        # Current period call
+        curr_call = uow.reports.income_vs_spending_calls[0]
+        assert curr_call[0] == date(2026, 4, 1)
+        assert curr_call[1] == date(2026, 6, 30)
+        # Previous period call (Q1)
+        prev_call = uow.reports.income_vs_spending_calls[1]
+        assert prev_call[0] == date(2026, 1, 1)
+        assert prev_call[1] == date(2026, 3, 31)
+
+    def test_year_period_uses_year_dates(self):
+        uow = FakeUnitOfWorkWithReports(income_spending_data=(Decimal("0"), Decimal("0")))
+        result = get_income_vs_spending(
+            uow, currency="EUR", period="year", reference_date=date(2026, 6, 1)
+        )
+
+        assert result.start_date == date(2026, 1, 1)
+        assert result.end_date == date(2026, 12, 31)
+        # Previous period call (2025)
+        prev_call = uow.reports.income_vs_spending_calls[1]
+        assert prev_call[0] == date(2025, 1, 1)
+        assert prev_call[1] == date(2025, 12, 31)
+
 
 class TestSpendingTimeline:
     def test_delegates_to_repo(self):
@@ -278,3 +373,31 @@ class TestSpendingTimeline:
         assert result.current_period == []
         assert result.previous_period == []
         assert result.currency == "EUR"
+
+    def test_quarter_period_uses_quarter_dates(self):
+        uow = FakeUnitOfWorkWithReports()
+        result = get_spending_timeline(
+            uow, currency="EUR", period="quarter", reference_date=date(2026, 5, 15)
+        )
+
+        assert result.start_date == date(2026, 4, 1)
+        assert result.end_date == date(2026, 6, 30)
+        curr_call = uow.reports.daily_spending_calls[0]
+        assert curr_call[0] == date(2026, 4, 1)
+        assert curr_call[1] == date(2026, 6, 30)
+        # Previous quarter (Q1)
+        prev_call = uow.reports.daily_spending_calls[1]
+        assert prev_call[0] == date(2026, 1, 1)
+        assert prev_call[1] == date(2026, 3, 31)
+
+    def test_year_period_uses_year_dates(self):
+        uow = FakeUnitOfWorkWithReports()
+        result = get_spending_timeline(
+            uow, currency="EUR", period="year", reference_date=date(2026, 6, 1)
+        )
+
+        assert result.start_date == date(2026, 1, 1)
+        assert result.end_date == date(2026, 12, 31)
+        prev_call = uow.reports.daily_spending_calls[1]
+        assert prev_call[0] == date(2025, 1, 1)
+        assert prev_call[1] == date(2025, 12, 31)
