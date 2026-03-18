@@ -70,6 +70,11 @@ import type {
   TransferCreate,
   TransferResponse,
   SpendingReportResponse,
+  IncomeVsSpendingResponse,
+  SpendingTimelineResponse,
+  CategorySpendingResponse,
+  SettingsResponse,
+  UpdateSettingsRequest,
 } from "./types";
 
 export async function validateApiKey(key: string): Promise<void> {
@@ -171,5 +176,41 @@ export const api = {
       request<SpendingReportResponse>(
         `/reports/spending${buildQuery(params)}`,
       ),
+  },
+
+  dashboard: {
+    incomeVsSpending: (params: {
+      currency: string;
+      reference_date?: string;
+      exclude_savings?: boolean;
+    }) =>
+      request<IncomeVsSpendingResponse>(
+        `/dashboard/income-vs-spending${buildQuery(params)}`,
+      ),
+    spendingByCategories: (params: {
+      currency: string;
+      reference_date?: string;
+      exclude_savings?: boolean;
+    }) =>
+      request<CategorySpendingResponse[]>(
+        `/dashboard/spending-by-categories${buildQuery(params)}`,
+      ),
+    spendingTimeline: (params: {
+      currency: string;
+      reference_date?: string;
+      exclude_savings?: boolean;
+    }) =>
+      request<SpendingTimelineResponse>(
+        `/dashboard/spending-timeline${buildQuery(params)}`,
+      ),
+  },
+
+  settings: {
+    get: () => request<SettingsResponse>("/settings"),
+    update: (data: UpdateSettingsRequest) =>
+      request<SettingsResponse>("/settings", {
+        method: "PATCH",
+        body: JSON.stringify(data),
+      }),
   },
 };
