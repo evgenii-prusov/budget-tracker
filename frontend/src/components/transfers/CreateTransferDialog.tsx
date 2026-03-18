@@ -169,7 +169,13 @@ export function CreateTransferDialog({
             <Label htmlFor="source-account">Source Account</Label>
             <Select value={sourceAccountId} onValueChange={handleSourceChange}>
               <SelectTrigger id="source-account" className="w-full">
-                <SelectValue placeholder="Select source account" />
+                <SelectValue placeholder="Select source account">
+                  {(value: string | null) => {
+                    if (!value) return null;
+                    const match = accounts?.find((a) => a.account_id === value);
+                    return match ? `${match.name} (${match.currency})` : "Loading…";
+                  }}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {accounts?.map((account) => {
@@ -188,7 +194,13 @@ export function CreateTransferDialog({
             <Label htmlFor="dest-account">Destination Account</Label>
             <Select value={destAccountId} onValueChange={handleDestChange}>
               <SelectTrigger id="dest-account" className="w-full">
-                <SelectValue placeholder="Select destination account" />
+                <SelectValue placeholder="Select destination account">
+                  {(value: string | null) => {
+                    if (!value) return null;
+                    const match = accounts?.find((a) => a.account_id === value);
+                    return match ? `${match.name} (${match.currency})` : "Loading…";
+                  }}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {accounts?.map((account) => {
