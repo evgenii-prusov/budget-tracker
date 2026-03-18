@@ -1,9 +1,8 @@
 """Dashboard API endpoints: Income vs Spending, Spending by Categories, Spending Timeline."""
 
-import calendar
 from datetime import date
 from decimal import Decimal
-from typing import Annotated
+from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends
 
@@ -46,10 +45,12 @@ def income_vs_spending(
     currency: str,
     reference_date: date | None = None,
     exclude_savings: bool = True,
+    period: Literal["month", "quarter", "year"] = "month",
 ):
     summary = get_income_vs_spending(
         uow,
         currency=currency,
+        period=period,
         exclude_savings=exclude_savings,
         reference_date=reference_date,
     )
@@ -76,10 +77,11 @@ def spending_by_categories(
     currency: str,
     reference_date: date | None = None,
     exclude_savings: bool = True,
+    period: Literal["month", "quarter", "year"] = "month",
 ):
     report = get_spending_report(
         uow,
-        period="month",
+        period=period,
         exclude_savings=exclude_savings,
         reference_date=reference_date,
     )
@@ -101,23 +103,25 @@ def spending_timeline(
     currency: str,
     reference_date: date | None = None,
     exclude_savings: bool = True,
+    period: Literal["month", "quarter", "year"] = "month",
 ):
     ref = reference_date or date.today()
     timeline = get_spending_timeline(
         uow,
         currency=currency,
+        period=period,
         exclude_savings=exclude_savings,
         reference_date=reference_date,
     )
 
-    # Compute projected total
+    # Compute projected total (works for any period length)
     projected_total: Decimal | None = None
     if timeline.current_period:
         cumulative = timeline.current_period[-1].cumulative_total
-        days_in_month = calendar.monthrange(ref.year, ref.month)[1]
-        day_of_month = ref.day
-        if day_of_month > 0:
-            projected_total = _round2(cumulative * days_in_month / day_of_month)
+        total_days = (timeline.end_date - timeline.start_date).days + 1
+        elapsed_days = (ref - timeline.start_date).days + 1
+        if elapsed_days > 0:
+            projected_total = _round2(cumulative * total_days / elapsed_days)
 
     return SpendingTimelineResponse(
         start_date=timeline.start_date,
