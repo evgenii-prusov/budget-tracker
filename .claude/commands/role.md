@@ -27,4 +27,4 @@ Based on the argument provided:
 ### If no argument:
 1. Check if `.claude/.current-role` exists
 2. If yes: read it and respond "Current role: **<role>**"
-3. If no: respond "No role active. Use `/role <name>` to set one. Available roles: `architect`, `dev`"
+3. If no: list the `.md` files in `.claude/roles/` directory and respond "No role active. Use `/role <name>` to set one. Run `/role list` to see available roles."

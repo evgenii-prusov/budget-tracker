@@ -16,10 +16,15 @@ if [ ! -f "$ROLE_FILE" ]; then
   exit 0
 fi
 
-ROLE=$(cat "$ROLE_FILE" 2>/dev/null || echo "")
+ROLE=$(tr -d '[:space:]' < "$ROLE_FILE" 2>/dev/null || echo "")
 
-# Empty or whitespace-only = no injection
-if [ -z "${ROLE// /}" ]; then
+# Empty = no injection
+if [ -z "$ROLE" ]; then
+  exit 0
+fi
+
+# Validate role name: only lowercase alphanumeric, hyphens, underscores
+if ! echo "$ROLE" | grep -qE '^[a-z0-9_-]+$'; then
   exit 0
 fi
 
