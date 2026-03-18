@@ -243,14 +243,14 @@ export function useIncomeVsSpending(
   currency: string,
   referenceDate?: string,
   excludeSavings: boolean = true,
-  period: string = "month",
+  period: DashboardPeriod = "month",
 ) {
   return useQuery<IncomeVsSpendingResponse>({
     queryKey: queryKeys.dashboard.incomeVsSpending(
       currency,
       referenceDate,
       excludeSavings,
-      period as DashboardPeriod,
+      period,
     ),
     queryFn: () =>
       api.dashboard.incomeVsSpending({
@@ -267,14 +267,14 @@ export function useSpendingByCategories(
   currency: string,
   referenceDate?: string,
   excludeSavings: boolean = true,
-  period: string = "month",
+  period: DashboardPeriod = "month",
 ) {
   return useQuery<CategorySpendingResponse[]>({
     queryKey: queryKeys.dashboard.spendingByCategories(
       currency,
       referenceDate,
       excludeSavings,
-      period as DashboardPeriod,
+      period,
     ),
     queryFn: () =>
       api.dashboard.spendingByCategories({
@@ -291,14 +291,14 @@ export function useSpendingTimeline(
   currency: string,
   referenceDate?: string,
   excludeSavings: boolean = true,
-  period: string = "month",
+  period: DashboardPeriod = "month",
 ) {
   return useQuery<SpendingTimelineResponse>({
     queryKey: queryKeys.dashboard.spendingTimeline(
       currency,
       referenceDate,
       excludeSavings,
-      period as DashboardPeriod,
+      period,
     ),
     queryFn: () =>
       api.dashboard.spendingTimeline({

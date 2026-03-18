@@ -7,7 +7,7 @@ import {
   ResponsiveContainer,
   ReferenceLine,
 } from "recharts";
-import { differenceInDays, format, parseISO } from "date-fns";
+import { addMonths, differenceInDays, format, parseISO } from "date-fns";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatCurrency } from "@/lib/format";
 import type { DashboardPeriod, DailySpendingEntry, SpendingTimelineResponse } from "@/api/types";
@@ -72,20 +72,9 @@ function buildChartDataQuarter(data: SpendingTimelineResponse): ChartEntry[] {
   const periodStart = parseISO(data.start_date);
   const currentMap = buildOffsetMap(data.current_period, periodStart);
 
-  // For previous period, compute offset from its own start
-  const prevEntries = data.previous_period;
-  const previousMap = new Map<number, number>();
-  if (prevEntries.length > 0) {
-    // Infer previous period start: the earliest date minus its offset pattern
-    // We align by day-offset, so we need to compute offset from prev period start
-    const prevDates = prevEntries.map((e) => parseISO(e.spending_date));
-    const prevStart = prevDates.reduce((a, b) => (a < b ? a : b));
-    for (const entry of prevEntries) {
-      const d = parseISO(entry.spending_date);
-      const offset = differenceInDays(d, prevStart);
-      previousMap.set(offset, Number(entry.cumulative_total));
-    }
-  }
+  // Compute previous period start deterministically: current quarter start minus 3 months
+  const prevStart = addMonths(periodStart, -3);
+  const previousMap = buildOffsetMap(data.previous_period, prevStart);
 
   const allOffsets = new Set([...currentMap.keys(), ...previousMap.keys()]);
   const sorted = [...allOffsets].sort((a, b) => a - b);
