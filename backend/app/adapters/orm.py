@@ -1,5 +1,5 @@
 from sqlalchemy import Table, Column, ForeignKey, UniqueConstraint, Index
-from sqlalchemy import Boolean, String, Numeric, Date
+from sqlalchemy import Boolean, String, Numeric, Date, text
 from sqlalchemy.orm import registry, relationship, backref
 
 from app.domain import model
@@ -62,6 +62,14 @@ transfers = Table(
 )
 
 
+settings = Table(
+    "settings",
+    metadata,
+    Column("settings_id", String(36), primary_key=True),
+    Column("primary_currency", String(3), nullable=False, server_default=text("'EUR'")),
+)
+
+
 def start_mappers():
     mapper_registry.map_imperatively(
         model.Account,
@@ -98,3 +106,10 @@ def start_mappers():
     )
     mapper_registry.map_imperatively(model.Posting, postings)
     mapper_registry.map_imperatively(model.Transfer, transfers)
+    mapper_registry.map_imperatively(
+        model.Settings,
+        settings,
+        properties={
+            "_primary_currency": settings.c.primary_currency,
+        },
+    )

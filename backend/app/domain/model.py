@@ -186,6 +186,41 @@ class Posting:
         return self.posting_date < other.posting_date
 
 
+class Settings:
+    """Application-wide settings singleton."""
+
+    SINGLETON_ID = "default"
+
+    def __init__(
+        self,
+        settings_id: str | None = None,
+        primary_currency: str = "EUR",
+    ):
+        self.settings_id = settings_id or self.SINGLETON_ID
+        self.primary_currency = primary_currency  # uses setter validation
+
+    @property
+    def primary_currency(self) -> str:
+        return self._primary_currency
+
+    @primary_currency.setter
+    def primary_currency(self, value: str) -> None:
+        if value not in VALID_CURRENCIES:
+            raise InvalidCurrencyError(f"Invalid currency: {value}")
+        self._primary_currency = value
+
+    def __repr__(self) -> str:
+        return f"Settings({self.settings_id!r}, {self.primary_currency!r})"
+
+    def __eq__(self, other):
+        if not isinstance(other, Settings):
+            return False
+        return self.settings_id == other.settings_id
+
+    def __hash__(self):
+        return hash(self.settings_id)
+
+
 class Account:
     def __init__(
         self,

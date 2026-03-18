@@ -436,3 +436,39 @@ def test_category_count_postings(session):
 
     assert category_repo.count_postings("cat-1") == 2
     assert category_repo.count_postings("nonexistent") == 0
+
+
+def test_settings_save_and_get(session):
+    from app.adapters.settings_repository import SqlAlchemySettingsRepository
+    from app.domain.model import Settings
+
+    repo = SqlAlchemySettingsRepository(session)
+    settings = Settings(settings_id="default", primary_currency="USD")
+    repo.save(settings)
+    session.commit()
+
+    retrieved = repo.get()
+    assert retrieved is not None
+    assert retrieved.settings_id == "default"
+    assert retrieved.primary_currency == "USD"
+
+
+def test_settings_upsert(session):
+    from app.adapters.settings_repository import SqlAlchemySettingsRepository
+    from app.domain.model import Settings
+
+    repo = SqlAlchemySettingsRepository(session)
+
+    # First save
+    settings = Settings(settings_id="default", primary_currency="EUR")
+    repo.save(settings)
+    session.commit()
+
+    # Upsert with different currency
+    settings2 = Settings(settings_id="default", primary_currency="GBP")
+    repo.save(settings2)
+    session.commit()
+
+    retrieved = repo.get()
+    assert retrieved is not None
+    assert retrieved.primary_currency == "GBP"
