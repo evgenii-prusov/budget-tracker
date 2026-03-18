@@ -7,10 +7,10 @@ import {
   ResponsiveContainer,
   ReferenceLine,
 } from "recharts";
-import { format, parseISO } from "date-fns";
+import { differenceInDays, format, parseISO } from "date-fns";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatCurrency } from "@/lib/format";
-import type { DashboardPeriod, SpendingTimelineResponse } from "@/api/types";
+import type { DashboardPeriod, DailySpendingEntry, SpendingTimelineResponse } from "@/api/types";
 
 interface Props {
   data: SpendingTimelineResponse;
@@ -18,13 +18,13 @@ interface Props {
 }
 
 interface ChartEntry {
-  day: number;
+  index: number;
   label: string;
   current: number;
   previous: number | null;
 }
 
-function buildChartData(data: SpendingTimelineResponse): ChartEntry[] {
+function buildChartDataMonth(data: SpendingTimelineResponse): ChartEntry[] {
   const currentMap = new Map<number, number>();
   const previousMap = new Map<number, number>();
 
@@ -32,32 +32,129 @@ function buildChartData(data: SpendingTimelineResponse): ChartEntry[] {
     const d = parseISO(entry.spending_date);
     currentMap.set(d.getDate(), Number(entry.cumulative_total));
   }
-
   for (const entry of data.previous_period) {
     const d = parseISO(entry.spending_date);
     previousMap.set(d.getDate(), Number(entry.cumulative_total));
   }
 
-  // Build entries for all days that have data in either period
   const allDays = new Set([...currentMap.keys(), ...previousMap.keys()]);
-  const sortedDays = [...allDays].sort((a, b) => a - b);
+  const sorted = [...allDays].sort((a, b) => a - b);
 
   let lastCurrent = 0;
   let lastPrevious: number | null = null;
 
-  return sortedDays.map((day) => {
+  return sorted.map((day) => {
     if (currentMap.has(day)) lastCurrent = currentMap.get(day)!;
     if (previousMap.has(day)) lastPrevious = previousMap.get(day)!;
-
     return {
-      day,
+      index: day,
       label: `Day ${day}`,
       current: currentMap.has(day) ? currentMap.get(day)! : lastCurrent,
-      previous: previousMap.has(day)
-        ? previousMap.get(day)!
-        : lastPrevious,
+      previous: previousMap.has(day) ? previousMap.get(day)! : lastPrevious,
     };
   });
+}
+
+function buildOffsetMap(
+  entries: DailySpendingEntry[],
+  periodStart: Date,
+): Map<number, number> {
+  const map = new Map<number, number>();
+  for (const entry of entries) {
+    const d = parseISO(entry.spending_date);
+    const offset = differenceInDays(d, periodStart);
+    map.set(offset, Number(entry.cumulative_total));
+  }
+  return map;
+}
+
+function buildChartDataQuarter(data: SpendingTimelineResponse): ChartEntry[] {
+  const periodStart = parseISO(data.start_date);
+  const currentMap = buildOffsetMap(data.current_period, periodStart);
+
+  // For previous period, compute offset from its own start
+  const prevEntries = data.previous_period;
+  const previousMap = new Map<number, number>();
+  if (prevEntries.length > 0) {
+    // Infer previous period start: the earliest date minus its offset pattern
+    // We align by day-offset, so we need to compute offset from prev period start
+    const prevDates = prevEntries.map((e) => parseISO(e.spending_date));
+    const prevStart = prevDates.reduce((a, b) => (a < b ? a : b));
+    for (const entry of prevEntries) {
+      const d = parseISO(entry.spending_date);
+      const offset = differenceInDays(d, prevStart);
+      previousMap.set(offset, Number(entry.cumulative_total));
+    }
+  }
+
+  const allOffsets = new Set([...currentMap.keys(), ...previousMap.keys()]);
+  const sorted = [...allOffsets].sort((a, b) => a - b);
+
+  let lastCurrent = 0;
+  let lastPrevious: number | null = null;
+
+  return sorted.map((offset) => {
+    if (currentMap.has(offset)) lastCurrent = currentMap.get(offset)!;
+    if (previousMap.has(offset)) lastPrevious = previousMap.get(offset)!;
+
+    // Label: format the actual date for current period
+    const actualDate = new Date(periodStart);
+    actualDate.setDate(actualDate.getDate() + offset);
+    const label = format(actualDate, "MMM d");
+
+    return {
+      index: offset,
+      label,
+      current: currentMap.has(offset) ? currentMap.get(offset)! : lastCurrent,
+      previous: previousMap.has(offset) ? previousMap.get(offset)! : lastPrevious,
+    };
+  });
+}
+
+const MONTH_LABELS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+function aggregateByMonth(entries: DailySpendingEntry[]): Map<number, number> {
+  // Group by month, take the last cumulative_total per month
+  const map = new Map<number, number>();
+  for (const entry of entries) {
+    const d = parseISO(entry.spending_date);
+    const monthIdx = d.getMonth(); // 0-based
+    map.set(monthIdx, Number(entry.cumulative_total));
+  }
+  return map;
+}
+
+function buildChartDataYear(data: SpendingTimelineResponse): ChartEntry[] {
+  const currentMap = aggregateByMonth(data.current_period);
+  const previousMap = aggregateByMonth(data.previous_period);
+
+  const allMonths = new Set([...currentMap.keys(), ...previousMap.keys()]);
+  const sorted = [...allMonths].sort((a, b) => a - b);
+
+  let lastCurrent = 0;
+  let lastPrevious: number | null = null;
+
+  return sorted.map((monthIdx) => {
+    if (currentMap.has(monthIdx)) lastCurrent = currentMap.get(monthIdx)!;
+    if (previousMap.has(monthIdx)) lastPrevious = previousMap.get(monthIdx)!;
+    return {
+      index: monthIdx,
+      label: MONTH_LABELS[monthIdx],
+      current: currentMap.has(monthIdx) ? currentMap.get(monthIdx)! : lastCurrent,
+      previous: previousMap.has(monthIdx) ? previousMap.get(monthIdx)! : lastPrevious,
+    };
+  });
+}
+
+function buildChartData(data: SpendingTimelineResponse, period: DashboardPeriod): ChartEntry[] {
+  switch (period) {
+    case "month":
+      return buildChartDataMonth(data);
+    case "quarter":
+      return buildChartDataQuarter(data);
+    case "year":
+      return buildChartDataYear(data);
+  }
 }
 
 interface CustomTooltipProps {
@@ -92,9 +189,16 @@ function TimelineTooltip({
   );
 }
 
+function getXAxisInterval(period: DashboardPeriod, dataLength: number): number | undefined {
+  if (period === "quarter" && dataLength > 14) {
+    return Math.floor(dataLength / 12); // ~12 ticks
+  }
+  return undefined; // auto
+}
+
 export function SpendingTimelineWidget({ data, period = "month" }: Props) {
   const periodLabel = period;
-  const chartData = buildChartData(data);
+  const chartData = buildChartData(data, period);
   const projectedTotal = data.projected_total
     ? Number(data.projected_total)
     : null;
@@ -132,6 +236,7 @@ export function SpendingTimelineWidget({ data, period = "month" }: Props) {
               <XAxis
                 dataKey="label"
                 tick={{ fill: "hsl(var(--foreground))", fontSize: 11 }}
+                interval={getXAxisInterval(period, chartData.length)}
               />
               <YAxis
                 tick={{ fill: "hsl(var(--foreground))", fontSize: 11 }}
