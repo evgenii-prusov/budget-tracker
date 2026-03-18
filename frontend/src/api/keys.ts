@@ -1,4 +1,4 @@
-import type { ReportPeriod } from "./types";
+import type { DashboardPeriod, ReportPeriod } from "./types";
 
 export const queryKeys = {
   accounts: {
@@ -33,31 +33,34 @@ export const queryKeys = {
       currency: string,
       referenceDate?: string,
       excludeSavings: boolean = true,
+      period: DashboardPeriod = "month",
     ) =>
       [
         "dashboard",
         "income-vs-spending",
-        { currency, referenceDate, excludeSavings },
+        { currency, referenceDate, excludeSavings, period },
       ] as const,
     spendingByCategories: (
       currency: string,
       referenceDate?: string,
       excludeSavings: boolean = true,
+      period: DashboardPeriod = "month",
     ) =>
       [
         "dashboard",
         "spending-by-categories",
-        { currency, referenceDate, excludeSavings },
+        { currency, referenceDate, excludeSavings, period },
       ] as const,
     spendingTimeline: (
       currency: string,
       referenceDate?: string,
       excludeSavings: boolean = true,
+      period: DashboardPeriod = "month",
     ) =>
       [
         "dashboard",
         "spending-timeline",
-        { currency, referenceDate, excludeSavings },
+        { currency, referenceDate, excludeSavings, period },
       ] as const,
   },
   settings: {

@@ -18,6 +18,7 @@ import type {
   PostingUpdate,
   PostingResponse,
   ReportPeriod,
+  DashboardPeriod,
   TransferCreate,
   TransferResponse,
   SpendingReportResponse,
@@ -242,18 +243,21 @@ export function useIncomeVsSpending(
   currency: string,
   referenceDate?: string,
   excludeSavings: boolean = true,
+  period: string = "month",
 ) {
   return useQuery<IncomeVsSpendingResponse>({
     queryKey: queryKeys.dashboard.incomeVsSpending(
       currency,
       referenceDate,
       excludeSavings,
+      period as DashboardPeriod,
     ),
     queryFn: () =>
       api.dashboard.incomeVsSpending({
         currency,
         reference_date: referenceDate,
         exclude_savings: excludeSavings,
+        period,
       }),
     enabled: !!currency,
   });
@@ -263,18 +267,21 @@ export function useSpendingByCategories(
   currency: string,
   referenceDate?: string,
   excludeSavings: boolean = true,
+  period: string = "month",
 ) {
   return useQuery<CategorySpendingResponse[]>({
     queryKey: queryKeys.dashboard.spendingByCategories(
       currency,
       referenceDate,
       excludeSavings,
+      period as DashboardPeriod,
     ),
     queryFn: () =>
       api.dashboard.spendingByCategories({
         currency,
         reference_date: referenceDate,
         exclude_savings: excludeSavings,
+        period,
       }),
     enabled: !!currency,
   });
@@ -284,18 +291,21 @@ export function useSpendingTimeline(
   currency: string,
   referenceDate?: string,
   excludeSavings: boolean = true,
+  period: string = "month",
 ) {
   return useQuery<SpendingTimelineResponse>({
     queryKey: queryKeys.dashboard.spendingTimeline(
       currency,
       referenceDate,
       excludeSavings,
+      period as DashboardPeriod,
     ),
     queryFn: () =>
       api.dashboard.spendingTimeline({
         currency,
         reference_date: referenceDate,
         exclude_savings: excludeSavings,
+        period,
       }),
     enabled: !!currency,
   });

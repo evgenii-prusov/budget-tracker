@@ -10,10 +10,11 @@ import {
 import { format, parseISO } from "date-fns";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatCurrency } from "@/lib/format";
-import type { SpendingTimelineResponse } from "@/api/types";
+import type { DashboardPeriod, SpendingTimelineResponse } from "@/api/types";
 
 interface Props {
   data: SpendingTimelineResponse;
+  period?: DashboardPeriod;
 }
 
 interface ChartEntry {
@@ -64,6 +65,7 @@ interface CustomTooltipProps {
   payload?: Array<{ value: number | null; dataKey: string; color: string }>;
   label?: string;
   currency: string;
+  periodLabel: string;
 }
 
 function TimelineTooltip({
@@ -71,6 +73,7 @@ function TimelineTooltip({
   payload,
   label,
   currency,
+  periodLabel,
 }: CustomTooltipProps) {
   if (!active || !payload || payload.length === 0) return null;
   return (
@@ -80,7 +83,7 @@ function TimelineTooltip({
         if (entry.value == null) return null;
         return (
           <p key={entry.dataKey} style={{ color: entry.color }}>
-            {entry.dataKey === "current" ? "This month" : "Last month"}:{" "}
+            {entry.dataKey === "current" ? `This ${periodLabel}` : `Last ${periodLabel}`}:{" "}
             {formatCurrency(String(entry.value), currency)}
           </p>
         );
@@ -89,7 +92,8 @@ function TimelineTooltip({
   );
 }
 
-export function SpendingTimelineWidget({ data }: Props) {
+export function SpendingTimelineWidget({ data, period = "month" }: Props) {
+  const periodLabel = period;
   const chartData = buildChartData(data);
   const projectedTotal = data.projected_total
     ? Number(data.projected_total)
@@ -148,6 +152,7 @@ export function SpendingTimelineWidget({ data }: Props) {
                     }
                     label={props.label as string}
                     currency={data.currency}
+                    periodLabel={periodLabel}
                   />
                 )}
               />
@@ -173,7 +178,7 @@ export function SpendingTimelineWidget({ data }: Props) {
                 strokeWidth={1.5}
                 strokeDasharray="4 4"
                 connectNulls
-                name="Last month"
+                name={`Last ${periodLabel}`}
               />
               <Area
                 type="monotone"
@@ -182,7 +187,7 @@ export function SpendingTimelineWidget({ data }: Props) {
                 fill="#2563eb"
                 fillOpacity={0.15}
                 strokeWidth={2}
-                name="This month"
+                name={`This ${periodLabel}`}
               />
             </AreaChart>
           </ResponsiveContainer>

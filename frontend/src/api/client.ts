@@ -183,6 +183,7 @@ export const api = {
       currency: string;
       reference_date?: string;
       exclude_savings?: boolean;
+      period?: string;
     }) =>
       request<IncomeVsSpendingResponse>(
         `/dashboard/income-vs-spending${buildQuery(params)}`,
@@ -191,6 +192,7 @@ export const api = {
       currency: string;
       reference_date?: string;
       exclude_savings?: boolean;
+      period?: string;
     }) =>
       request<CategorySpendingResponse[]>(
         `/dashboard/spending-by-categories${buildQuery(params)}`,
@@ -199,6 +201,7 @@ export const api = {
       currency: string;
       reference_date?: string;
       exclude_savings?: boolean;
+      period?: string;
     }) =>
       request<SpendingTimelineResponse>(
         `/dashboard/spending-timeline${buildQuery(params)}`,

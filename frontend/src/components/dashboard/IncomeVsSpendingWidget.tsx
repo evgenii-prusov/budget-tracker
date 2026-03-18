@@ -1,21 +1,24 @@
 import { TrendingUp, TrendingDown, Minus } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatCurrency } from "@/lib/format";
-import type { IncomeVsSpendingResponse } from "@/api/types";
+import type { DashboardPeriod, IncomeVsSpendingResponse } from "@/api/types";
 
 interface Props {
   data: IncomeVsSpendingResponse;
+  period?: DashboardPeriod;
 }
 
 function TrendIndicator({
   current,
   previous,
   upIsGood = false,
+  periodLabel = "month",
 }: {
   current: string;
   previous: string;
   /** When true, an increase is colored green (good). Default: false (increase = red = bad, for spending). */
   upIsGood?: boolean;
+  periodLabel?: string;
 }) {
   const curr = Number(current);
   const prev = Number(previous);
@@ -33,12 +36,12 @@ function TrendIndicator({
       }`}
     >
       <Icon className="size-3" />
-      {Math.abs(pctChange).toFixed(0)}% vs prev month
+      {Math.abs(pctChange).toFixed(0)}% vs prev {periodLabel}
     </span>
   );
 }
 
-export function IncomeVsSpendingWidget({ data }: Props) {
+export function IncomeVsSpendingWidget({ data, period = "month" }: Props) {
   const netPositive = Number(data.net_income) >= 0;
 
   return (
@@ -57,6 +60,7 @@ export function IncomeVsSpendingWidget({ data }: Props) {
             current={data.total_income}
             previous={data.prev_total_income}
             upIsGood
+            periodLabel={period}
           />
         </CardContent>
       </Card>
