@@ -25,5 +25,5 @@ echo "BLOCKED: Do not use 'git checkout -b' directly."
 echo ""
 echo "  Use:  make branch name=fix/my-feature"
 echo ""
-echo "  This fetches origin and branches from origin/master automatically."
+echo "  This fetches origin and branches from origin/dev automatically."
 exit 2
