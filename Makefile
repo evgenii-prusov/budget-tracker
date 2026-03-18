@@ -16,8 +16,8 @@ help:
 	@echo "make format          - Format code with ruff"
 	@echo "make lint            - Lint and auto-fix with ruff"
 	@echo "make typecheck       - Run ty type checker"
-	@echo "make branch name=... - Create a new branch from origin/master"
-	@echo "make sync            - Sync with remote master branch"
+	@echo "make branch name=... - Create a new branch from origin/dev"
+	@echo "make sync            - Sync with remote dev branch"
 	@echo "make clean           - Remove generated files"
 	@echo ""
 	@echo "Development (local backend + Docker Postgres)"
@@ -79,10 +79,10 @@ typecheck:
 branch:
 	@test -n "$(name)" || (echo "Usage: make branch name=<branch-name>"; exit 1)
 	git fetch origin
-	git checkout -b $(name) origin/master
+	git checkout -b $(name) origin/dev
 
 sync:
-	git pull --rebase origin master
+	git pull --rebase origin dev
 
 clean:
 	cd backend && rm -rf .pytest_cache htmlcov .coverage .ruff_cache
