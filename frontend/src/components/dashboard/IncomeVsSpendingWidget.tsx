@@ -10,9 +10,12 @@ interface Props {
 function TrendIndicator({
   current,
   previous,
+  upIsGood = false,
 }: {
   current: string;
   previous: string;
+  /** When true, an increase is colored green (good). Default: false (increase = red = bad, for spending). */
+  upIsGood?: boolean;
 }) {
   const curr = Number(current);
   const prev = Number(previous);
@@ -21,10 +24,12 @@ function TrendIndicator({
   const isUp = pctChange > 0;
   const Icon = pctChange === 0 ? Minus : isUp ? TrendingUp : TrendingDown;
 
+  const isPositive = upIsGood ? isUp : !isUp;
+
   return (
     <span
       className={`inline-flex items-center gap-1 text-xs ${
-        isUp ? "text-red-500" : "text-green-500"
+        isPositive ? "text-green-500" : "text-red-500"
       }`}
     >
       <Icon className="size-3" />
@@ -51,6 +56,7 @@ export function IncomeVsSpendingWidget({ data }: Props) {
           <TrendIndicator
             current={data.total_income}
             previous={data.prev_total_income}
+            upIsGood
           />
         </CardContent>
       </Card>

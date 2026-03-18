@@ -13,7 +13,12 @@ import {
 import { parseApiError } from "@/lib/errors";
 
 export default function DashboardPage() {
-  const { data: settings, isLoading: settingsLoading } = useSettings();
+  const {
+    data: settings,
+    isLoading: settingsLoading,
+    isError: settingsError,
+    error: settingsErr,
+  } = useSettings();
   const currency = settings?.primary_currency ?? "EUR";
 
   const {
@@ -39,8 +44,8 @@ export default function DashboardPage() {
 
   const isLoading =
     settingsLoading || incomeLoading || categoriesLoading || timelineLoading;
-  const hasError = incomeError || categoriesError || timelineError;
-  const firstError = incomeErr || categoriesErr || timelineErr;
+  const hasError = settingsError || incomeError || categoriesError || timelineError;
+  const firstError = settingsErr || incomeErr || categoriesErr || timelineErr;
 
   if (isLoading) return <PageLoader />;
 
