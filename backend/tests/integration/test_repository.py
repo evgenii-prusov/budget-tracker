@@ -627,6 +627,38 @@ def test_daily_spending_excludes_income(session):
     assert result[0] == (date(2026, 3, 5), Decimal("50"))
 
 
+def test_daily_spending_excludes_savings(session):
+    """Savings accounts excluded by default, included when exclude_savings=False."""
+    repo = SqlAlchemyReportRepository(session)
+    session.execute(
+        text(
+            "INSERT INTO account (account_id, name, currency, initial_balance, is_savings)"
+            " VALUES ('a1', 'Normal', 'EUR', 1000, false),"
+            " ('a2', 'Savings', 'EUR', 1000, true)"
+        )
+    )
+    session.execute(
+        text(
+            "INSERT INTO posting (posting_id, account_id, amount, posting_date, posting_type)"
+            " VALUES ('p1', 'a1', -100, '2026-03-05', 'EXPENSE'),"
+            " ('p2', 'a2', -200, '2026-03-05', 'EXPENSE')"
+        )
+    )
+    session.commit()
+
+    # Default: exclude savings
+    result = repo.daily_spending(date(2026, 3, 1), date(2026, 3, 31), "EUR")
+    assert len(result) == 1
+    assert result[0] == (date(2026, 3, 5), Decimal("100"))
+
+    # Include savings
+    result_all = repo.daily_spending(
+        date(2026, 3, 1), date(2026, 3, 31), "EUR", exclude_savings=False
+    )
+    assert len(result_all) == 1
+    assert result_all[0] == (date(2026, 3, 5), Decimal("300"))
+
+
 def test_daily_spending_filters_by_currency(session):
     repo = SqlAlchemyReportRepository(session)
     session.execute(

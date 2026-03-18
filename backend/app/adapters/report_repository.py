@@ -37,7 +37,6 @@ class SqlAlchemyReportRepository(AbstractReportRepository):
             .outerjoin(pc, categories.c.parent_id == pc.c.category_id)
             .where(postings.c.posting_type == "EXPENSE")
             .where(postings.c.posting_date.between(start_date, end_date))
-            .where(accounts.c.is_savings.is_(False) if exclude_savings else True)
             .group_by(
                 func.coalesce(pc.c.category_id, categories.c.category_id),
                 func.coalesce(pc.c.name, categories.c.name),
@@ -48,6 +47,8 @@ class SqlAlchemyReportRepository(AbstractReportRepository):
                 accounts.c.currency,
             )
         )
+        if exclude_savings:
+            stmt = stmt.where(accounts.c.is_savings.is_(False))
 
         rows = [
             CategorySpendingRow(
@@ -98,8 +99,9 @@ class SqlAlchemyReportRepository(AbstractReportRepository):
             .join(accounts, postings.c.account_id == accounts.c.account_id)
             .where(postings.c.posting_date.between(start_date, end_date))
             .where(accounts.c.currency == currency)
-            .where(accounts.c.is_savings.is_(False) if exclude_savings else True)
         )
+        if exclude_savings:
+            stmt = stmt.where(accounts.c.is_savings.is_(False))
         row = self._session.execute(stmt).one()
         return Decimal(str(row.total_income)), Decimal(str(row.total_spending))
 
@@ -120,10 +122,11 @@ class SqlAlchemyReportRepository(AbstractReportRepository):
             .where(postings.c.posting_type == "EXPENSE")
             .where(postings.c.posting_date.between(start_date, end_date))
             .where(accounts.c.currency == currency)
-            .where(accounts.c.is_savings.is_(False) if exclude_savings else True)
             .group_by(postings.c.posting_date)
             .order_by(postings.c.posting_date)
         )
+        if exclude_savings:
+            stmt = stmt.where(accounts.c.is_savings.is_(False))
         return [
             (row.posting_date, Decimal(str(row.daily_total))) for row in self._session.execute(stmt)
         ]
