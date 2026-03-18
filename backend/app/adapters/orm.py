@@ -1,4 +1,4 @@
-from sqlalchemy import Table, Column, ForeignKey, UniqueConstraint, Index
+from sqlalchemy import Table, Column, ForeignKey, UniqueConstraint, Index, func
 from sqlalchemy import Boolean, String, Numeric, Date, text
 from sqlalchemy.orm import registry, relationship, backref
 
@@ -49,7 +49,7 @@ postings = Table(
     Column("description", String(500), nullable=True),
 )
 
-Index("ix_posting_payee", postings.c.payee)
+Index("ix_posting_payee_lower", func.lower(postings.c.payee))
 
 transfers = Table(
     "transfer",

@@ -96,7 +96,7 @@ class FakeAccountRepository(AbstractAccountRepository):
         matches = [
             (name, cnt) for name, cnt in counts.items() if name.lower().startswith(prefix.lower())
         ]
-        matches.sort(key=lambda x: -x[1])
+        matches.sort(key=lambda x: (-x[1], x[0]))
         return [name for name, _ in matches[:limit]]
 
 
@@ -1789,3 +1789,20 @@ class TestSuggestPayees:
         uow = self._make_uow_with_postings(payees)
         result = suggest_payees(uow, prefix="Store", limit=5)
         assert len(result) == 5
+
+    def test_suggest_payees_escapes_like_wildcards(self):
+        """Prefix containing SQL LIKE wildcards (% and _) must match literally."""
+        uow = self._make_uow_with_postings(["100% Juice", "100 Montaditos", "A_B Corp", "ACB Corp"])
+        # '%' in prefix must be literal — should match "100% Juice" only
+        result = suggest_payees(uow, prefix="100%")
+        assert result == ["100% Juice"]
+        # '_' in prefix must be literal — should match "A_B Corp" only
+        result = suggest_payees(uow, prefix="A_B")
+        assert result == ["A_B Corp"]
+
+    def test_suggest_payees_stable_ordering_same_frequency(self):
+        """Payees with the same frequency should be sorted alphabetically for stable results."""
+        uow = self._make_uow_with_postings(["Zebra", "Apple", "Mango"])
+        result = suggest_payees(uow, prefix="")
+        # All have frequency 1 — should be alphabetically ordered
+        assert result == ["Apple", "Mango", "Zebra"]

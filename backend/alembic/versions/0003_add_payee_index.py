@@ -18,8 +18,8 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    op.create_index("ix_posting_payee", "posting", ["payee"])
+    op.execute("CREATE INDEX ix_posting_payee_lower ON posting (lower(payee) text_pattern_ops)")
 
 
 def downgrade() -> None:
-    op.drop_index("ix_posting_payee", table_name="posting")
+    op.drop_index("ix_posting_payee_lower", table_name="posting")
