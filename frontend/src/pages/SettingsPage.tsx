@@ -13,7 +13,7 @@ import { PageLoader } from "@/components/shared/PageLoader";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { useSettings, useUpdateSettings } from "@/api/hooks";
 import { parseApiError } from "@/lib/errors";
-import { toast } from "sonner";
+import { showToast } from "@/lib/toast";
 
 const CURRENCIES = ["USD", "EUR", "GBP", "RUB", "CHF", "JPY", "CNY"];
 
@@ -33,10 +33,10 @@ export default function SettingsPage() {
       { primary_currency: selectedCurrency },
       {
         onSuccess: () => {
-          toast.success("Settings saved");
+          showToast.success("Settings saved");
         },
         onError: (err) => {
-          toast.error(parseApiError(err));
+          showToast.error(parseApiError(err));
         },
       },
     );

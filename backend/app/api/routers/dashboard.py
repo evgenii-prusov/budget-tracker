@@ -25,11 +25,19 @@ router = APIRouter()
 UoWDep = Annotated[AbstractUnitOfWork, Depends(get_unit_of_work)]
 
 
+_TWO_PLACES = Decimal("0.01")
+
+
+def _round2(value: Decimal) -> Decimal:
+    """Round a Decimal to 2 decimal places (half-up)."""
+    return value.quantize(_TWO_PLACES)
+
+
 def _spending_ratio(spending: Decimal, income: Decimal) -> Decimal | None:
     """spending / income * 100, None if income is zero."""
     if income == 0:
         return None
-    return spending * 100 / income
+    return _round2(spending * 100 / income)
 
 
 @router.get("/dashboard/income-vs-spending", response_model=IncomeVsSpendingResponse)
@@ -109,7 +117,7 @@ def spending_timeline(
         days_in_month = calendar.monthrange(ref.year, ref.month)[1]
         day_of_month = ref.day
         if day_of_month > 0:
-            projected_total = cumulative * days_in_month / day_of_month
+            projected_total = _round2(cumulative * days_in_month / day_of_month)
 
     return SpendingTimelineResponse(
         start_date=timeline.start_date,

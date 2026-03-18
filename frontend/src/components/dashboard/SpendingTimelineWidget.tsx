@@ -61,7 +61,7 @@ function buildChartData(data: SpendingTimelineResponse): ChartEntry[] {
 
 interface CustomTooltipProps {
   active?: boolean;
-  payload?: Array<{ value: number; dataKey: string; color: string }>;
+  payload?: Array<{ value: number | null; dataKey: string; color: string }>;
   label?: string;
   currency: string;
 }
@@ -76,12 +76,15 @@ function TimelineTooltip({
   return (
     <div className="rounded-md border bg-background px-3 py-2 text-sm shadow-md">
       <p className="mb-1 font-medium">{label}</p>
-      {payload.map((entry) => (
-        <p key={entry.dataKey} style={{ color: entry.color }}>
-          {entry.dataKey === "current" ? "This month" : "Last month"}:{" "}
-          {formatCurrency(String(entry.value), currency)}
-        </p>
-      ))}
+      {payload.map((entry) => {
+        if (entry.value == null) return null;
+        return (
+          <p key={entry.dataKey} style={{ color: entry.color }}>
+            {entry.dataKey === "current" ? "This month" : "Last month"}:{" "}
+            {formatCurrency(String(entry.value), currency)}
+          </p>
+        );
+      })}
     </div>
   );
 }

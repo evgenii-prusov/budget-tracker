@@ -223,13 +223,6 @@ class SpendingTimelineResponse(BaseModel):
     projected_total: Decimal | None
 
 
-class DashboardCategorySpendingResponse(BaseModel):
-    parent_category_id: str
-    parent_category_name: str
-    currency: str
-    total: Decimal
-
-
 # ── Settings ──────────────────────────────────────────────────────
 
 
