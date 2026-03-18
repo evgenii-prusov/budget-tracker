@@ -20,6 +20,24 @@ When implementing a feature that spans multiple tasks (domain → ORM → servic
 - The EPIC must remain `in_progress` while the PR is open (CI may fail, review comments may require changes)
 - After PR merge: close the EPIC
 
+## Branching Strategy
+
+This project uses a **dev-branch workflow**:
+
+- **`master`** — production branch. Pushes here auto-deploy to Azure. Never commit or PR directly to master (except dev→master release PRs).
+- **`dev`** — integration branch. All feature PRs target this branch. CI runs on every push and PR to dev.
+- **Feature branches** — created from `dev` via `make branch name=feat/...`. PRs target `dev`.
+
+### Release process
+1. Features accumulate in `dev` via merged PRs
+2. When ready to release: create a PR from `dev` → `master`
+3. Merge the PR → triggers auto-deploy to Azure
+
+### Rules
+- Direct commits to both `master` and `dev` are prohibited — always use feature branches + PRs
+- PRs target `dev`, not `master` (enforced by PreToolUse hook)
+- `make branch` creates branches from `origin/dev`
+
 ## Python Execution
 - All python commands must be executed via `uv` (e.g., `uv run python`, `uv run pytest`).
 
