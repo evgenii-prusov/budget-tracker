@@ -22,6 +22,7 @@ from app.service_layer.services import create_posting
 from app.service_layer.services import delete_posting
 from app.service_layer.services import get_posting
 from app.service_layer.services import list_postings
+from app.service_layer.services import suggest_payees
 from app.service_layer.services import update_posting
 
 
@@ -41,6 +42,15 @@ def list_postings_endpoint(
     limit: int = Query(50, ge=1, le=100),
 ):
     return list_postings(uow, account_id=account_id, skip=skip, limit=limit)
+
+
+@router.get("/payees", response_model=list[str])
+def suggest_payees_endpoint(
+    uow: UoWDep,
+    q: str = Query(..., min_length=1, max_length=200, description="Prefix to search"),
+    limit: int = Query(10, ge=1, le=50),
+):
+    return suggest_payees(uow, prefix=q, limit=limit)
 
 
 @router.post("/", response_model=PostingResponse, status_code=status.HTTP_201_CREATED)

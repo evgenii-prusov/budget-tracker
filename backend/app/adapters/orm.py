@@ -49,6 +49,8 @@ postings = Table(
     Column("description", String(500), nullable=True),
 )
 
+Index("ix_posting_payee", postings.c.payee)
+
 transfers = Table(
     "transfer",
     metadata,

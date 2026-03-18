@@ -24,6 +24,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { useAccounts, useCategoryParents, useUpdatePosting } from "@/api/hooks";
+import { PayeeCombobox } from "@/components/postings/PayeeCombobox";
 import { parseApiError } from "@/lib/errors";
 import { showToast } from "@/lib/toast";
 import type { PostingResponse, PostingType, PostingUpdate } from "@/api/types";
@@ -258,10 +259,10 @@ export function EditPostingDialog({
           {/* Payee */}
           <div className="space-y-2">
             <Label htmlFor="edit-posting-payee">Payee (optional)</Label>
-            <Input
+            <PayeeCombobox
               id="edit-posting-payee"
               value={payee}
-              onChange={(e) => setPayee(e.target.value)}
+              onChange={setPayee}
               placeholder="e.g. Supermarket, Employer"
               maxLength={200}
             />

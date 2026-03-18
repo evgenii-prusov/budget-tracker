@@ -182,6 +182,15 @@ export function useDeletePosting() {
   });
 }
 
+export function usePayeeSuggestions(query: string) {
+  return useQuery<string[]>({
+    queryKey: queryKeys.postings.payeeSuggestions(query),
+    queryFn: () => api.postings.suggestPayees(query),
+    enabled: query.length >= 1,
+    staleTime: 60_000,
+  });
+}
+
 // --- Transfers (useInfiniteQuery) ---
 
 export function useTransfers() {

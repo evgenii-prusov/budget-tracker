@@ -611,3 +611,36 @@ def test_delete_posting_restores_account_balance(client, test_data):
     account_after_delete = client.get(f"/accounts/{account_id}")
     balance_after_delete = Decimal(account_after_delete.json()["balance"])
     assert balance_after_delete == initial_balance
+
+
+def test_suggest_payees_endpoint(client, test_data):
+    account_id = test_data["account_id"]
+    income_category_id = test_data["income_category_id"]
+
+    # Create postings with payees
+    for payee in ["Lidl", "Lidl", "Landlord", "Aldi"]:
+        client.post(
+            "/postings/",
+            json={
+                "account_id": account_id,
+                "amount": "100.00",
+                "posting_date": JAN_01.isoformat(),
+                "posting_type": "INCOME",
+                "category_id": income_category_id,
+                "payee": payee,
+            },
+        )
+
+    response = client.get("/postings/payees", params={"q": "L"})
+    assert response.status_code == 200
+    result = response.json()
+    assert isinstance(result, list)
+    # Lidl has 2 occurrences, Landlord has 1
+    assert result[0] == "Lidl"
+    assert "Landlord" in result
+    assert "Aldi" not in result  # doesn't start with "L"
+
+
+def test_suggest_payees_requires_query(client):
+    response = client.get("/postings/payees")
+    assert response.status_code == 422

@@ -80,3 +80,16 @@ class SqlAlchemyAccountRepository(AbstractAccountRepository):
             delete(postings).where(postings.c.posting_id == posting_id)
         )
         return result.rowcount > 0
+
+    def suggest_payees(self, prefix: str, limit: int = 10) -> list[str]:
+        from sqlalchemy import func
+
+        stmt = (
+            select(postings.c.payee)
+            .where(postings.c.payee.ilike(f"{prefix}%"))
+            .where(postings.c.payee.isnot(None))
+            .group_by(postings.c.payee)
+            .order_by(func.count().desc())
+            .limit(limit)
+        )
+        return list(self.session.execute(stmt).scalars().all())

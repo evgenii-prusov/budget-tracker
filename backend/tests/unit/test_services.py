@@ -51,6 +51,7 @@ from app.service_layer.services import get_transfer
 from app.service_layer.services import list_transfers
 from app.service_layer.services import get_settings
 from app.service_layer.services import update_settings
+from app.service_layer.services import suggest_payees
 from tests.constants import JAN_01
 
 
@@ -86,6 +87,17 @@ class FakeAccountRepository(AbstractAccountRepository):
                 acc.remove_posting(posting_id)
                 return True
         return False
+
+    def suggest_payees(self, prefix: str, limit: int = 10) -> list[str]:
+        from collections import Counter
+
+        payees = [p.payee for a in self._accounts for p in a.postings if p.payee]
+        counts = Counter(payees)
+        matches = [
+            (name, cnt) for name, cnt in counts.items() if name.lower().startswith(prefix.lower())
+        ]
+        matches.sort(key=lambda x: -x[1])
+        return [name for name, _ in matches[:limit]]
 
 
 class FakeTransferRepository(AbstractTransferRepository):
@@ -1737,3 +1749,43 @@ class TestSettings:
             settings.primary_currency = "INVALID"
         # Original value unchanged
         assert settings.primary_currency == "EUR"
+
+
+class TestSuggestPayees:
+    def _make_uow_with_postings(self, payees: list[str]) -> FakeUnitOfWork:
+        """Helper: create a UoW with an account containing postings with given payee names."""
+        uow = FakeUnitOfWork()
+        account = create_account(uow, name="Main", currency="EUR", initial_balance=Decimal("0"))
+        for p in payees:
+            create_posting(
+                uow,
+                account_id=account.account_id,
+                amount=Decimal("10"),
+                posting_date=JAN_01,
+                posting_type=PostingType.INCOME,
+                payee=p,
+            )
+        return uow
+
+    def test_suggest_payees_returns_matching_payees_ordered_by_frequency(self):
+        uow = self._make_uow_with_postings(["Lidl", "Lidl", "Landlord", "Aldi"])
+        result = suggest_payees(uow, prefix="L")
+        # Lidl has 2 occurrences, Landlord has 1 — Lidl should come first
+        assert result == ["Lidl", "Landlord"]
+
+    def test_suggest_payees_no_matches(self):
+        uow = self._make_uow_with_postings(["Lidl", "Aldi"])
+        result = suggest_payees(uow, prefix="Xyz")
+        assert result == []
+
+    def test_suggest_payees_case_insensitive(self):
+        uow = self._make_uow_with_postings(["McDonald's"])
+        result = suggest_payees(uow, prefix="mcd")
+        assert result == ["McDonald's"]
+
+    def test_suggest_payees_respects_limit(self):
+        # Create 15 distinct payees
+        payees = [f"Store_{i:02d}" for i in range(15)]
+        uow = self._make_uow_with_postings(payees)
+        result = suggest_payees(uow, prefix="Store", limit=5)
+        assert len(result) == 5
