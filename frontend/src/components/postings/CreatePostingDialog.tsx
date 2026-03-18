@@ -24,6 +24,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { useAccounts, useCategoryParents, useCreatePosting } from "@/api/hooks";
+import { PayeeCombobox } from "@/components/postings/PayeeCombobox";
 import { parseApiError } from "@/lib/errors";
 import { showToast } from "@/lib/toast";
 import type { PostingType } from "@/api/types";
@@ -267,10 +268,10 @@ export function CreatePostingDialog({
           {/* Payee */}
           <div className="space-y-2">
             <Label htmlFor="posting-payee">Payee (optional)</Label>
-            <Input
+            <PayeeCombobox
               id="posting-payee"
               value={payee}
-              onChange={(e) => setPayee(e.target.value)}
+              onChange={setPayee}
               placeholder="e.g. Supermarket, Employer"
               maxLength={200}
             />

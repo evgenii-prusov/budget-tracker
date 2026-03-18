@@ -151,6 +151,8 @@ export const api = {
       }),
     delete: (id: string) =>
       request<void>(`/postings/${id}`, { method: "DELETE" }),
+    suggestPayees: (q: string, limit = 10) =>
+      request<string[]>(`/postings/payees${buildQuery({ q, limit })}`),
   },
 
   transfers: {

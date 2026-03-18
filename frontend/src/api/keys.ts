@@ -16,6 +16,7 @@ export const queryKeys = {
       accountId
         ? (["postings", { accountId }] as const)
         : (["postings"] as const),
+    payeeSuggestions: (q: string) => ["postings", "payees", q] as const,
   },
   transfers: {
     all: ["transfers"] as const,

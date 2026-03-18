@@ -32,3 +32,8 @@ class AbstractAccountRepository(abc.ABC):
     def delete_posting_by_id(self, posting_id: str) -> bool:
         """Delete a posting directly by ID. Returns True if found and deleted, False otherwise."""
         raise NotImplementedError()
+
+    @abc.abstractmethod
+    def suggest_payees(self, prefix: str, limit: int = 10) -> list[str]:
+        """Return distinct payee values matching prefix, ordered by frequency (most-used first)."""
+        raise NotImplementedError()

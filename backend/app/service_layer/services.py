@@ -297,6 +297,11 @@ def update_posting(
         return updated
 
 
+def suggest_payees(uow: AbstractUnitOfWork, *, prefix: str, limit: int = 10) -> list[str]:
+    with uow:
+        return uow.accounts.suggest_payees(prefix, limit=limit)
+
+
 def delete_posting(uow: AbstractUnitOfWork, *, posting_id: str) -> None:
     with uow:
         found = uow.accounts.delete_posting_by_id(posting_id)
